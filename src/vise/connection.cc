@@ -14,7 +14,6 @@ vise::connection::connection(boost::asio::io_service &io_service,
    d_socket(io_service),
    d_manager(manager)
 {
-  std::cout << "Initialized connection" << std::endl;
 }
 
 boost::asio::ip::tcp::socket& vise::connection::socket() {

@@ -67,8 +67,6 @@ void vise::http_server::stop() {
 }
 
 void vise::http_server::start() {
-  std::cout << "http_server:: starting ..."
-            << std::endl;
   std::vector< boost::shared_ptr<boost::thread> > threads;
   for ( std::size_t i = 0; i < d_thread_pool_size; ++i ) {
     // these threads will block until async operations are complete

@@ -1,5 +1,5 @@
 /** @file project_manager.h
- *  @brief Manages the creation, query, update and deletion of VISE projects
+ *  @brief Manages the creation, indexing, query, update and deletion of VISE projects
  *  @author Abhishek Dutta
  *  @date 13 Nov. 2019
  */
@@ -9,22 +9,63 @@
 #include "vise_util.h"
 #include "http_request.h"
 #include "http_response.h"
+#include "project.h"
 
 #include <map>
 #include <string>
 #include <iostream>
+#include <utility>
+#include <memory>
+#include <mutex>
 
 namespace vise {
   class project_manager {
   public:
     project_manager(std::map<std::string, std::string> const &conf);
-    void process_http_request(http_request const &request, http_response &response);
     ~project_manager() {
       std::cout << "**********destroying project manager" << std::endl;
     }
 
+    // http request handlers
+    void process_http_request(http_request const &request,
+                              http_response &response);
+    void handle_get(http_request const &request,
+                    std::vector<std::string> const &uri,
+                    std::map<std::string, std::string> const &param,
+                    http_response &response);
+    void handle_post(http_request const &request,
+                     std::vector<std::string> const &uri,
+                     std::map<std::string, std::string> const &param,
+                     http_response &response);
+    void handle_put(http_request const &request,
+                    std::vector<std::string> const &uri,
+                    std::map<std::string, std::string> const &param,
+                    http_response &response);
+    void handle_delete(http_request const &request,
+                       std::vector<std::string> const &uri,
+                       std::map<std::string, std::string> const &param,
+                       http_response &response);
+
+    void file_send(boost::filesystem::path fn,
+                   http_response& response);
+    void file_save(http_request const &request,
+                   boost::filesystem::path fn,
+                   http_response& response);
+
+    // project
+    bool project_exists(std::string pname);
+    void project_create(std::string pname);
+    bool project_load(std::string pname);
+    void project_delete(std::string pname);
+    void project_index(std::string pname,
+                       http_response &response);
+
+    static std::string PROJECT_HTML_PAGE_PREFIX;
+    static std::string PROJECT_HTML_PAGE_SUFFIX;
   private:
-    const std::map<std::string, std::string> _conf;
+    std::mutex d_project_load_mutex;
+    const std::map<std::string, std::string> d_conf;
+    std::map<std::string, std::unique_ptr<vise::project> > d_projects;
   };
 }
 #endif

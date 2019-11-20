@@ -58,7 +58,7 @@ namespace vise {
     boost::asio::io_service::strand d_strand; // ensure that only a single thread invokes a handler
     boost::asio::ip::tcp::socket d_socket; // socket instance for this connection
 
-    boost::array<char, 2048> d_buffer;
+    boost::array<char, 524288> d_buffer;
     boost::asio::streambuf d_response_buffer;
     boost::asio::streambuf d_continue_response_buffer;
 

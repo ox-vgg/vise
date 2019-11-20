@@ -14,8 +14,13 @@
 int main(int argc, char **argv) {
   std::cout << "VGG Image Search Engine (VISE)"
             << std::endl;
+  if (argc != 2) {
+    std::cout << "Usage: " << argv[0]
+              << " VISE_CONF_FILENAME" << std::endl;
+    return 0;
+  }
 
-  std::string conf_fn("/home/tlm/code/vise2/data/test/viseconf.txt");
+  std::string conf_fn(argv[1]);
 
   // load VISE configuration
   std::map<std::string, std::string> conf;
@@ -24,4 +29,5 @@ int main(int argc, char **argv) {
   // start http server to serve contents in a web browser
   vise::http_server server(conf);
   server.start();
+  return 0;
 }

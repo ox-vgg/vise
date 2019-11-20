@@ -26,6 +26,8 @@ void vise::http_request::parse(std::string request_chunk) {
     }
   }
 
+  // @todo: for uploaded images as payload, it may be more efficient to
+  // leave them in an array
   if ( d_parser_state == parser_state::HEADER_SEEN_WAITING_FOR_PAYLOAD ) {
     d_payload << request_chunk;
     if ( ((size_t) d_payload.tellp()) == d_content_length ) {
@@ -96,7 +98,8 @@ void vise::http_request::parse(std::string request_chunk) {
           }
         }
 
-        if ( d_method == "POST" && is_header_field_present("Content-Length") ) {
+        if ( (d_method == "POST" || d_method == "PUT") &&
+             is_header_field_present("Content-Length") ) {
           std::istringstream s(header_field_value("Content-Length"));
           s >> d_content_length;
           d_payload << request_chunk.substr(i+1);

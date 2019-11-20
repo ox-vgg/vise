@@ -1,0 +1,18 @@
+## Search Engine
+search_engine=relja_retrival
+# Name of search engine used to index and search images
+
+## Descriptor
+use_root_sift=true
+# Use SIFT feature descriptor
+
+sift_scale_3=true
+# Scale SIFT features by 3 (a heuristic that results in good performance)
+
+## Visual Vocabulary
+
+descriptor_count=-1
+# number of descriptors to use for clustering to generate visual vocabulary
+
+kmeans_iteration_count=10
+# number of iterations of kmeans based clustering

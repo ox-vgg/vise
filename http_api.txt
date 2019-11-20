@@ -1,0 +1,38 @@
+VISE HTTP API
+15 Nov. 2019
+
+## Project
+PUT /{PNAME}
+  Creates a new project. The project name {PNAME} must conform to the
+  following rules:
+  - name can only contain characters (A-Z, a-z) and numbers (0-9)
+  - cannot begin with an underscore (i.e. _ )
+  - cannot contain spaces
+  - cannot contain special characters ($, (, ), +, -, /, *, !, etc.)
+
+DELETE /{PNAME}
+  Deletes the specified project and all its images, metadata, etc.
+
+GET /{PNAME}
+
+HEAD /{PNAME}
+
+POST /{PNAME}
+  Create a new project based on project data (e.g. images, metadata)
+  provided in the supplied JSON data.
+
+## Project Assets (e.g. images, configuration, etc)
+PUT /{PNAME}/{ASSET_NAME}
+  Stores the asset data (passed as data of PUT request) in the
+  project store
+
+POST /{PNAME}/_conf
+  save configuration of the project
+
+GET /{PNAME}/_conf
+  fetch current configuration of a project
+
+POST /{PNAME}/_index
+
+GET /{PNAME}/_status
+GET /{PNAME}/_progress

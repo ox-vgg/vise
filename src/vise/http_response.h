@@ -42,6 +42,9 @@ namespace vise {
       case 400:
         d_status += "400 Bad Request";
         break;
+      case 412:
+        d_status += "412 Precondition Failed";
+        break;
       default:
         d_status += "400 Bad Request";
       }
@@ -95,6 +98,10 @@ namespace vise {
       }
       s << "\r\n" << d_payload;
       return s.str();
+    }
+    void redirect_to(std::string location) {
+      set_status(303);
+      set_field("Location", location);
     }
   };
 }

@@ -11,12 +11,50 @@
 #include <map>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
 
+#include <boost/filesystem.hpp>
+
 namespace vise {
+  // VISE configuration
   void configuration_load(std::string filename,
                           std::map<std::string, std::string> &conf );
 
   void configuration_show(std::map<std::string, std::string> const &conf);
+
+  // string
+  bool starts_with(const std::string &s, const std::string prefix);
+  bool ends_with(const std::string &s, const std::string suffix);
+  bool contains(const std::string &s, const std::string substr);
+  std::vector<std::string> split(const std::string &s, const char separator);
+  void split(const std::string &s,
+             const char separator,
+             const std::string stop_string,
+             std::vector<std::string> &chunks);
+  void decompose_uri(const std::string &uri,
+                     std::vector<std::string>& uri_components,
+                     std::map<std::string, std::string>& uri_param);
+
+  // file
+  bool load_file(const boost::filesystem::path fn,
+                 std::string& file_content);
+
+  // print
+  template<typename T>
+  void print_vector( std::string name, std::vector<T> const &v ) {
+    if (v.size() == 0) {
+      return;
+    }
+    std::ostringstream s;
+    s << v[0];
+    for ( std::size_t i = 1; i < v.size(); ++i ) {
+      s << "," << v[i];
+    }
+    std::cout << name << " = [" << s.str() << "]" << std::endl;
+  }
+
+  void print_map(std::string name,
+                 std::map<std::string, std::string> const &m );
 }
 #endif
