@@ -23,15 +23,16 @@ void vise::project::index() {
   // load configuration
   boost::filesystem::path project_config_fn = d_datadir / "conf.txt";
   vise::configuration_load(project_config_fn.string(), d_pconf);
+  d_pconf["storedir"] = d_storedir.string() + boost::filesystem::path::preferred_separator;
+  d_pconf["datadir"] = d_datadir.string() + boost::filesystem::path::preferred_separator;
 
-  vise::configuration_show(d_pconf);
-  /*
   if (d_pconf.at("search_engine") == "relja_retrival") {
-    d_search_engine = std::make_unique<vise::search_engine>();
+    std::cout << "initializing instance of relja_retrival" << std::endl;
+    d_search_engine = std::unique_ptr<vise::relja_retrival>(new relja_retrival(d_pconf));
+    d_search_engine->index();
   } else {
     std::cout << "Unknown search engine ["
               << d_pconf.at("search_engine") << "]"
               << std::endl;
   }
-  */
 }

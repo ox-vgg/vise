@@ -1,0 +1,13 @@
+package rr;
+
+option optimize_for = SPEED;
+
+message hammingData {
+    required uint32 k = 1;
+    required uint32 numdims = 2;
+    required uint32 numbits = 3;
+    
+    // obsolete as these are too large for protobuf when k>200k
+    repeated float median = 4 [packed=true];
+    repeated float rotation = 5 [packed=true];
+}

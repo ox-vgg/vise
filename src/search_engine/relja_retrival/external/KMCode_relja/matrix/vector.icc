@@ -1,0 +1,55 @@
+/****************************************************************************/
+/*                                                                          */
+/* Projet : Librairie Matrices                                              */
+/*                                                                          */
+/* Auteur : Stephane Christy                                                */
+/*                                                                          */
+/* Date   : Aout 1994                                                       */
+/*                                                                          */
+/* Module : Fonctions inline                                                */
+/*                                                                          */
+/****************************************************************************/
+
+
+inline double Vector::operator ()(int r) const         // acces a un element d'un vecteur
+{
+  #ifdef DEBUG
+  if (r < 1 || r > nbRows())
+    error("debordement indice de ligne");
+  #endif
+
+  return tabVect[r];
+}
+
+
+inline double& Vector::operator ()(int r)         // acces a un element d'un vecteur
+{
+  #ifdef DEBUG
+  if (r < 1 || r > nbRows())
+    error("debordement indice de ligne");
+  #endif
+
+  return tabVect[r];
+}
+
+
+inline double Vector::operator ()(int r, int) const  // acces a un element d'un vecteur
+{
+  #ifdef DEBUG
+  if (r < 1 || r > nbRows())
+    error("debordement indice de ligne");
+  #endif
+
+  return tabVect[r];
+}
+
+
+inline double& Vector::operator ()(int r, int)  // acces a un element d'un vecteur
+{
+  #ifdef DEBUG
+  if (r < 1 || r > nbRows())
+    error("debordement indice de ligne");
+  #endif
+
+  return tabVect[r];
+}

@@ -1,5 +1,5 @@
 /** @file search_engine.h
- *  @brief visual search engine module
+ *  @brief An interface for visual search engine modules
  *  @author Abhishek Dutta
  *  @date 19 Nov. 2019
  */
@@ -11,8 +11,13 @@
 namespace vise {
   class search_engine {
   public:
-    search_engine();
-    ~search_engine();
+    search_engine(std::string se_name);
+    virtual ~search_engine();
+    virtual void index() = 0;
+    virtual void search() = 0;
+
+  private:
+    const std::string d_se_name;
   };
 }
 #endif

@@ -23,7 +23,7 @@ namespace vise {
   public:
     project_manager(std::map<std::string, std::string> const &conf);
     ~project_manager() {
-      std::cout << "**********destroying project manager" << std::endl;
+      std::cout << "~project_manager()" << std::endl;
     }
 
     // http request handlers

@@ -8,8 +8,10 @@
 
 #include "search_engine.h"
 #include "vise_util.h"
+#include "relja_retrival/relja_retrival.h"
 
 #include <memory>
+#include <boost/filesystem.hpp>
 
 namespace vise {
   enum class SEARCH_ENGINE_ID { RELJA_RETRIVAL, _RESERVED_FOR_FUTURE };

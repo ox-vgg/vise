@@ -1,0 +1,11 @@
+package rr;
+
+option optimize_for = SPEED;
+
+message protoDbHeader {
+    // byte offsets for ids
+    // if offset[id]==offset[id+1] it means that there is no data stored for id (thus note that we need to store 1 extra offset to mark the end of data)
+    repeated uint64 offset = 1 [packed=true];
+    
+    optional string description = 2;
+}

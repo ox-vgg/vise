@@ -1,0 +1,8 @@
+package rr;
+
+option optimize_for = SPEED;
+
+message tfidfData {
+    repeated float idf = 1 [packed=true];
+    repeated float docL2 = 2 [packed=true];
+}

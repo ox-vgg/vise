@@ -1,0 +1,55 @@
+/****************************************************************************/
+/*                                                                          */
+/* Projet : Librairie Matrices                                              */
+/*                                                                          */
+/* Auteur : Stephane Christy                                                */
+/*                                                                          */
+/* Date   : Aout 1994                                                       */
+/*                                                                          */
+/* Module : Fonctions inline                                                */
+/*                                                                          */
+/****************************************************************************/
+
+
+inline double Matrix::operator ()(int r, int c) const  // acces a un element d'une matrice
+{
+#ifdef DEBUG
+  if (r < 1 || r > nbRows())
+    error("debordement indice de ligne");
+  if (c < 1 || c > nbCols())
+    error("debordement indice de colonne");
+#endif
+  
+  return tabMat[r][c];
+}
+
+
+inline double& Matrix::operator ()(int r, int c)   // acces a un element d'une matrice
+{
+#ifdef DEBUG
+  if (r < 1 || r > nbRows())
+    error("debordement indice de ligne");
+  if (c < 1 || c > nbCols())
+    error("debordement indice de colonne");
+  #endif
+
+  return tabMat[r][c];
+}
+
+
+inline int Matrix::nbRows(void) const    // nb de lignes
+{
+  return rows;
+}
+
+
+inline int Matrix::nbCols(void) const    // nb de colonnes
+{
+  return cols;
+}
+
+
+inline int Matrix::nbElts(void) const    // nb d'elements
+{
+  return rows * cols;
+}

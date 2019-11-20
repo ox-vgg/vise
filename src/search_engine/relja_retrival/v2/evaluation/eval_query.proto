@@ -1,0 +1,16 @@
+package rr;
+
+option optimize_for = SPEED;
+
+message evalQuery {
+    required string filename = 1;
+    optional string queryname = 2;
+    
+    optional float xl = 3;
+    optional float xu = 4;
+    optional float yl = 5;
+    optional float yu = 6;
+    
+    repeated string positives = 7;
+    repeated string ignores = 8;
+}

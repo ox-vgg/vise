@@ -1,8 +1,23 @@
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+# search_engine::relja_retrival
+# for protobufs
+# protobuf compiles *.pb.cc and *.pb.h headers in the cmake build tree
+# therefore, we need to include the corresponding folders in the build tree
+# should point to a folder inside "cmake_build/"
+include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/util )
+include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/dataset )
+include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/embedding )
+include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/evaluation )
+include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/indexing )
+include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/retrieval )
+
+
 add_library(vise_util STATIC vise_util.cc)
 
 add_library(search_engine STATIC search_engine.cc)
 add_library(project STATIC project.cc)
-target_link_libraries(project search_engine vise_util)
+target_link_libraries(project search_engine vise_util relja_retrival)
 
 add_library(http_request STATIC http_request.cc)
 add_library(http_response STATIC http_response.cc)

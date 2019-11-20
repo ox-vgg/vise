@@ -3,7 +3,7 @@
 project_store=/home/tlm/_tmp/vise/store/
 # All image files added to a project is stored in this folder.
 
-vise_store=/home/tlm/_tmp/vise/visedata/
+vise_store=/home/tlm/_tmp/vise/data/
 # VISE application data (e.g. index files, configuration, etc) are stored here.
 
 www_root=/home/tlm/code/vise2/src/www/

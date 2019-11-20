@@ -1,0 +1,21 @@
+package rr;
+
+option optimize_for = SPEED;
+
+message buildIndexStatus {
+    
+    enum indexingState {
+        beginning = 0;
+        semiSorted = 1;
+        sorted = 2;
+        merged = 3;
+        done = 4;
+    }
+    
+    required indexingState state = 1;
+    
+    repeated string filename = 2;
+    repeated string fidx_filename = 3;
+    
+    optional uint64 totalfeats = 4;
+}

@@ -1,0 +1,9 @@
+package rr;
+
+option optimize_for = SPEED;
+
+message datasetEntry {
+    repeated string filename = 1;
+    repeated uint32 width = 2 [packed=true];
+    repeated uint32 height = 3 [packed=true];
+}

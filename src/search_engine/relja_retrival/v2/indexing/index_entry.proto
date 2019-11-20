@@ -1,0 +1,38 @@
+package rr;
+
+option optimize_for = SPEED;
+
+message indexEntry {
+    repeated uint32 id = 1 [packed=true];
+    
+    // simple differential encoding of ids
+    repeated uint32 diffid = 2 [packed=true];
+    
+    // geometry
+    repeated float x = 3 [packed=true];
+    repeated float y = 4 [packed=true];
+    repeated float a = 5 [packed=true];
+    repeated float b = 6 [packed=true];
+    repeated float c = 7 [packed=true];
+    
+    // quantized geometry
+    repeated uint32 qx = 8 [packed=true]; // round(x)
+    repeated uint32 qy = 9 [packed=true]; // round(y)
+    optional bytes qel_scale = 10; // log2(a*c-b^2) quantized to [-35, -8]
+    optional bytes qel_ratio = 11; // log2(eig1/eig2) quantized to [0, 6]
+    optional bytes qel_angle = 12; // angle of major axes [-pi/2, pi/2]
+    
+    // term frequency or number of aggregated features
+    repeated uint32 count = 13 [packed=true];
+    // for soft assignment
+    repeated float weight = 14 [packed=true];
+    
+    // additional data like compressed residuals (e.g. via PQ)
+    optional bytes data = 15;
+    
+    // which ones to keep/ignore (used by indexProtoLimit)
+    repeated bool keep = 16 [packed=true];
+    
+    // for indexing stage
+    repeated uint32 docid = 51 [packed=true];
+}

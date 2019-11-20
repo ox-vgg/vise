@@ -11,7 +11,7 @@ sift_scale_3=true
 
 ## Visual Vocabulary
 
-descriptor_count=-1
+bow_descriptor_count=-1
 # number of descriptors to use for clustering to generate visual vocabulary
 
 kmeans_iteration_count=10
