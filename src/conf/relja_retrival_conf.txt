@@ -14,5 +14,11 @@ sift_scale_3=true
 bow_descriptor_count=-1
 # number of descriptors to use for clustering to generate visual vocabulary
 
-kmeans_iteration_count=10
+cluster_num_iteration=10
 # number of iterations of kmeans based clustering
+
+bow_cluster_count=10000
+# number of words in visual vocabulary (i.e. number of clusters in descriptor space).
+
+hamm_embedding_bits=64
+# number of bits to use for hamming embedding. For large dataset, use a value of 32

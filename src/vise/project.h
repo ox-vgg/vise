@@ -11,6 +11,8 @@
 #include "relja_retrival/relja_retrival.h"
 
 #include <memory>
+#include <thread>
+
 #include <boost/filesystem.hpp>
 
 namespace vise {
@@ -29,11 +31,13 @@ namespace vise {
     std::string d_pname;
     boost::filesystem::path d_storedir;
     boost::filesystem::path d_datadir;
+    boost::filesystem::path d_pconf_fn;
 
     const std::map<std::string, std::string> d_conf;  // VISE application configuration
     std::map<std::string, std::string> d_pconf;       // project configuration
-    PROJECT_STATE d_state;
     std::unique_ptr<vise::search_engine> d_search_engine;
+
+    std::thread d_index_thread;
   };
 }
 #endif

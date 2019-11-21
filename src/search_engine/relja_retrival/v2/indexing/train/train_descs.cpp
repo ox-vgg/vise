@@ -201,12 +201,6 @@ namespace buildIndex {
 
     MPI_GLOBAL_RANK;
 
-    if (boost::filesystem::exists(trainDescsFn)){
-      if (rank==0)
-        std::cout<<"buildIndex::computeTrainDescs: trainDescs already exist ("<<trainDescsFn<<")\n";
-      return;
-    }
-
     bool useThreads= detectUseThreads();
     uint32_t numWorkerThreads= omp_get_max_threads();
 
@@ -252,7 +246,7 @@ namespace buildIndex {
     trainDescsWorker worker(imageFns, trainDatabasePath, featGetter_obj);
 
     if (useThreads) {
-      std::cout << "OpenMPI: number of threads = " << numWorkerThreads << std::endl;
+      std::cout << "OpenMP: number of threads = " << numWorkerThreads << std::endl;
       threadQueue<trainDescsResult>::start( nJobs, worker, *manager, numWorkerThreads );
     }
     else {

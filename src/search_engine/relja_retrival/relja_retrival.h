@@ -26,6 +26,7 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <thread>
 
 #include <boost/filesystem.hpp>
 
@@ -37,14 +38,28 @@ namespace vise {
     void index() override;
     void search() override;
   private:
-    void extract_train_descriptors();
+    void index_run_all_stages();
     void create_file_list();
+    void extract_train_descriptors();
+    void cluster_train_descriptors();
+    void assign_train_descriptors();
+    void hamm_train_descriptors();
+    void create_index();
 
     const std::map<std::string, std::string> d_pconf;
     const boost::filesystem::path d_storedir;
     const boost::filesystem::path d_datadir;
     boost::filesystem::path d_filelist_fn;
     boost::filesystem::path d_traindesc_fn;
+    boost::filesystem::path d_bowcluster_fn;
+    boost::filesystem::path d_trainassign_fn;
+    boost::filesystem::path d_trainhamm_fn;
+    boost::filesystem::path d_index_dset_fn;
+    boost::filesystem::path d_index_iidx_fn;
+    boost::filesystem::path d_index_fidx_fn;
+    boost::filesystem::path d_index_tmp_dir;
+
+    std::thread d_thread_index;
   };
 }
 #endif

@@ -16,15 +16,15 @@ vise::project::~project() {
 }
 
 void vise::project::index() {
-  d_state = vise::PROJECT_STATE::INDEX;
   std::cout << "project(): indexing ..."
             << std::endl;
 
   // load configuration
-  boost::filesystem::path project_config_fn = d_datadir / "conf.txt";
-  vise::configuration_load(project_config_fn.string(), d_pconf);
+  d_pconf_fn = d_datadir / "conf.txt";
+  vise::configuration_load(d_pconf_fn.string(), d_pconf);
   d_pconf["storedir"] = d_storedir.string() + boost::filesystem::path::preferred_separator;
   d_pconf["datadir"] = d_datadir.string() + boost::filesystem::path::preferred_separator;
+  vise::configuration_show(d_pconf);
 
   if (d_pconf.at("search_engine") == "relja_retrival") {
     std::cout << "initializing instance of relja_retrival" << std::endl;

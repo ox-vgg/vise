@@ -101,6 +101,7 @@ void project_manager::handle_get(http_request const &request,
         fn = fn / pname;
         fn = fn / "conf.txt";
         file_send(fn, response);
+        return;
       }
     }
 
