@@ -1,5 +1,6 @@
 ADD_DEFINITIONS(-DRR_REGISTER)
 ADD_DEFINITIONS(-DRR_MAGICK)
+set( cREGISTER 1 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DEIGEN_NO_DEBUG -O2 -g3 -msse2 -mpopcnt")
 
@@ -47,8 +48,8 @@ add_subdirectory( util )
 add_subdirectory( v2 )
 
 add_library(relja_retrival STATIC relja_retrival.cc)
-target_link_libraries(relja_retrival 
-  search_engine 
+target_link_libraries(relja_retrival
+  search_engine
   build_index
   dataset_v2
   embedder
@@ -59,6 +60,19 @@ target_link_libraries(relja_retrival
   train_descs
   train_hamming
   train_cluster
+  dataset_v2
+  proto_db
+  proto_db_file
+  proto_index
+  slow_construction
+  feat_standard
+  clst_centres
+  hamming
+  hamming_embedder
+  spatial_api
+  spatial_verif_v2
+  tfidf_v2
+  mq_filter_outliers
   ${Boost_LIBRARIES}
+  ${ImageMagick_LIBRARIES}
 )
-

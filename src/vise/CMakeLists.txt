@@ -37,4 +37,8 @@ target_link_libraries(vise vise_util http_server)
 add_executable(unit_tests unit_tests.cc)
 target_link_libraries(unit_tests vise_util ${Boost_LIBRARIES})
 
-add_test(unit_tests unit_tests)
+add_executable(project_manager_test project_manager_test.cc)
+target_link_libraries(project_manager_test project_manager http_request http_response project ${Boost_LIBRARIES})
+
+add_test(NAME unit_tests COMMAND unit_tests WORKING_DIRECTORY ${VISE_SOURCE_ROOT_DIR})
+add_test(NAME project_manager_test COMMAND project_manager_test WORKING_DIRECTORY ${VISE_SOURCE_ROOT_DIR})

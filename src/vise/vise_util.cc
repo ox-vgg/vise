@@ -63,7 +63,8 @@ bool vise::contains(const std::string &s, const std::string substr) {
   }
 }
 
-std::vector<std::string> vise::split(const std::string &s, const char separator) {
+std::vector<std::string> vise::split(const std::string &s,
+                                     const char separator) {
   std::vector<std::string> chunks;
   std::vector<std::size_t> seperator_index_list;
 
@@ -86,30 +87,30 @@ std::vector<std::string> vise::split(const std::string &s, const char separator)
 
 void vise::split(const std::string &s,
                  const char separator,
-                 const std::string stop_string,
+                 const std::size_t start,
+                 const std::size_t stop,
                  std::vector<std::string> &chunks) {
-  chunks.clear();
-  if (s.size() == 0) {
+  if(s.size() == 0) {
+    return;
+  }
+  if(start==stop) {
     return;
   }
 
-  std::size_t start = 0;
-  std::size_t stop = s.find(stop_string);
-  if (stop == std::string::npos) {
-    stop = s.size();
-  }
-  std::size_t sep = s.find(separator, start);
-  if (sep == std::string::npos ||
-      sep >= stop) {
+  std::size_t current_index = start;
+  std::size_t sep = s.find(separator, current_index);
+  if(sep == std::string::npos ||
+     sep >= stop) {
     chunks.push_back(s.substr(start, stop-start));
     return;
   } else {
-    while (sep < stop) {
-      chunks.push_back(s.substr(start, sep-start));
-      start = sep + 1;
-      sep = s.find(separator, start);
-      if (sep == std::string::npos) {
-        chunks.push_back(s.substr(start, stop-start));
+    while(sep < stop) {
+      chunks.push_back(s.substr(current_index, sep-current_index));
+      current_index = sep + 1;
+      sep = s.find(separator, current_index);
+      if(sep == std::string::npos ||
+         sep >= stop) {
+        chunks.push_back(s.substr(current_index, stop-current_index));
         break;
       }
     }
@@ -119,18 +120,26 @@ void vise::split(const std::string &s,
 void vise::decompose_uri(const std::string &uri,
                          std::vector<std::string>& uri_components,
                          std::map<std::string, std::string>& uri_param) {
-  vise::split(uri, '/', "?", uri_components);
-  std::size_t n = uri_components.size();
+  const char stop_char = '?';
+  const char sep_char = '/';
+  uri_components.clear();
+  uri_param.clear();
+  std::size_t start = 0;
+  std::size_t stop = uri.find(stop_char);
+  if(stop==std::string::npos) {
+    stop = uri.size();
+  }
+  vise::split(uri, sep_char, start, stop, uri_components);
 
-  std::size_t param_start_index = uri_components.at(n-1).find('?');
-  if ( param_start_index != std::string::npos ) {
-    std::string param_str = uri_components.at(n-1).substr( param_start_index + 1 );
-    uri_components.at(n-1) = uri_components.at(n-1).substr(0, param_start_index);
+  if(stop!=uri.size()) {
+    std::string param_str = uri.substr(stop+1);
+    if(param_str.size()==0) {
+      return;
+    }
     std::vector<std::string> param_list = vise::split(param_str, '&');
 
     std::size_t np = param_list.size();
     if ( np ) {
-      uri_param.clear();
       for ( std::size_t i = 0; i < np; ++i ) {
         std::vector<std::string> pi = vise::split(param_list.at(i), '=');
         if ( pi.size() == 2 ) {
@@ -141,7 +150,7 @@ void vise::decompose_uri(const std::string &uri,
   }
 }
 
-bool vise::load_file(const boost::filesystem::path fn,
+bool vise::file_load(const boost::filesystem::path fn,
                            std::string& file_content)
 {
   if( !boost::filesystem::exists(fn) ) {
@@ -166,6 +175,21 @@ bool vise::load_file(const boost::filesystem::path fn,
     return true;
   } catch(std::exception &e) {
     std::cout << "failed to load file [" << fn.string() << "]" << std::endl;
+    return false;
+  }
+}
+
+bool vise::file_save(const boost::filesystem::path fn,
+                           std::string& file_content)
+{
+  try {
+    std::ofstream f;
+    f.open(fn.string().c_str());
+    f << file_content;
+    f.close();
+    return true;
+  } catch(std::exception &e) {
+    std::cout << "failed to save file [" << fn.string() << "]" << std::endl;
     return false;
   }
 }

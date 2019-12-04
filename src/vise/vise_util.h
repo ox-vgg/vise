@@ -30,14 +30,17 @@ namespace vise {
   std::vector<std::string> split(const std::string &s, const char separator);
   void split(const std::string &s,
              const char separator,
-             const std::string stop_string,
+             const std::size_t start,
+             const std::size_t stop,
              std::vector<std::string> &chunks);
   void decompose_uri(const std::string &uri,
                      std::vector<std::string>& uri_components,
                      std::map<std::string, std::string>& uri_param);
 
   // file
-  bool load_file(const boost::filesystem::path fn,
+  bool file_load(const boost::filesystem::path fn,
+                 std::string& file_content);
+  bool file_save(const boost::filesystem::path fn,
                  std::string& file_content);
 
   // print

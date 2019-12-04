@@ -16,6 +16,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set( BUILD_SHARED_LIBS "ON" )
+set( VISE_SOURCE_ROOT_DIR ${CMAKE_SOURCE_DIR}/../ )
+
+set(CTEST_OUTPUT_ON_FAILURE 1)
 
 ## Boost
 set(Boost_DEBUG 0)
@@ -62,6 +65,8 @@ message("Protobuf_LIBRARIES: " ${Protobuf_LIBRARIES} )
 message("EIGEN3_INCLUDE_DIR: " ${EIGEN3_INCLUDE_DIR} )
 message("VLFEAT_LIB: " ${VLFEAT_LIB} )
 message("VLFEAT_INCLUDE_DIR: " ${VLFEAT_INCLUDE_DIR} )
+message("CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
+message("VISE_SOURCE_ROOT_DIR: " ${VISE_SOURCE_ROOT_DIR} )
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # i.e. include_directories(.)
 include_directories( . )

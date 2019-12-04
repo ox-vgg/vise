@@ -57,6 +57,14 @@ vise::http_server::http_server(std::map<std::string, std::string> const &conf)
             << d_conf.at("address") << ":" << d_conf.at("port")
             << " (with " << d_thread_pool_size << " threads)"
             << std::endl;
+
+  /*
+  // DEBUG CODE
+  std::cout << "vise::http_server::http_server(): executing DEBUG code now"
+            << std::endl;
+  d_manager->debug();
+  stop();
+  */
 }
 
 void vise::http_server::stop() {

@@ -17,15 +17,18 @@ namespace vise {
   class http_response {
   public:
     std::string d_status;
+    unsigned int d_status_code;
     std::map<std::string,std::string> d_fields;
     std::string d_payload;
 
     http_response() {
       d_status = "HTTP/1.1 200 OK";
+      d_status_code = 200;
     }
 
     void set_status(unsigned int response_code) {
       d_status = "HTTP/1.1 ";
+      d_status_code = response_code;
       switch(response_code) {
       case 100:
         d_status += "100 Continue";
@@ -47,6 +50,7 @@ namespace vise {
         break;
       default:
         d_status += "400 Bad Request";
+        d_status_code = 400;
       }
     }
     void set_field(std::string name, std::string value) {
