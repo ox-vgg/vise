@@ -14,9 +14,8 @@
       <div class="viselogo" title="VGG Image Search Engine (VISE)"><a href="http://www.robots.ox.ac.uk/~vgg/software/vise">VI<span style="color:blue;">S</span>E</a></div>
       <div class="nav">
         <ul>
-          <li><a href="">Home</a></li>
+          <li><a href="index.html">Home</a></li>
           <li><a href="">Settings</a></li>
-          <li><a href="">Shutdown</a></li>
           <li><a href="">About</a></li>
         </ul>
       </div>
@@ -30,105 +29,15 @@
       <div id="message">To search a collection of images, create a new project, add those images to this new project.</div>
     </div>
 
-    <div class="load_project_panel">
-      <h3>Existing Projects</h3>
-
-      <a href="ox5k/index.html">
-        <div class="project">
-          <div class="imgcontainer"><img src="img/ox5k.jpg"></div>
-          <div class="description">Oxford Buildings</div>
-        </div>
-      </a>
-
-      <a href="">
-        <div class="project">
-          <div class="imgcontainer"><img src="img/15ci.jpg"></div>
-          <div class="description">15cILLUSTRATION</div>
-        </div>
-      </a>
-
-      <a href="">
-        <div class="project">
-          <div class="imgcontainer">
-            <img src="img/cylinder_seals.jpg">
-            <progress max="6" value="4"></progress>
-          </div>
-          <div class="description">Cylinder Seals</div>
-
-        </div>
-      </a>
-
-      <a href="">
-        <div class="project">
-          <div class="imgcontainer"><img src="img/bl_bindings.jpg"></div>
-          <div class="description">BL Book Bindings</div>
-        </div>
-      </a>
-
-      <a href="">
-        <div class="project">
-          <div class="imgcontainer"><img src="img/fleuron.png"></div>
-          <div class="description">Book Ornaments (FLEURON)</div>
-        </div>
-      </a>
-
-      <a href="">
-        <div class="project">
-          <div class="imgcontainer"><img src="img/19cbooks.jpg"></div>
-          <div class="description">19th Century Books</div>
-        </div>
-      </a>
+    <div class="existing_projects_panel">
+      <!-- content is automatically populated by Javascript code included in _vise.js -->
     </div>
 
+    <script src="vise.js"></script>
     <script>
-      var _via_msg_clear_timer; // holds a reference to current message timeout
-
-      function _vise_create_project() {
-        var pname = document.getElementById("pname").value;
-        console.log(pname + ':' + _vise_is_project_name_valid(pname))
-        if (! _vise_is_project_name_valid(pname)) {
-          _vise_show_msg('Invalid project name. Project name can only contains characters (a-z and A-Z), numbers (0-9), underscore (_) and dash (-). For example, "Oxford_Buildings-5000"');
-          return;
-        } else {
-          _vise_clear_msg();
-        }
-
-        var xhr = new XMLHttpRequest();
-        xhr.addEventListener('load', function() {
-          switch(xhr.status) {
-          case 200:
-            var response = JSON.parse(xhr.responseText);
-            window.location.replace = response.uri;
-            break;
-          default:
-            _vise_show_msg('Failed to create project (' + xhr.responseText + ')');
-          }
-        });
-        xhr.addEventListener('timeout', function(e) {
-          _vise_show_msg('Timeout occured while contacting VISE server');
-        });
-        xhr.addEventListener('error', function(e) {
-          _vise_show_msg('Error occured while contacting VISE server');
-        });
-        xhr.open('PUT', '/' + pname);
-        xhr.send();
-      }
-
-      function _vise_is_project_name_valid(pname) {
-        if (pname.match(/^[a-zA-Z0-9_-]+$/)) {
-          return true;
-        }
-        else {
-          return false;
-        }
-      }
-
-      function _vise_show_msg(message) {
-        document.getElementById('message').innerHTML = message;
-      }
-      function _vise_clear_msg() {
-        document.getElementById('message').innerHTML = '&nbsp;';
-      }
+      // 1. Create a list of existing projects
+      var existing_projects_panel = document.getElementById('existing_projects_panel');
+      _vise_show_existing_projects(existing_projects_panel);
     </script>
   </body>
 </html>

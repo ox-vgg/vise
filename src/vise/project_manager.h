@@ -24,9 +24,7 @@ namespace vise {
   class project_manager {
   public:
     project_manager(std::map<std::string, std::string> const &conf);
-    ~project_manager() {
-      std::cout << "~project_manager()" << std::endl;
-    }
+    ~project_manager();
 
     // http request handlers
     void process_http_request(http_request const &request,

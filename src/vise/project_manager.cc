@@ -14,6 +14,19 @@ project_manager::project_manager(std::map<std::string, std::string> const &conf)
             << std::endl;
   vise::configuration_show(d_conf);
   d_projects.clear();
+
+  /*
+  // DEBUG
+  std::cout << "project_manager(): DEBUG**********************, loading ox200test"
+            << std::endl;
+  debug();
+  //http_response tmp_response;
+  //project_index_load("ox200test", tmp_response);
+  */
+}
+
+project_manager::~project_manager() {
+  std::cout << "~project_manager()" << std::endl;
 }
 
 // WARNING: this method may be invoked by multiple threads simultaneously
@@ -29,8 +42,8 @@ void project_manager::process_http_request(http_request const &request,
   std::vector<std::string> uri;
   std::map<std::string, std::string> param;
   vise::decompose_uri(request.d_uri, uri, param);
-  vise::print_vector("uri", uri);
-  vise::print_map("param", param);
+  //vise::print_vector("uri", uri);
+  //vise::print_map("param", param);
 
   if (request.d_method == "GET") {
     handle_get(request, uri, param, response);
@@ -173,7 +186,6 @@ void project_manager::handle_post(http_request const &request,
         return;
       }
       if (uri[2] == "_file_add") {
-        std::cout << "adding file " << pname << std::endl;
         project_file_add(pname, param, response);
         return;
       }
@@ -446,11 +458,13 @@ void project_manager::project_index_search(std::string pname,
                                            http_response &response) {
   if( !project_load(pname) ) {
     response.set_status(412);
+    response.set_payload("failed to load project");
     return;
   }
 
   if( !d_projects.at(pname)->index_is_loaded() ) {
     response.set_status(412);
+    response.set_payload("project index not loaded");
     return;
   }
 
@@ -460,8 +474,11 @@ void project_manager::project_index_search(std::string pname,
       param.count("width") == 0 ||
       param.count("height") == 0) {
     response.set_status(412);
+    response.set_payload("one of required param is missing: file_id, x, y, width, height");
     return;
   }
+
+  std::cout << "project_index_search(): " << std::endl;
 
   vise::search_query query(param);
   std::vector<vise::search_result> result;
@@ -474,7 +491,11 @@ void project_manager::project_index_search(std::string pname,
        << "},\"result\":[";
 
   std::vector<vise::search_result>::iterator it;
-  for (it = result.begin(); it != result.end(); ++it) {
+  for(it = result.begin(); it != result.end(); ++it) {
+    if(it!=result.begin()) {
+      json << ",";
+    }
+
     json << "{\"file_id\":" << it->d_file_id << ","
          << "\"filename\":\"" << it->d_filename << "\","
          << "\"score\":" << it->d_score << ","
@@ -482,9 +503,6 @@ void project_manager::project_index_search(std::string pname,
          << "," << it->d_H[3] << "," << it->d_H[4] << "," << it->d_H[5]
          << "," << it->d_H[6] << "," << it->d_H[7] << "," << it->d_H[8]
          << "]}";
-    if ((it+1) != result.end()) {
-      json << ",";
-    }
   }
   json << "]}";
   response.set_payload(json.str());
@@ -522,10 +540,9 @@ bool project_manager::project_index_is_done(std::string pname) {
 void project_manager::project_file_add(std::string pname,
                                        std::map<std::string, std::string> const &param,
                                        http_response &response) {
-  std::cout << param.at("source_type") << std::endl;
-  std::cout << param.at("source_loc") << std::endl;
   if(param.count("source_type") == 0 ||
      param.count("source_loc") == 0 ) {
+    response.set_payload("required fields missing: source_type, source_loc");
     response.set_status(412);
     return;
   }
@@ -570,6 +587,7 @@ void project_manager::project_file_add(std::string pname,
     return;
   } else {
     response.set_status(412);
+    response.set_payload("unknown value for parameter \"source_type\"");
     return;
   }
 }
@@ -583,6 +601,7 @@ void project_manager::project_conf_set(std::string pname,
   boost::filesystem::path fn = d_conf.at("vise_store");
   fn = fn / pname;
   fn = fn / "conf.txt";
+  std::cout << fn.string() << std::endl;
 
   bool ok = vise::file_save(fn, conf_str);
   if(ok) {
@@ -598,7 +617,7 @@ void project_manager::project_conf_set(std::string pname,
 // DEBUG
 //
 void project_manager::debug() {
-  std::string pname("ox5k");
+  std::string pname("ox200test");
   project_load(pname);
 
   bool success;
@@ -607,10 +626,10 @@ void project_manager::debug() {
 
   std::map<std::string, std::string> param;
   param["file_id"] = "12";
-  param["x"] = "110";
-  param["y"] = "410";
-  param["width"] = "400";
-  param["height"] = "260";
+  param["x"] = "64";
+  param["y"] = "130";
+  param["width"] = "64";
+  param["height"] = "64";
 
   vise::search_query query(param);
   std::vector<vise::search_result> result;

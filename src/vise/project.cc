@@ -12,8 +12,18 @@ vise::project::project(std::string pname,
 }
 
 vise::project::~project() {
-  std::cout << "Destroying project ..."
-            << std::endl;
+  if(index_is_loaded()) {
+    std::cout << "~project(): unloading index for ["
+              << d_pname << "] ..." << std::endl;
+    bool success;
+    std::string message;
+    index_unload(success, message);
+    if(!success) {
+      std::cout << "~project(): unloading index for ["
+                << d_pname << "] failed:" << message
+                << std::endl;
+    }
+  }
 }
 
 void vise::project::conf_reload() {

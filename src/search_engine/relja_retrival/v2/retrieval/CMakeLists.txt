@@ -15,6 +15,7 @@ target_link_libraries( image_graph
     proto_index
     retriever)
 
+
 add_library( mq_filter_outliers mq_filter_outliers.cpp )
 target_link_libraries( mq_filter_outliers
     hamming_embedder

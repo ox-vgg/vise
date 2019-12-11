@@ -464,12 +464,12 @@ void vise::relja_retrival::index_unload(bool &success,
 
 void vise::relja_retrival::index_search(vise::search_query const &q,
                                         std::vector<vise::search_result> &r) {
-  std::cout << "relja_retrival::index_search()" << std::endl;
-  std::cout << "d_dataset->getNumDoc() = " << d_dataset->getNumDoc() << std::endl;
-  std::cout << "d_dataset->getInternalFn(12) = " << d_dataset->getInternalFn(12) << std::endl;
-  std::cout << "d_dataset->getInternalFn(50) = " << d_dataset->getInternalFn(50) << std::endl;
+  std::cout << "relja_retrival::index_search(): searching "
+            << d_dataset->getNumDoc() << " images ..."
+            << std::endl;
 
-  std::cout << "(x,y,width,height)="
+  std::cout << "query: fid=" << q.d_file_id << ", "
+            << "; region(x,y,width,height)="
             << q.d_x << "," << q.d_y << ","
             << q.d_width << "," << q.d_height << std::endl;
   query qobj(q.d_file_id, true, "", q.d_x, q.d_x + q.d_width, q.d_y, q.d_y + q.d_height);
