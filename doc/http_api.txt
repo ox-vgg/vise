@@ -32,7 +32,15 @@ POST /{PNAME}/_conf
 GET /{PNAME}/_conf
   fetch current configuration of a project
 
-POST /{PNAME}/_index
+POST /{PNAME}/_index_create
+POST /{PNAME}/_index_load
+POST /{PNAME}/_index_unload
+POST /{PNAME}/_index_search
 
-GET /{PNAME}/_status
-GET /{PNAME}/_progress
+POST /{PNAME}/_file_add
+
+
+GET /_ui/index.html : home page showing existing projects
+GET /_ui/{PNAME}/index.html : home page of a project
+GET /_ui/{PNAME}/index.html : home page of a project
+GET /_ui/{PNAME}/search.html : search result page

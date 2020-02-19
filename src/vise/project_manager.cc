@@ -2,11 +2,6 @@
 
 using namespace vise;
 
-// the HTML page header of every HTML response
-std::string vise::project_manager::PROJECT_HTML_PAGE_PREFIX = R"HTML(<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Project | VISE</title><link rel="shortcut icon" type="image/x-icon" href="favicon.ico"/><link rel="stylesheet" type="text/css" href="project.css" /></head>)HTML";
-
-std::string vise::project_manager::PROJECT_HTML_PAGE_SUFFIX = R"HTML(\n</html>)HTML";
-
 project_manager::project_manager(std::map<std::string, std::string> const &conf)
   : d_conf(conf)
 {
@@ -15,14 +10,18 @@ project_manager::project_manager(std::map<std::string, std::string> const &conf)
   vise::configuration_show(d_conf);
   d_projects.clear();
 
-  /*
   // DEBUG
-  std::cout << "project_manager(): DEBUG**********************, loading ox200test"
+  std::string debug_pname("15ci");
+  //std::string debug_pname("ox200test");
+  std::cout << "project_manager(): DEBUG**********************, loading "
+            << debug_pname
             << std::endl;
-  debug();
-  //http_response tmp_response;
-  //project_index_load("ox200test", tmp_response);
-  */
+  bool success = project_load(debug_pname);
+  if(success) {
+    std::clog << "DEBUG: loaded project " << debug_pname << std::endl;
+  } else {
+    std::cerr << "DEBUG: failed to project " << debug_pname << std::endl;
+  }
 }
 
 project_manager::~project_manager() {
@@ -35,8 +34,7 @@ void project_manager::process_http_request(http_request const &request,
                                            http_response &response)
 {
   std::ostringstream ss;
-  ss << "project_manager: "
-     << request.d_method << " " << request.d_uri;
+  ss << "project_manager: " << request.d_method << " " << request.d_uri;
   std::cout << ss.str() << std::endl;
 
   std::vector<std::string> uri;
@@ -70,7 +68,7 @@ void project_manager::process_http_request(http_request const &request,
 void project_manager::handle_get(http_request const &request,
                                  std::vector<std::string> const &uri,
                                  std::map<std::string, std::string> const &param,
-                                 http_response &response)
+                                 http_response &response) const
 {
   if ( uri.size() == 1 ) {
     response.set_status(404);
@@ -80,24 +78,28 @@ void project_manager::handle_get(http_request const &request,
     response.set_status(404);
     return;
   }
+  if(uri[1] == "") {
+    // redirect localhost:port/ to localhost:port/_ui/index.html
+    response.redirect_to("/index.html");
+    return;
+  }
 
   if (uri.size() == 2) {
     if (uri[1].front() == '_') {
       // a command (e.g. _create, _delete
-      // @todo
-      response.set_status(200);
-      return;
-    } else {
-      if (uri[1] == "") {
-        response.redirect_to(request.d_uri + "index.html");
-        return;
-      } else {
-        // request for user interface HTML application files
-        boost::filesystem::path file_loc(d_conf.at("www_root"));
-        file_loc = file_loc / uri[1];
-        file_send(file_loc, response);
+      if(uri[1] == "_project_list") {
+        project_list(param, response);
         return;
       }
+      response.set_status(412);
+      response.set_payload("unknown command");
+      return;
+    } else {
+      // serve static content from www root
+      boost::filesystem::path file_loc(d_conf.at("www_root"));
+      file_loc = file_loc / uri[1];
+      file_send(file_loc, response);
+      return;
     }
   }
 
@@ -106,6 +108,37 @@ void project_manager::handle_get(http_request const &request,
     std::string pname = uri[1];
     if (!project_exists(pname)) {
       response.set_status(404);
+      return;
+    }
+
+    if(uri[2].size() == 0) {
+      // GET /PNAME/ redirects to project home
+      project_home(pname, response);
+      return;
+    }
+
+    if(uri[2] == "filelist") {
+      project_filelist(pname, response, param);
+      return;
+    }
+
+    if(uri[2] == "file") {
+      project_file(pname, response, param);
+      return;
+    }
+
+    if(uri[2] == "search") {
+      project_index_search(pname, param, response);
+      return;
+    }
+
+    if(uri[2] == "showmatch") {
+      project_show_match(pname, param, response);
+      return;
+    }
+
+    if(uri[2] == "register") {
+      project_register_image(pname, param, response);
       return;
     }
 
@@ -128,10 +161,16 @@ void project_manager::handle_get(http_request const &request,
         start = start + pname.size();
         asset = request.d_uri.substr(start);
       }
-      boost::filesystem::path fn = d_conf.at("project_store");
-      fn = fn / pname;
-      fn = fn / asset;
-      file_send(fn, response);
+      std::string asset_uri_decoded;
+      bool decode_result = vise::url_decode(asset, asset_uri_decoded);
+      if(decode_result) {
+        boost::filesystem::path fn = d_conf.at("project_store");
+        fn = fn / pname;
+        fn = fn / asset_uri_decoded;
+        file_send(fn, response);
+      } else {
+        response.set_status(400);
+      }
       return;
     }
   }
@@ -179,10 +218,6 @@ void project_manager::handle_post(http_request const &request,
       }
       if (uri[2] == "_index_unload") {
         project_index_unload(pname, response);
-        return;
-      }
-      if (uri[2] == "_index_search") {
-        project_index_search(pname, param, response);
         return;
       }
       if (uri[2] == "_file_add") {
@@ -327,9 +362,9 @@ void project_manager::handle_delete(http_request const &request,
 }
 
 void project_manager::file_send(boost::filesystem::path fn,
-                                http_response &response) {
+                                http_response &response) const {
   std::string file_content;
-  std::cout << "Sending file " << fn.string() << std::endl;
+  //std::cout << "Sending file " << fn.string() << std::endl;
   bool ok = vise::file_load(fn, file_content);
   if ( ok ) {
     response.set_status(200);
@@ -346,7 +381,7 @@ void project_manager::file_send(boost::filesystem::path fn,
 // POST /{PNAME}/_index_*
 //
 
-bool project_manager::project_exists(std::string pname) {
+bool project_manager::project_exists(std::string pname) const {
   boost::filesystem::path pdatadir = d_conf.at("project_store");
   pdatadir = pdatadir / pname;
   boost::filesystem::path vdatadir = d_conf.at("vise_store");
@@ -368,6 +403,14 @@ void project_manager::project_create(std::string pname) {
   boost::filesystem::path vdatadir = d_conf.at("vise_store");
   vdatadir = vdatadir / pname;
   boost::filesystem::create_directory(vdatadir);
+}
+
+bool project_manager::project_is_loaded(std::string pname) const {
+  if (d_projects.count(pname) == 1) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 bool project_manager::project_load(std::string pname) {
@@ -455,10 +498,77 @@ void project_manager::project_index_unload(std::string pname,
 
 void project_manager::project_index_search(std::string pname,
                                            std::map<std::string, std::string> const &param,
-                                           http_response &response) {
-  if( !project_load(pname) ) {
+                                           http_response &response) const {
+  if( !project_is_loaded(pname) ) {
     response.set_status(412);
-    response.set_payload("failed to load project");
+    response.set_payload("project not loaded yet");
+    return;
+  }
+
+  if( !d_projects.at(pname)->index_is_loaded() ) {
+    response.set_status(412);
+    response.set_payload("project index not loaded");
+    return;
+  }
+
+  if (param.count("file_id") == 0) {
+    response.set_status(412);
+    response.set_payload("search query must contain file_id parameter.");
+    return;
+  }
+
+  std::cout << "project_index_search(): " << std::endl;
+  uint32_t file_id = std::atoi(param.at("file_id").c_str());
+
+  vise::search_query query(param);
+  if(query.d_max_result_count == 0) {
+    query.d_max_result_count = 256;
+  }
+
+  query.d_filename = d_projects.at(pname)->filename(file_id);
+  std::vector<vise::search_result> result;
+  d_projects.at(pname)->index_search(query, result);
+
+  std::ostringstream json;
+  json << "{\"PNAME\":\"" << pname << "\""
+       << ",\"QUERY\":" << query.to_json()
+       << ",\"RESULT_SIZE\":" << result.size();
+  if(result.size()) {
+    json<< ",\"RESULT\":[" << result.at(0).to_json();
+    for(uint32_t i=1; i < result.size(); ++i) {
+      json << "," << result.at(i).to_json();
+    }
+    json << "]";
+  }
+  json << "}";
+
+  if(param.count("response_format") == 1 &&
+     param.at("response_format") == "json" ) {
+    response.set_json_payload(json.str());
+  } else {
+    // default response format is HTML
+    std::ostringstream html;
+    html << vise::HTML_HEAD
+         << "<body>\n"
+         << "<script>\n"
+         << "// JS code generated automatically by src/vise/project_manager.cc::project_index_search()\n"
+         << "var _vise_data = " << json.str() << ";\n"
+         << "</script>\n"
+         << "<script src=\"/project_search.js\"></script>\n"
+         << "</script>\n"
+         << "</body>\n"
+         << "</html>";
+    response.set_html_payload(html.str());
+  }
+}
+
+
+void project_manager::project_show_match(std::string pname,
+                                         std::map<std::string, std::string> const &param,
+                                         http_response &response) const {
+  if( !project_is_loaded(pname) ) {
+    response.set_status(412);
+    response.set_payload("project not loaded yet");
     return;
   }
 
@@ -469,45 +579,112 @@ void project_manager::project_index_search(std::string pname,
   }
 
   if (param.count("file_id") == 0 ||
+      param.count("match_file_id") == 0 ||
       param.count("x") == 0 ||
       param.count("y") == 0 ||
       param.count("width") == 0 ||
-      param.count("height") == 0) {
+      param.count("height") == 0
+      ) {
     response.set_status(412);
-    response.set_payload("one of required param is missing: file_id, x, y, width, height");
+    response.set_payload("showmatch requests must contain: qfile_id, mfile_id, x, y, width, height, H");
     return;
   }
 
-  std::cout << "project_index_search(): " << std::endl;
-
+  uint32_t file_id = std::atoi(param.at("file_id").c_str());
+  uint32_t match_file_id = std::atoi(param.at("match_file_id").c_str());
   vise::search_query query(param);
-  std::vector<vise::search_result> result;
-  d_projects.at(pname)->index_search(query, result);
+  query.d_filename = d_projects.at(pname)->filename(file_id);
 
-  std::ostringstream json;
-  json << "{\"query\":{\"file_id\":" << query.d_file_id << ","
-       << "\"x\":" << query.d_x << ",\"y\":" << query.d_y
-       << ",\"width\":" << query.d_width << ",\"height\":" << query.d_height
-       << "},\"result\":[";
+  std::ostringstream match;
+  match << "{'file_id':" << param.at("match_file_id") << ","
+        << "'filename':\"" << d_projects.at(pname)->filename(match_file_id) << "\"}";
 
-  std::vector<vise::search_result>::iterator it;
-  for(it = result.begin(); it != result.end(); ++it) {
-    if(it!=result.begin()) {
-      json << ",";
-    }
+  std::ostringstream match_details;
+  d_projects.at(pname)->index_internal_match(query, match_file_id, match_details);
 
-    json << "{\"file_id\":" << it->d_file_id << ","
-         << "\"filename\":\"" << it->d_filename << "\","
-         << "\"score\":" << it->d_score << ","
-         << "\"H\":[" << it->d_H[0] << "," << it->d_H[1] << "," << it->d_H[2]
-         << "," << it->d_H[3] << "," << it->d_H[4] << "," << it->d_H[5]
-         << "," << it->d_H[6] << "," << it->d_H[7] << "," << it->d_H[8]
-         << "]}";
+  std::ostringstream html;
+  html << vise::HTML_HEAD
+       << "<body>\n"
+       << "<script>\n"
+       << "// JS code generated automatically by src/vise/project_manager.cc::project_show_match()\n"
+       << "var _VISE_PNAME='" << pname << "';\n"
+       << "var _VISE_QUERY=" << query.to_json() << ";\n"
+       << "var _VISE_MATCH=" << match.str() << ";\n"
+       << "var _VISE_MATCH_DETAILS=" << match_details.str() << ";\n";
+  html << "\nconsole.log(_VISE_QUERY); console.log(_VISE_MATCH); console.log(_VISE_MATCH_DETAILS);\n";
+  html << "</script>\n"
+       << "<script src=\"/project_showmatch.js\"></script>\n"
+       << "</script>\n"
+       << "</body>\n"
+       << "</html>";
+  response.set_html_payload(html.str());
+}
+
+void project_manager::project_register_image(std::string pname,
+                                             std::map<std::string, std::string> const &param,
+                                             http_response &response) const {
+
+  if( !project_is_loaded(pname) ) {
+    response.set_status(412);
+    response.set_payload("project not loaded yet");
+    return;
   }
-  json << "]}";
-  response.set_payload(json.str());
-  response.set_field("Content-Type", "application/json");
+
+  if( !d_projects.at(pname)->index_is_loaded() ) {
+    response.set_status(412);
+    response.set_payload("project index not loaded");
+    return;
+  }
+
+  if (param.count("file1_id") == 0 ||
+      param.count("x") == 0 ||
+      param.count("y") == 0 ||
+      param.count("width") == 0 ||
+      param.count("height") == 0 ||
+      param.count("file2_id") == 0 ||
+      param.count("H0") == 0
+      ) {
+    response.set_status(412);
+    response.set_payload("register requests must contain: file1_id, file2_id, x, y, width, height [ and optionally H0 ]");
+    return;
+  }
+
+  std::string H0_str = param.at("H0");
+  if(H0_str.front() != '[' && H0_str.back() != ']') {
+    response.set_status(412);
+    response.set_payload("H0 must be a JSON array like H0 = [0.92, 0, 21.92, ..., ]");
+    return;
+  }
+
+  uint32_t file1_id = std::atoi(param.at("file1_id").c_str());
+  uint32_t file2_id = std::atoi(param.at("file2_id").c_str());
+  double x = std::atoi(param.at("x").c_str());
+  double y = std::atoi(param.at("x").c_str());
+  double width = std::atoi(param.at("width").c_str());
+  double height = std::atoi(param.at("height").c_str());
+
+  std::array<double, 9> H0;
+  H0_str = H0_str.substr(1, H0_str.length() - 2);
+  std::stringstream ss(H0_str); // csv
+  char comma;
+  // parse the comma separated values
+  ss >> H0[0] >> comma >> H0[1] >> comma >> H0[2] >> comma
+     >> H0[3] >> comma >> H0[4] >> comma >> H0[5] >> comma
+     >> H0[6] >> comma >> H0[7] >> comma >> H0[8];
+  std::array<double, 9> H = H0;
+
+  // @todo
+  // image registration module should be detached from relja_retrival search engine
+  d_projects.at(pname)->register_image(file1_id, file2_id, x, y, width, height, H);
+  std::ostringstream debug_response;
+  debug_response << "{\"H\":["
+                 << H[0] << "," << H[1] << "," << H[2] << ","
+                 << H[3] << "," << H[4] << "," << H[5] << ","
+                 << H[6] << "," << H[7] << "," << H[8] << "]}";
   response.set_status(200);
+  response.set_payload(debug_response.str());
+  response.set_field("Content-Type", "application/json");
+  return;
 }
 
 bool project_manager::project_index_is_loaded(std::string pname) {
@@ -531,6 +708,151 @@ bool project_manager::project_index_is_done(std::string pname) {
     return true;
   } else {
     return false;
+  }
+}
+
+void project_manager::project_home(std::string pname,
+                                   http_response &response) const {
+  if(!project_is_loaded(pname)) {
+    response.set_payload("project not loaded yet!");
+    response.set_field("Content-Type", "text/plain");
+    return;
+  }
+
+  std::cout << pname << ": state=" << d_projects.at(pname)->state_name() << std::endl;
+  std::ostringstream ss;
+
+  switch(d_projects.at(pname)->state()) {
+  case vise::project_state::SET_CONFIG:
+    ss << "Set configuration" << std::endl;
+    response.set_html_payload(ss.str());
+    break;
+  case vise::project_state::INDEX_ONGOING:
+    ss << "Index is ongoing" << std::endl;
+    response.set_html_payload(ss.str());
+    break;
+  case vise::project_state::BROKEN_INDEX:
+    ss << "Index seems to be broken" << std::endl;
+    response.set_html_payload(ss.str());
+    break;
+  case vise::project_state::SEARCH_READY:
+    {
+      std::ostringstream redirect_url;
+      redirect_url << "/" << pname << "/filelist";
+      response.redirect_to(redirect_url.str());
+      break;
+    }
+  default:
+    ss << "unknown project state: "
+       << d_projects.at(pname)->state_name() << std::endl;
+    response.set_html_payload(ss.str());
+  }
+}
+
+void project_manager::project_filelist(std::string pname,
+                                       http_response &response,
+                                       std::map<std::string, std::string> const &param) const {
+  uint32_t start = 0;
+  uint32_t end;
+  if(param.count("start") == 1) {
+    start = std::atoi(param.at("start").c_str());
+    if(start >= d_projects.at(pname)->fid_count()) {
+      start = 0;
+    }
+  }
+  if(param.count("end") == 1) {
+    end = std::atoi(param.at("end").c_str());
+    if(end == start || end > d_projects.at(pname)->fid_count()) {
+      end = fminl(50, d_projects.at(pname)->fid_count());
+    }
+  } else {
+    end = fminl(start + 50, d_projects.at(pname)->fid_count());
+  }
+
+  uint32_t per_page = end - start;
+  if(param.count("per_page") == 1) {
+    per_page = std::atoi(param.at("per_page").c_str());
+  }
+
+  std::ostringstream json;
+  json << "{\"PNAME\":\"" << pname << "\""
+       << ",\"FLIST_SIZE\":" << d_projects.at(pname)->fid_count()
+       << ",\"FLIST_PER_PAGE\":" << per_page
+       << ",\"FLIST_START\":" << start
+       << ",\"FLIST_END\":" << end;
+  if(start != end) {
+    json << ",\"FLIST\":["
+         << "\"" << d_projects.at(pname)->filename(start) << "\"";
+    for(uint32_t fid=start+1; fid < end; ++fid) {
+      json << ",\"" << d_projects.at(pname)->filename(fid) << "\"";
+    }
+    json << "]";
+  }
+  json << "}";
+
+  if(param.count("response_format") == 1 &&
+     param.at("response_format") == "json" ) {
+    response.set_json_payload(json.str());
+  } else {
+    // default response format is HTML
+    std::ostringstream html;
+    html << vise::HTML_HEAD
+         << "<body>\n"
+         << "<script>\n"
+         << "// JS code generated automatically by src/vise/project_manager.cc::project_filelist()\n"
+         << "var _vise_data = " << json.str() << ";\n"
+         << "</script>\n"
+         << "<script src=\"/project_filelist.js\"></script>\n"
+         << "</script>\n"
+         << "</body>\n"
+         << "</html>";
+    response.set_html_payload(html.str());
+  }
+}
+
+void project_manager::project_file(std::string pname,
+                                   http_response &response,
+                                   std::map<std::string, std::string> const &param) const {
+  if(param.count("file_id") == 0) {
+    response.set_payload("file_id missing");
+    response.set_field("Content-Type", "text/plain");
+    response.set_status(412);
+    return;
+  }
+
+  uint32_t file_id = std::atoi(param.at("file_id").c_str());
+  if(file_id >= d_projects.at(pname)->fid_count()) {
+    response.set_payload("invalid file_id");
+    response.set_field("Content-Type", "text/plain");
+    response.set_status(412);
+    return;
+  }
+
+  std::ostringstream json;
+  json << "{\"PNAME\":\"" << pname << "\""
+       << ",\"FILE_ID\":" << file_id
+       << ",\"FILENAME\":\"" << d_projects.at(pname)->filename(file_id) << "\""
+       << ",\"FLIST_SIZE\":" << d_projects.at(pname)->fid_count()
+       << "}";
+
+  if(param.count("response_format") == 1 &&
+     param.at("response_format") == "json" ) {
+    response.set_json_payload(json.str());
+  } else {
+    // default response format is HTML
+    std::ostringstream html;
+    html << vise::HTML_HEAD
+         << "<body>\n"
+         << "<script>\n"
+         << "// JS code generated automatically by src/vise/project_manager.cc::project_file()\n"
+         << "var _vise_data = " << json.str() << ";\n"
+         << "</script>\n"
+         << "<script src=\"/via0.js\"></script>\n"
+         << "<script src=\"/project_file.js\"></script>\n"
+         << "</script>\n"
+         << "</body>\n"
+         << "</html>";
+    response.set_html_payload(html.str());
   }
 }
 
@@ -610,6 +932,58 @@ void project_manager::project_conf_set(std::string pname,
   } else {
     response.set_status(412);
     return;
+  }
+}
+
+//
+// GET /_project?pname={PNAME}
+// if pname is missing, returns metadata of all available projects
+//
+void project_manager::project_list(std::map<std::string, std::string> const &param,
+                                   http_response &response) const {
+  std::vector<std::string> pname_list;
+  project_pname_list(pname_list);
+  if(pname_list.empty()) {
+    response.set_payload("{}");
+    response.set_status(200);
+    return;
+  }
+  std::ostringstream payload;
+  payload << "{";
+  std::vector<std::string>::const_iterator itr;
+  for(itr=pname_list.begin(); itr!=pname_list.end(); ++itr) {
+    std::string pname(*itr);
+    boost::filesystem::path pconf_fn(d_conf.at("vise_store"));
+    pconf_fn = pconf_fn / pname;
+    pconf_fn = pconf_fn / "conf.txt";
+    std::map<std::string, std::string> pconf;
+    vise::configuration_load(pconf_fn.string(), pconf);
+    if(itr!=pname_list.begin()) {
+      payload << ",";
+    }
+    payload << "\"" << pname << "\":{";
+    if(pconf.count("cover_image_filename")) {
+      payload  << "\"cover_image_filename\":\""
+               << pconf.at("cover_image_filename")
+               << "\"";
+    }
+    payload << "}";
+  }
+  payload << "}";
+  response.set_payload(payload.str());
+  response.set_field("Content-Type", "application/json");
+  response.set_status(200);
+  return;
+}
+
+void project_manager::project_pname_list(std::vector<std::string> &pname_list) const {
+  pname_list.clear();
+  boost::filesystem::path project_store(d_conf.at("project_store"));
+  boost::filesystem::directory_iterator end_itr;
+  for (boost::filesystem::directory_iterator it(project_store); it!=end_itr; ++it) {
+    if (boost::filesystem::is_directory(it->path())) {
+      pname_list.push_back(boost::filesystem::relative(it->path(), project_store).string());
+    }
   }
 }
 

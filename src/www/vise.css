@@ -17,13 +17,14 @@ body { font-family:sans; background-color:white; margin:0 1ch; font-size:12pt; }
 
 .create_project_panel { display:block; padding:2em 0; text-align:center; }
 
-.load_project_panel { display:block; padding:1em;}
-.load_project_panel a { color:inherit; text-decoration:none; display:inline-block; margin:0 1em; }
-.load_project_panel a .project { position:relative; text-align:center; }
-.load_project_panel a .project .imgcontainer { position:relative; height:20vh; max-width:20vw; overflow:hidden;}
-.load_project_panel a .project .imgcontainer img { height:100%; }
-.load_project_panel a .project .description { max-width:20vw; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; padding:0.4em 0;}
-.load_project_panel a .project .imgcontainer progress { position:absolute; left:0; bottom:0; width:100%; }
+h3 { margin-top:3em; }
+#existing_projects_panel { display:block; padding:1em; }
+#existing_projects_panel a { color:inherit; text-decoration:none; display:inline-block; margin:0 1em; }
+#existing_projects_panel a .project { position:relative; text-align:center; }
+#existing_projects_panel a .project .imgcontainer { position:relative; height:20vh; max-width:20vw; overflow:hidden;}
+#existing_projects_panel a .project .imgcontainer img { height:100%; }
+#existing_projects_panel a .project .description { max-width:20vw; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; padding:0.4em 0;}
+#existing_projects_panel a .project .imgcontainer progress { position:absolute; left:0; bottom:0; width:100%; }
 
 .message_container { display:block; text-align:center; font-size:small; }
 .message_container .message {}

@@ -39,6 +39,9 @@ void vise::configuration_show(std::map<std::string, std::string> const &conf) {
 }
 
 bool vise::starts_with(const std::string &s, const std::string prefix) {
+  if (s.length() < prefix.length()) {
+    return false;
+  }
   if ( s.substr(0, prefix.length()) == prefix ) {
     return true;
   } else {
@@ -204,4 +207,39 @@ void vise::print_map(std::string name,
     s << it->first << "=" << it->second << ", ";
   }
   std::cout << name << " = [" << s.str() << "]" << std::endl;
+}
+
+// source: https://www.boost.org/doc/libs/1_46_0/doc/html/boost_asio/example/http/server3/request_handler.cpp
+// Author: Christopher M. Kohlhoff (chris at kohlhoff dot com)
+bool vise::url_decode(const std::string& in, std::string& out)
+{
+  out.clear();
+  out.reserve(in.size());
+  for (std::size_t i = 0; i < in.size(); ++i)  {
+    if (in[i] == '%') {
+      if (i + 3 <= in.size()) {
+        int value = 0;
+        std::istringstream is(in.substr(i + 1, 2));
+        if (is >> std::hex >> value) {
+          out += static_cast<char>(value);
+          i += 2;
+        }
+        else {
+          return false;
+        }
+      }
+      else {
+        return false;
+      }
+    }
+    else {
+      if (in[i] == '+') {
+        out += ' ';
+      }
+      else {
+        out += in[i];
+      }
+    }
+  }
+  return true;
 }

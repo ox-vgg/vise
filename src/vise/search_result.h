@@ -23,6 +23,18 @@ namespace vise {
                   std::array<double, 9> H)
       : d_file_id(file_id), d_filename(filename), d_score(score), d_H(H) {
     }
+
+    std::string to_json() {
+      std::ostringstream ss;
+      ss << "{\"file_id\":" << d_file_id
+         << ",\"filename\":\"" << d_filename << "\""
+         << ",\"score\":" << d_score
+         << ",\"H\":[" << d_H[0] << "," << d_H[1] << "," << d_H[2] << ","
+         << d_H[3] << "," << d_H[4] << "," << d_H[5] << ","
+         << d_H[6] << "," << d_H[7] << "," << d_H[8] << "]}";
+      return ss.str();
+    }
+
   };
 }
 #endif

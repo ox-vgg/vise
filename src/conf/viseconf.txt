@@ -6,15 +6,15 @@ project_store=/home/tlm/_tmp/vise/store/
 vise_store=/home/tlm/_tmp/vise/data/
 # VISE application data (e.g. index files, configuration, etc) are stored here.
 
-www_root=/home/tlm/code/vise2/src/www/
-# A minimal HTML based user interface for VISE
+www_root=/home/tlm/code/vise2/src/www
+# A minimal HTML based user interface for VISE (no trailing /)
 
 ## HTTP Server
 
 address=0.0.0.0
 # Bind VISE http server in to this address
 
-port=9669
+port=9670
 # Bind VISE http server in to this port
 
 nthread=4

@@ -47,7 +47,7 @@ add_subdirectory( retrieval )
 add_subdirectory( util )
 add_subdirectory( v2 )
 
-add_library(relja_retrival STATIC relja_retrival.cc)
+add_library(relja_retrival relja_retrival.cc)
 target_link_libraries(relja_retrival
   search_engine
   build_index

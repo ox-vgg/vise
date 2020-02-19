@@ -43,6 +43,10 @@ namespace vise {
   bool file_save(const boost::filesystem::path fn,
                  std::string& file_content);
 
+  // URI decoding
+  // e.g. "http%3A%2F%2Ffoo%20bar%2F" -> "http://foo bar/"
+  bool url_decode(const std::string& in, std::string& out);
+
   // print
   template<typename T>
   void print_vector( std::string name, std::vector<T> const &v ) {

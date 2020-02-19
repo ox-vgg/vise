@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 #include <map>
+#include <algorithm> // for ::transform
 
 namespace vise {
   class http_response {
@@ -60,38 +61,51 @@ namespace vise {
     void set_content_type_from_filename(std::string filename) {
       std::string ctype = "application/octet-stream";
       size_t dot = filename.rfind(".");
-      std::string ext = filename.substr(dot + 1);
-      if( ext == "html" ) {
+      std::string ext = filename.substr(dot);
+      std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+      if( ext == ".html" ) {
         ctype = "text/html";
       }
-      else if( ext == "jpg" ) {
+      else if( ext == ".jpg" || ext == ".jpeg" ) {
         ctype = "image/jpeg";
       }
-      else if( ext == "png" ) {
+      else if( ext == ".png" ) {
         ctype = "image/png";
       }
-      else if( ext == "css" ) {
+      else if( ext == ".css" ) {
         ctype = "text/css";
       }
-      else if( ext == "js" ) {
+      else if( ext == ".js" ) {
         ctype = "application/javascript";
       }
-      else if( ext == "txt" ) {
+      else if( ext == ".txt" ) {
         ctype = "text/plain";
       }
-      else if( ext == "ico" ) {
+      else if( ext == ".ico" ) {
         ctype = "image/x-icon";
       }
-      else if( ext == "json" ) {
+      else if( ext == ".json" ) {
         ctype = "application/json";
       }
-
       set_field("Content-Type", ctype);
     }
 
     void set_payload(std::string payload) {
       d_payload = payload;
       d_fields["Content-Length"] = std::to_string(d_payload.length());
+    }
+
+    void set_html_payload(std::string payload) {
+      d_payload = payload;
+      d_fields["Content-Length"] = std::to_string(d_payload.length());
+      set_field("Content-Type", "text/html");
+    }
+
+    void set_json_payload(std::string payload) {
+      d_payload = payload;
+      d_fields["Content-Length"] = std::to_string(d_payload.length());
+      set_field("Content-Type", "application/json");
     }
 
     std::string get_response_str() {

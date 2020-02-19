@@ -22,8 +22,21 @@ namespace vise {
     virtual void index_unload(bool &success, std::string &message) = 0;
     virtual bool index_is_loaded() = 0;
     virtual bool index_is_done() = 0;
+    virtual bool index_is_incomplete() = 0;
+    virtual bool index_is_ongoing() = 0;
     virtual void index_search(vise::search_query const &q,
-                              std::vector<vise::search_result> &r) = 0;
+                              std::vector<vise::search_result> &r) const = 0;
+    virtual void index_internal_match(vise::search_query const &q,
+                                      uint32_t match_file_id,
+                                      std::ostringstream &json) const = 0;
+
+    virtual void register_image(uint32_t file1_id, uint32_t file2_id,
+                                uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+                                std::array<double, 9> &H) const;
+
+    virtual uint32_t fid_count() const = 0;
+    virtual uint32_t fid(std::string filename) const = 0;
+    virtual std::string filename(uint32_t fid) const = 0;
 
   private:
     const std::string d_se_name;

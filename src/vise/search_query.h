@@ -9,6 +9,7 @@
 #include <sstream>
 #include <map>
 #include <string>
+#include <sstream>
 
 namespace vise {
   class search_query {
@@ -18,6 +19,9 @@ namespace vise {
     uint32_t d_y;
     uint32_t d_width;
     uint32_t d_height;
+    std::string d_filename;
+    bool is_region_query;
+    uint32_t d_max_result_count;
 
     search_query() {
       d_file_id = 0;
@@ -25,19 +29,23 @@ namespace vise {
       d_y = 0;
       d_width = 0;
       d_height = 0;
+      is_region_query = false;
+      d_max_result_count = 0;
     }
 
     search_query(std::map<std::string, std::string> const &param) {
-      if (param.count("file_id") &&
-          param.count("x") &&
-          param.count("y") &&
-          param.count("width") &&
-          param.count("height")) {
-        std::stringstream ss;
+      std::stringstream ss;
+      if (param.count("file_id")) {
         ss << param.at("file_id");
         ss >> d_file_id;
         ss.clear();
+      }
 
+      if (param.count("x") &&
+          param.count("y") &&
+          param.count("width") &&
+          param.count("height")) {
+        is_region_query = true;
         ss << param.at("x");
         ss >> d_x;
         ss.clear();
@@ -52,7 +60,28 @@ namespace vise {
 
         ss << param.at("height");
         ss >> d_height;
+      } else {
+        is_region_query = false;
       }
+
+      if(param.count("max_result_count")) {
+        ss << param.at("max_result_count");
+        ss >> d_max_result_count;
+      }
+    }
+
+    std::string to_json() {
+      std::ostringstream ss;
+      ss << "{\"file_id\":" << d_file_id
+         << ",\"filename\":\"" << d_filename << "\"";
+      if(is_region_query) {
+        ss << ",\"x\":" << d_x
+           << ",\"y\":" << d_y
+           << ",\"width\":" << d_width
+           << ",\"height\":" << d_height;
+      }
+      ss << "}";
+      return ss.str();
     }
   };
 }

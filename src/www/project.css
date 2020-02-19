@@ -1,0 +1,64 @@
+body { font-family:sans; background-color:white; margin:0; padding:0 0.5em; font-size: calc(14px + (26 - 14) * ((100vw - 300px) / (1600 - 300))); line-height: calc(1.3em + (1.5 - 1.2) * ((100vw - 300px)/(1600 - 300))); }
+.hide { display:none !important; }
+
+#toolbar { display:grid; grid-template-columns:1fr 4fr; align-self:center; padding:0.4em 0.2em; border-bottom:1px solid #cccccc; margin:0 0 1em 0; }
+#toolbar .pname { margin-left:1ch; }
+#toolbar .pageinfo { text-align:right; margin-right:0.5em; }
+#toolbar .pageinfo input[type="text"] { margin:0 0.4em; border:none; border-bottom:1px solid #cccccc; font-size:1em; }
+#toolbar .pageinfo div { display:inline; }
+#toolbar a { text-decoration:none; }
+#content { display:block; }
+
+/* /{PNAME}/filelist: shows a list of all images contained in a project */
+#content .filelist_panel { display:block; }
+#content .filelist { display:flex; flex-wrap:wrap; }
+#content .filelist::after { content:""; flex:auto; }
+#content .filelist a { display:inline-block; flex-grow:1; padding:0; margin:0; }
+#content .filelist a img { display:inline-block; height:250px; margin:0; padding:0; object-fit:fill; }
+
+/* /{PNAME}/file: shows a file */
+#content .fileview_panel { display:block; text-align:center; margin-top:2em; }
+#content .fileview_panel .query_img_container { height:60vh; display:block; text-align:center; }
+#content .fileview_panel #search_query_form { display:block; padding:0.4em; }
+
+/* /{PNAME}/search: shows search results */
+#content .query_panel { display:block; text-align:center; margin:0; padding:0; }
+#content .query_panel .query {  }
+#content .query_panel .query p { margin:0; padding:0; font-size:small; }
+#content .query_panel .query img { height:30vh !important; }
+
+#content .resultlist_panel { display:block; }
+#content .resultlist { display:flex; flex-wrap:wrap; margin-top:1em; }
+#content .resultlist::after { content:""; flex:auto; }
+#content .resultlist a { position:relative; display:inline-block; margin:0; padding:0; flex-grow:1; cursor:pointer; }
+#content .resultlist a img { height:40vh; }
+#content .resultlist a svg { position:absolute; top:0; left:0; }
+#content .resultlist a div { position:absolute; left:0; top:0; font-size:small; background-color:black; opacity:0.8; color:white; padding:0.2em 0.4em; margin:0; line-height:1em; }
+
+/* /{PNAME}/showmatch: shows details of a match */
+#content .querymatch_panel { display:grid; grid-template-columns:1fr 1fr; align-items:center; justify-content:space-evenly; grid-column-gap:1em; font-size:small; }
+#content .querymatch_panel .query { text-align:right; }
+#content .querymatch_panel .match { text-align:left; }
+#content .querymatch_panel a { display:block; text-align:center; }
+
+#content .toggle_panel { display:block; border:none; margin:1em 0; padding:0; text-align:center; }
+#content .toggle_panel .title { font-size:normal; text-align:left; padding:1em 0em; margin:0; }
+#content .toggle_panel div { display:inline-block; text-align:center; padding:0 0.5em; }
+#content .toggle_panel div p { font-size:small; display:block; margin:0; padding:0; }
+#content .toggle_panel div p input[type="range"] { display:inline-block; text-align:center; width:4em; margin:0; padding:0; height:10px; }
+#content .toggle_panel div p label { display:inline; }
+
+#content .match_panel { display:block; border:none; margin:1em 0; padding:0; text-align:center; }
+#content .match_panel .title { font-size:normal; text-align:left; padding: 1em 0em; }
+#content .match_panel p {margin:0; padding:0;}
+#content .match_panel input[type="text"] { width:2em; margin:0 0.2em; font-size:small; }
+#content .match_panel input[type="radio"] { margin-left:0.4em; }
+#content .match_panel input[type="checkbox"] { margin-left:0.4em; }
+#content .match_panel button { font-size:small; margin-left:0.4em; }
+#content .match_panel label { font-size:small; }
+#content .match_panel span { font-size:small; }
+
+#content .img_with_region { position:relative; display:inline-block; margin:0; padding:0; }
+#content .img_with_region img { height:45vh; }
+#content .img_with_region svg { position:absolute; top:0; left:0; }
+#content .img_with_region div { position:relative; text-align:center; }

@@ -2,13 +2,23 @@
 
 vise::project::project(std::string pname,
                        std::map<std::string, std::string> const &conf)
-  : d_pname(pname), d_conf(conf)
+  : d_pname(pname), d_conf(conf), d_state(project_state::UNKNOWN)
 {
+
   std::cout << "project(): constructing " << pname << " ..."
             << std::endl;
   d_storedir = boost::filesystem::path(d_conf.at("project_store")) / pname;
   d_datadir  = boost::filesystem::path(d_conf.at("vise_store")) / pname;
   d_pconf_fn = d_datadir / "conf.txt";
+
+  conf_reload();
+  bool success;
+  std::string message;
+  search_engine_init(d_pconf.at("search_engine"), success, message);
+  if(!success) {
+    std::cerr << message << std::endl;
+  }
+  state_update();
 }
 
 vise::project::~project() {
@@ -22,6 +32,70 @@ vise::project::~project() {
       std::cout << "~project(): unloading index for ["
                 << d_pname << "] failed:" << message
                 << std::endl;
+    }
+  }
+}
+
+vise::project_state vise::project::state() const {
+  return d_state;
+}
+
+void vise::project::state(vise::project_state new_state) {
+  std::cout << "project::state() : switching state from "
+            << state_id_to_name(d_state) << " to "
+            << state_id_to_name(new_state) << std::endl;
+  d_state = new_state;
+}
+
+std::string vise::project::state_name() const {
+  return state_id_to_name(d_state);
+}
+
+std::string vise::project::state_id_to_name(vise::project_state state) const {
+  std::string name;
+  switch(state) {
+  case vise::project_state::UNKNOWN:
+    name = "UNKNOWN";
+    break;
+  case vise::project_state::SET_CONFIG:
+    name = "SET_CONFIG";
+    break;
+  case vise::project_state::INDEX_ONGOING:
+    name = "INDEX_ONGOING";
+    break;
+  case vise::project_state::BROKEN_INDEX:
+    name = "BROKEN_INDEX";
+    break;
+  case vise::project_state::SEARCH_READY:
+    name = "SEARCH_READY";
+    break;
+  default:
+    name = "unrecognized state name";
+    break;
+  }
+  return name;
+}
+
+void vise::project::state_update() {
+  // check everything and ascertain the current state of a project
+  bool success;
+  std::string message;
+  if(index_is_done()) {
+    index_load(success, message);
+    if(success) {
+      state(project_state::SEARCH_READY);
+    } else {
+      state(project_state::BROKEN_INDEX);
+    }
+  } else {
+    if(index_is_incomplete()) {
+      state(project_state::BROKEN_INDEX);
+    } else {
+      if(index_is_ongoing()) {
+        state(project_state::INDEX_ONGOING);
+      } else {
+        state(project_state::SET_CONFIG);
+      }
     }
   }
 }
@@ -84,9 +158,25 @@ void vise::project::index_unload(bool &success, std::string &message) {
 }
 
 void vise::project::index_search(vise::search_query const &q,
-                                 std::vector<vise::search_result> &r) {
+                                 std::vector<vise::search_result> &r) const {
   if (d_search_engine) {
     d_search_engine->index_search(q, r);
+  }
+}
+
+void vise::project::index_internal_match(vise::search_query const &q,
+                                      uint32_t match_file_id,
+                                      std::ostringstream &json) const {
+  if (d_search_engine) {
+    d_search_engine->index_internal_match(q, match_file_id, json);
+  }
+}
+
+void vise::project::register_image(uint32_t file1_id, uint32_t file2_id,
+                                   uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+                                   std::array<double, 9> &H) const {
+  if (d_search_engine) {
+    d_search_engine->register_image(file1_id, file2_id, x, y, width, height, H);
   }
 }
 
@@ -103,5 +193,49 @@ bool vise::project::index_is_done() {
     return d_search_engine->index_is_done();
   } else {
     return false;
+  }
+}
+
+bool vise::project::index_is_incomplete() {
+  if (d_search_engine) {
+    return d_search_engine->index_is_incomplete();
+  } else {
+    return false;
+  }
+}
+
+bool vise::project::index_is_ongoing() {
+  if (d_search_engine) {
+    return d_search_engine->index_is_ongoing();
+  } else {
+    return false;
+  }
+}
+
+//
+// filelist
+//
+
+uint32_t vise::project::fid_count() const {
+  if(d_search_engine) {
+    return d_search_engine->fid_count();
+  } else {
+    return 0;
+  }
+}
+
+uint32_t vise::project::fid(std::string filename) const {
+  if(d_search_engine) {
+    return d_search_engine->fid(filename);
+  } else {
+    return 4294967295; //@todo: improve
+  }
+}
+
+std::string vise::project::filename(uint32_t fid) const {
+  if(d_search_engine) {
+    return d_search_engine->filename(fid);
+  } else {
+    return "";
   }
 }

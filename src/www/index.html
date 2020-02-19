@@ -29,12 +29,21 @@
       <div id="message">To search a collection of images, create a new project, add those images to this new project.</div>
     </div>
 
-    <div class="existing_projects_panel">
+    <h3>Existing Projects</h3>
+    <div id="existing_projects_panel">
       <!-- content is automatically populated by Javascript code included in _vise.js -->
     </div>
 
+    <script>
+      // define configuration
+      var _vise_conf = {};
+      _vise_conf['SERVER'] = 'http://localhost:9670';
+    </script>
     <script src="vise.js"></script>
     <script>
+      var conf = {};
+      conf['SERVER'] = 'http://localhost:9670';
+
       // 1. Create a list of existing projects
       var existing_projects_panel = document.getElementById('existing_projects_panel');
       _vise_show_existing_projects(existing_projects_panel);

@@ -1,0 +1,134 @@
+var toolbar = document.createElement('div');
+toolbar.setAttribute('id', 'toolbar');
+var pname = document.createElement('div');
+pname.setAttribute('class', 'pname');
+toolbar.appendChild(pname);
+var pageinfo = document.createElement('div');
+pageinfo.setAttribute('class', 'pageinfo');
+toolbar.appendChild(pageinfo);
+
+var content = document.createElement('div');
+content.setAttribute('id', 'content');
+var fileview_panel = document.createElement('div');
+fileview_panel.setAttribute('class', 'fileview_panel');
+content.appendChild(fileview_panel);
+
+document.body.innerHTML = '';
+document.body.appendChild(toolbar);
+document.body.appendChild(content);
+
+var query_img;
+
+// check existence of everything we need
+if( !_vise_self_check_is_ok()) {
+  console.log('self check failed');
+} else {
+  pname.innerHTML = '<a href="/' + _vise_data.PNAME + '/">' + _vise_data.PNAME + '</a>';
+  document.title = _vise_data.PNAME;
+  _vise_show_query_ui();
+}
+
+function _vise_self_check_is_ok() {
+  if( typeof(_vise_data) === 'object' ) {
+    return true;
+  }
+  return false;
+}
+
+function _vise_show_query_ui() {
+  _vise_init_query_toolbar();
+  _vise_init_query_content();
+}
+
+function _vise_init_query_toolbar() {
+  var sep = document.createElement('div');
+  sep.innerHTML = '&nbsp;|&nbsp;';
+
+  var fileinfo = document.createElement('div');
+  fileinfo.innerHTML = 'Showing file [' + _vise_data.FILE_ID + '] <a target="_blank" href="/' + _vise_data.PNAME + '/' + _vise_data.FILENAME + '">' + _vise_data.FILENAME + '</a>';
+
+  var list = document.createElement('a');
+  list.setAttribute('href', 'filelist?start=' + _vise_data.FILE_ID);
+  list.innerHTML = 'List';
+
+  var prev;
+  if(_vise_data.FILE_ID === 0) {
+    prev = document.createElement('span');
+  } else {
+    prev = document.createElement('a');
+    prev.setAttribute('href', 'file?file_id=' + (_vise_data.FILE_ID-1));
+  }
+  prev.innerHTML = 'Prev';
+
+  var next;
+  if(_vise_data.FILE_ID === (_vise_data.FLIST_SIZE-1)) {
+    next = document.createElement('span');
+  } else {
+    next = document.createElement('a');
+    next.setAttribute('href', 'file?file_id=' + (_vise_data.FILE_ID+1));
+  }
+  next.innerHTML = 'Next';
+
+  var nav = document.createElement('div');
+  nav.appendChild(list);
+  nav.appendChild(sep.cloneNode(true));
+  nav.appendChild(prev);
+  nav.appendChild(sep.cloneNode(true));
+  nav.appendChild(next);
+
+  pageinfo.innerHTML = '';
+  pageinfo.appendChild(fileinfo);
+  pageinfo.appendChild(sep.cloneNode(true));
+  pageinfo.appendChild(nav);
+}
+
+function _vise_init_query_content() {
+  fileview_panel.innerHTML = '';
+  var formdata = {'file_id':_vise_data.FILE_ID};
+
+  var query_img_container = document.createElement('div');
+  query_img_container.setAttribute('class', 'query_img_container');
+  fileview_panel.appendChild(query_img_container);
+  var img_src = '/' + _vise_data.PNAME + '/' + _vise_data.FILENAME;
+  var img_annotator = new _via0(query_img_container, img_src);
+  img_annotator.add_hook('region_add', _vise_query_on_region_add, formdata);
+
+  var search_query_form = _vise_query_init_form(formdata);
+  fileview_panel.appendChild(search_query_form);
+
+  var info = document.createElement('p');
+  info.innerHTML = 'Draw a region to define the search query.'
+  fileview_panel.appendChild(info);
+}
+
+function _vise_query_init_form(formdata) {
+  var c = document.createElement('div');
+  c.setAttribute('id', 'search_query_form');
+
+  var form = document.createElement('form');
+  form.setAttribute('id', 'search_query_form');
+  form.setAttribute('method', 'GET');
+  form.setAttribute('action', '/' + _vise_data.PNAME + '/search');
+
+  for(var name in formdata) {
+    var field = document.createElement('input');
+    field.setAttribute('type', 'hidden');
+    field.setAttribute('name', name);
+    field.setAttribute('value', Math.floor(formdata[name]));
+    form.appendChild(field);
+  }
+
+  var search = document.createElement('input');
+  search.setAttribute('type', 'submit');
+  search.setAttribute('value', 'Search');
+  form.appendChild(search);
+
+  c.appendChild(form);
+  return c;
+}
+
+function _vise_query_on_region_add(region) {
+  var old_search_query_form = document.getElementById('search_query_form');
+  var search_query_form = _vise_query_init_form(region);
+  fileview_panel.replaceChild(search_query_form, old_search_query_form)
+}

@@ -1,3 +1,7 @@
+## General
+cover_image_filename=
+# name of image to use as cover image for this project
+
 ## Search Engine
 search_engine=relja_retrival
 # Name of search engine used to index and search images
