@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE( project_index ) {
   BOOST_TEST(ok);
 
   vise::http_response conf_set_response;
-  manager.project_conf_set(pname, proj_conf_str, conf_set_response);
+  manager.project_config_save(pname, proj_conf_str, conf_set_response);
   BOOST_TEST(conf_set_response.d_status_code == 200);
 
   vise::http_response index_create_response;

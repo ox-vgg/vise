@@ -7,24 +7,59 @@ Author: Abhishek Dutta
 
 */
 
-body { font-family:sans; background-color:white; margin:0 1ch; font-size:12pt; }
-.toppanel { display:block; margin:0; padding:0em; border-bottom:1px solid #cccccc; }
-.toppanel .viselogo { display:inline-block; margin:0.8em 0; padding:0 1ch; letter-spacing:0.3ch; }
-.toppanel .viselogo a { color:inherit; text-decoration:none; }
-.toppanel .nav { display:inline-block; float:right; }
-.toppanel .nav ul { list-style-type:none; margin:0; padding:0; }
-.toppanel .nav li { display:inline-block; margin:0.8em 0; padding:0 1ch; }
+body { font-family:sans; background-color:white; margin:0; padding:0 0.5em; font-size: calc(14px + (26 - 14) * ((100vw - 300px) / (1600 - 300))); line-height: calc(1.3em + (1.5 - 1.2) * ((100vw - 300px)/(1600 - 300))); }
 
-.create_project_panel { display:block; padding:2em 0; text-align:center; }
+/* Misc */
+.hide { display:none !important; }
+.svg_button { position:relative; width:1em; height:1em; top:0em; stroke:none; fill:#333333; stroke-width:2px; }
+.svg_button_selected { fill:#000000; stroke:none; background-color:#e6e6e6;}
+.svg_button:hover { opacity:0.6; cursor:pointer; }
+.svg_button:active { cursor:pointer; }
+.svg_icon { position:relative; width:24px; height:24px; top:2px; }
+.disabled_button { fill:#cfcfcf !important; cursor:auto !important; }
+.disabled_button:hover { fill:#cfcfcf !important; cursor:auto !important; }
+.disabled_button:active { fill:#cfcfcf !important; cursor:auto !important; }
+.text_button { border:none; color:blue; background-color:inherit; cursor:pointer; display:inline-block; }
+.text_button:hover { color:black; }
 
-h3 { margin-top:3em; }
-#existing_projects_panel { display:block; padding:1em; }
-#existing_projects_panel a { color:inherit; text-decoration:none; display:inline-block; margin:0 1em; }
-#existing_projects_panel a .project { position:relative; text-align:center; }
-#existing_projects_panel a .project .imgcontainer { position:relative; height:20vh; max-width:20vw; overflow:hidden;}
-#existing_projects_panel a .project .imgcontainer img { height:100%; }
-#existing_projects_panel a .project .description { max-width:20vw; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; padding:0.4em 0;}
-#existing_projects_panel a .project .imgcontainer progress { position:absolute; left:0; bottom:0; width:100%; }
+/* top toolbar */
+#toolbar { display:grid; grid-template-columns:0.5fr 2fr; padding:0.5em 0; align-items: center; }
+#toolbar .pname { height:1em; }
+#toolbar .pname .vise_logo { height:1em; }
+#toolbar .pname svg { height:1em; }
+#toolbar .pname a:first-child { margin-right:0.5em; height:1em; }
+#toolbar .pageinfo { text-align:right; margin-right:0.5em; }
+#toolbar .pageinfo a { margin:0 0.5em; }
 
-.message_container { display:block; text-align:center; font-size:small; }
-.message_container .message {}
+#content { display:block; }
+#content #error_message { display:block; text-align:left; min-height:50vh; }
+#content #error_message .message {font-size:normal; }
+#content #create_project_panel { display:block; padding:2em 0; text-align:center; }
+#content #create_project_panel input[type="text"] { width:16em; }
+#content #create_project_panel button { margin-left:0.5em; }
+#content #existing_projects_panel { display:block; padding:1em; min-height:40vh; }
+#content #existing_projects_panel a { color:inherit; text-decoration:none; display:inline-block; margin:0 1em; }
+#content #existing_projects_panel a .project { position:relative; text-align:center; }
+#content #existing_projects_panel a .project .imgcontainer { position:relative; height:20vh; max-width:20vw; overflow:hidden;}
+#content #existing_projects_panel a .project .imgcontainer img { height:100%; }
+#content #existing_projects_panel a .project .description { max-width:20vw; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; padding:0.4em 0;}
+#content #existing_projects_panel a .project .imgcontainer progress { position:absolute; left:0; bottom:0; width:100%; }
+
+/* VISE Settings */
+#content #settings_container {}
+#content #settings_container table { margin-left:1em; border:1px solid #cccccc; border-collapse:collapse; font-size:0.8em; }
+#content #settings_container table tr {}
+#content #settings_container table td {border:1px solid #f2f2f2; padding:1em; }
+#content #settings_container table td input[type="text"] { }
+#content #settings_container #config_save_status { margin-left:1em; }
+#content #admintool_container {}
+#content #admintool_container .warning { font-size:0.8em; color:#ff5555; }
+#content #admintool_container #project_del_container { border:1px solid #cccccc; padding:1em; margin:1em;}
+#content #admintool_container #project_del_container label { margin-right:1em; }
+#content #admintool_container #project_del_container input[type="submit"] { display:block; margin-top:1em; }
+
+/* About VISE */
+#content #about_container { text-align:center; }
+#content #about_container #vise_logo_large { height:5em; }
+#content #about_container #vise_name { font-size:1em; }
+#content #about_container #vise_info { font-size:0.8em; display:inline-block; max-width:40em; text-align:justify; }

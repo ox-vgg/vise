@@ -6,15 +6,16 @@
 #ifndef PROJECT_MANAGER_H
 #define PROJECT_MANAGER_H
 
+#include "vise_version.h"
 #include "vise_util.h"
 #include "http_request.h"
 #include "http_response.h"
 #include "project.h"
 #include "search_result.h"
 #include "search_query.h"
-#include "project_html_resources.h"
+#include "html_resources.h"
 
-#include <unordered_map>
+#include <map>
 #include <string>
 #include <iostream>
 #include <utility>
@@ -34,7 +35,7 @@ namespace vise {
     void handle_get(http_request const &request,
                     std::vector<std::string> const &uri,
                     std::map<std::string, std::string> const &param,
-                    http_response &response) const;
+                    http_response &response); // non-const as it can trigger project_load()
     void handle_post(http_request const &request,
                      std::vector<std::string> const &uri,
                      std::map<std::string, std::string> const &param,
@@ -54,15 +55,35 @@ namespace vise {
                       boost::filesystem::path fn,
                       http_response& response);
 
+    // VISE HTML based minimal UI
+    void vise_home(std::map<std::string, std::string> const &param,
+                   http_response &response) const;
+    void vise_settings(std::map<std::string, std::string> const &param,
+                       http_response &response) const;
+    void vise_settings_save(std::string &settings_formdata,
+                            http_response &response);
+
+    void vise_about(std::map<std::string, std::string> const &param,
+                    http_response &response) const;
+
+    void vise_project_create(std::map<std::string, std::string> const &param,
+                             http_response &response);
+    void vise_project_delete(std::map<std::string, std::string> const &param,
+                             http_response &response);
+    void vise_error_page(const std::string message,
+                         const std::string response_format,
+                         http_response &response) const;
+    bool is_project_name_valid(const std::string pname) const;
+
     // project's HTML based minimal UI
     void project_home(std::string pname,
                       http_response &response) const;
     void project_filelist(std::string pname,
-                          http_response &response,
-                          std::map<std::string, std::string> const &param) const;
+                          std::map<std::string, std::string> const &param,
+                          http_response &response) const;
     void project_file(std::string pname,
-                      http_response &response,
-                      std::map<std::string, std::string> const &param) const;
+                      std::map<std::string, std::string> const &param,
+                      http_response &response) const;
     void project_show_match(std::string pname,
                             std::map<std::string, std::string> const &param,
                             http_response &response) const;
@@ -72,9 +93,15 @@ namespace vise {
     void project_register_image(std::string pname,
                                 std::map<std::string, std::string> const &param,
                                 http_response &response) const;
+    void project_configure(std::string pname,
+                           std::map<std::string, std::string> const &param,
+                           http_response &response) const;
+    void project_index_status(std::string pname,
+                              std::map<std::string, std::string> const &param,
+                              http_response &response) const;
 
     bool project_exists(std::string pname) const;
-    void project_create(std::string pname);
+    bool project_create(std::string pname);
     bool project_load(std::string pname);
     bool project_is_loaded(std::string pname) const;
     void project_delete(std::string pname);
@@ -91,19 +118,15 @@ namespace vise {
                           std::map<std::string, std::string> const &param,
                           http_response &response);
 
-    void project_conf_set(std::string pname,
-                          std::string &conf_str,
-                          http_response &response);
+    void project_config_save(std::string pname,
+                             std::string &config_formdata,
+                             http_response &response);
 
-    void project_list(std::map<std::string, std::string> const &param,
-                      http_response &response) const;
     void project_pname_list(std::vector<std::string> &pname_list) const;
-
-    void debug();
   private:
     std::mutex d_project_load_mutex;
     const std::map<std::string, std::string> d_conf;
-    std::unordered_map<std::string, std::unique_ptr<vise::project> > d_projects;
+    std::map<std::string, std::unique_ptr<vise::project> > d_projects;
   };
 }
 #endif

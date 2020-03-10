@@ -1,3 +1,12 @@
+/**
+ *
+ * @desc code to build HTML user interface for /{PNAME}/showmatch endpoint
+ * @author Abhishek Dutta <adutta@robots.ox.ac.uk>
+ * @date 13 Feb. 2020
+ *
+ */
+'use strict'
+
 var toolbar = document.createElement('div');
 toolbar.setAttribute('id', 'toolbar');
 var pname = document.createElement('div');
@@ -21,11 +30,8 @@ var match_panel = document.createElement('div');
 match_panel.setAttribute('class', 'match_panel');
 content.appendChild(match_panel);
 
-document.body.innerHTML = '';
 document.body.appendChild(toolbar);
 document.body.appendChild(content);
-
-var SVG_NS = "http://www.w3.org/2000/svg";
 
 var query_img;
 var match_img;
@@ -45,15 +51,28 @@ var stroke_width = 3;
 if( !_vise_self_check_is_ok()) {
   console.log('self check failed');
 } else {
-  pname.innerHTML = '<a href="/' + _VISE_PNAME + '/">' + _VISE_PNAME + '</a>';
-  document.title = _VISE_PNAME;
+  var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
+  var home_link = document.createElement('a');
+  home_link.setAttribute('href', '/index.html');
+  home_link.appendChild(home_icon);
+
+  var pname_link = document.createElement('a');
+  pname_link.setAttribute('href', '/' + _vise_data.PNAME + '/');
+  pname_link.setAttribute('title', 'Home page of ' + _vise_data.PNAME);
+  pname_link.innerHTML = _vise_data.PNAME;
+
+  pname.innerHTML = '';
+  pname.appendChild(home_link);
+  pname.appendChild(pname_link);
+
+  document.title = _vise_data.PNAME;
   _vise_init_show_match_ui();
 }
 
 function _vise_self_check_is_ok() {
-  if( typeof(_VISE_PNAME) === 'string' &&
-      typeof(_VISE_QUERY) === 'object' &&
-      typeof(_VISE_MATCH) === 'object'
+  if( typeof(_vise_data.PNAME) === 'string' &&
+      typeof(_vise_data.QUERY) === 'object' &&
+      typeof(_vise_data.MATCH) === 'object'
     ) {
     return true;
   }
@@ -63,8 +82,8 @@ function _vise_self_check_is_ok() {
 function _vise_init_show_match_ui() {
   _vise_querymatch_panel_show();
 
-  var query_img_uri = '/' + _VISE_PNAME + '/' + _VISE_QUERY['filename'];
-  var match_img_uri = '/' + _VISE_PNAME + '/' + _VISE_MATCH['filename'];
+  var query_img_uri = '/' + _vise_data.PNAME + '/' + _vise_data.QUERY['filename'];
+  var match_img_uri = '/' + _vise_data.PNAME + '/' + _vise_data.MATCH['filename'];
   var load_promise_list = [];
   load_promise_list.push( _vise_load_remote_img(query_img_uri) );
   load_promise_list.push( _vise_load_remote_img(match_img_uri) );
@@ -84,15 +103,14 @@ function _vise_querymatch_panel_show() {
 
   var query = document.createElement('div');
   query.setAttribute('class', 'query');
-
   var qimgcontainer = document.createElement('div');
   qimgcontainer.setAttribute('class', 'img_with_region');
   var qimg = document.createElement('img');
-  qimg.setAttribute('src', '/' + _VISE_PNAME + '/' + _VISE_QUERY['filename']);
+  qimg.setAttribute('src', '/' + _vise_data.PNAME + '/' + _vise_data.QUERY['filename']);
   qimg.addEventListener('load', _vise_on_img_load_show_query_rshape);
   var qlabel = document.createElement('a');
-  qlabel.innerHTML = 'Query: ' + _VISE_QUERY['filename'];
-  qlabel.setAttribute('href', '/' + _VISE_PNAME + '/file?file_id=' + _VISE_QUERY['file_id']);
+  qlabel.innerHTML = 'Query: ' + _vise_data.QUERY['filename'];
+  qlabel.setAttribute('href', '/' + _vise_data.PNAME + '/file?file_id=' + _vise_data.QUERY['file_id']);
   qimgcontainer.appendChild(qimg);
   qimgcontainer.appendChild(qlabel);
   query.appendChild(qimgcontainer);
@@ -102,11 +120,11 @@ function _vise_querymatch_panel_show() {
   var mimgcontainer = document.createElement('div');
   mimgcontainer.setAttribute('class', 'img_with_region');
   var mimg = document.createElement('img');
-  mimg.setAttribute('src', '/' + _VISE_PNAME + '/' + _VISE_MATCH['filename']);
+  mimg.setAttribute('src', '/' + _vise_data.PNAME + '/' + _vise_data.MATCH['filename']);
   mimg.addEventListener('load', _vise_on_img_load_show_match_rshape);
   var mlabel = document.createElement('a');
-  mlabel.innerHTML = 'Match: ' + _VISE_MATCH['filename'];
-  mlabel.setAttribute('href', '/' + _VISE_PNAME + '/file?file_id=' + _VISE_MATCH['file_id']);
+  mlabel.innerHTML = 'Match: ' + _vise_data.MATCH['filename'];
+  mlabel.setAttribute('href', '/' + _vise_data.PNAME + '/file?file_id=' + _vise_data.MATCH['file_id']);
   mimgcontainer.appendChild(mimg);
   mimgcontainer.appendChild(mlabel);
   match.appendChild(mimgcontainer);
@@ -117,7 +135,7 @@ function _vise_querymatch_panel_show() {
 
 function _vise_on_img_load_show_query_rshape(e) {
   var scale = e.target.height / e.target.naturalHeight;
-  var svg = document.createElementNS(SVG_NS, 'svg');
+  var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
   var svg_css = [];
   svg_css.push('position:absolute');
   svg_css.push('-webkit-user-select:none;-moz-user-select:none;user-select:none');
@@ -130,17 +148,17 @@ function _vise_on_img_load_show_query_rshape(e) {
   svg_css.push('stroke-width:2');
   svg.setAttribute('style', svg_css.join(';'));
 
-  var rshape = document.createElementNS(SVG_NS, 'rect');
-  rshape.setAttribute('x', Math.floor(_VISE_QUERY['x'] * scale));
-  rshape.setAttribute('y', Math.floor(_VISE_QUERY['y'] * scale));
-  rshape.setAttribute('width', Math.floor(_VISE_QUERY['width'] * scale));
-  rshape.setAttribute('height', Math.floor(_VISE_QUERY['height'] * scale));
+  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+  rshape.setAttribute('x', Math.floor(_vise_data.QUERY['x'] * scale));
+  rshape.setAttribute('y', Math.floor(_vise_data.QUERY['y'] * scale));
+  rshape.setAttribute('width', Math.floor(_vise_data.QUERY['width'] * scale));
+  rshape.setAttribute('height', Math.floor(_vise_data.QUERY['height'] * scale));
   svg.appendChild(rshape);
   e.target.parentNode.appendChild(svg);
 }
 
 function _vise_on_img_load_show_match_rshape(e) {
-  var svg = document.createElementNS(SVG_NS, 'svg');
+  var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
   var svg_css = [];
   svg_css.push('position:absolute');
   svg_css.push('-webkit-user-select:none;-moz-user-select:none;user-select:none');
@@ -154,11 +172,11 @@ function _vise_on_img_load_show_match_rshape(e) {
 
   svg.setAttribute('style', svg_css.join(';'));
 
-  var qx1 = _VISE_QUERY['x'];
-  var qy1 = _VISE_QUERY['y'];
-  var qx2 = qx1 + _VISE_QUERY['width'];
-  var qy2 = qy1 + _VISE_QUERY['height'];
-  var H = _VISE_MATCH_DETAILS['H'];
+  var qx1 = _vise_data.QUERY['x'];
+  var qy1 = _vise_data.QUERY['y'];
+  var qx2 = qx1 + _vise_data.QUERY['width'];
+  var qy2 = qy1 + _vise_data.QUERY['height'];
+  var H = _vise_data.MATCH_DETAILS['H'];
 
   var scale = e.target.height / e.target.naturalHeight;
   var rx1 = (H[0] * qx1 + H[1] * qy1 + H[2]) * scale;
@@ -166,7 +184,7 @@ function _vise_on_img_load_show_match_rshape(e) {
   var rx2 = (H[0] * qx2 + H[1] * qy2 + H[2]) * scale;
   var ry2 = (H[3] * qx2 + H[4] * qy2 + H[5]) * scale;
 
-  var rshape = document.createElementNS(SVG_NS, 'rect');
+  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
   rshape.setAttribute('x', Math.floor(rx1));
   rshape.setAttribute('y', Math.floor(ry1));
   rshape.setAttribute('width', Math.floor(rx2 - rx1));
@@ -178,18 +196,17 @@ function _vise_on_img_load_show_match_rshape(e) {
 
 function _vise_togglepanel_show() {
   toggle_panel.innerHTML = '';
-  var title = document.createElement('p');
-  title.setAttribute('class', 'title');
+  var title = document.createElement('h3');
   title.innerHTML = 'Difference between Query and Match';
   toggle_panel.appendChild(title);
 
   //var target_height = toggle_panel.clientHeight;
-  var target_height = _VISE_QUERY['height'];
+  var target_height = _vise_data.QUERY['height'];
 
-  var qx1 = _VISE_QUERY['x'];
-  var qy1 = _VISE_QUERY['y'];
-  var qw = _VISE_QUERY['width'];
-  var qh = _VISE_QUERY['height'];
+  var qx1 = _vise_data.QUERY['x'];
+  var qy1 = _vise_data.QUERY['y'];
+  var qw = _vise_data.QUERY['width'];
+  var qh = _vise_data.QUERY['height'];
   var qx2 = qx1 + qw;
   var qy2 = qy1 + qh;
   var qcanvas = _vise_imregion_to_canvas(query_img, qx1, qy1, qw, qh, target_height);
@@ -199,7 +216,7 @@ function _vise_togglepanel_show() {
   qregion.appendChild(qcanvas);
   qregion.appendChild(qcaption);
 
-  var H = _VISE_MATCH_DETAILS['H'];
+  var H = _vise_data.MATCH_DETAILS['H'];
   var rx1 = (H[0] * qx1 + H[1] * qy1 + H[2]);
   var ry1 = (H[3] * qx1 + H[4] * qy1 + H[5]);
   var rx2 = (H[0] * qx2 + H[1] * qy2 + H[2]);
@@ -242,13 +259,13 @@ function _vise_togglepanel_show() {
   toggle_panel.appendChild(mregion);
 
   var req = [];
-  req.push('/' + _VISE_PNAME + '/register?file1_id=' + _VISE_QUERY['file_id']);
-  req.push('file2_id=' + _VISE_MATCH['file_id']);
-  req.push('x=' + _VISE_QUERY['x']);
-  req.push('y=' + _VISE_QUERY['y']);
-  req.push('width=' + _VISE_QUERY['width']);
-  req.push('height=' + _VISE_QUERY['height']);
-  req.push('H0=' + JSON.stringify(_VISE_MATCH_DETAILS['H']));
+  req.push('/' + _vise_data.PNAME + '/register?file1_id=' + _vise_data.QUERY['file_id']);
+  req.push('file2_id=' + _vise_data.MATCH['file_id']);
+  req.push('x=' + _vise_data.QUERY['x']);
+  req.push('y=' + _vise_data.QUERY['y']);
+  req.push('width=' + _vise_data.QUERY['width']);
+  req.push('height=' + _vise_data.QUERY['height']);
+  req.push('H0=' + JSON.stringify(_vise_data.MATCH_DETAILS['H']));
   var xhr = new XMLHttpRequest();
   xhr.open('GET', req.join('&'));
   xhr.send();
@@ -267,12 +284,12 @@ function _vise_togglepanel_show() {
     match_img_tx_canvas = document.createElement('canvas');
     match_img_tx_canvas.width = query_img.naturalWidth;
     match_img_tx_canvas.height = query_img.naturalHeight;
-    match_img_tx_ctx = match_img_tx_canvas.getContext('2d', { alpha: false });
+    var match_img_tx_ctx = match_img_tx_canvas.getContext('2d', { alpha: false });
     match_img_tx_ctx.setTransform(H[0], H[3], H[1], H[4], H[2], H[5]);
     match_img_tx_ctx.drawImage(match_img, 0, 0);
 
-    toggle_canvas.height = _VISE_QUERY['height'];
-    toggle_canvas.width = _VISE_QUERY['width'];
+    toggle_canvas.height = _vise_data.QUERY['height'];
+    toggle_canvas.width = _vise_data.QUERY['width'];
 
     _vise_toggle_canvas_show_query();
     toggle_canvas.addEventListener('mousedown', function(e) {
@@ -293,11 +310,11 @@ function _vise_togglepanel_show() {
 }
 
 function _vise_toggle_canvas_get_expand_size() {
-  var expand_size = Math.floor(_VISE_QUERY['width'] * 0.1);
-  var ex = Math.max(0, _VISE_QUERY['x'] - expand_size);
-  var ey = Math.max(0, _VISE_QUERY['y'] - expand_size);
-  var ewidth  = Math.min(_VISE_QUERY['width'] + 2*expand_size, query_img.naturalWidth);
-  var eheight = Math.min(_VISE_QUERY['height'] + 2*expand_size, query_img.naturalHeight);
+  var expand_size = Math.floor(_vise_data.QUERY['width'] * 0.1);
+  var ex = Math.max(0, _vise_data.QUERY['x'] - expand_size);
+  var ey = Math.max(0, _vise_data.QUERY['y'] - expand_size);
+  var ewidth  = Math.min(_vise_data.QUERY['width'] + 2*expand_size, query_img.naturalWidth);
+  var eheight = Math.min(_vise_data.QUERY['height'] + 2*expand_size, query_img.naturalHeight);
   return [ex, ey, ewidth, eheight];
 }
 
@@ -354,8 +371,7 @@ function _vise_load_remote_img(src) {
 }
 
 function _vise_matchpanel_show() {
-  var title = document.createElement('p');
-  title.setAttribute('class', 'title');
+  var title = document.createElement('h3');
   title.innerHTML = 'Visual Features and their Correspondences';
 
   feat_match_canvas = document.createElement('canvas');
@@ -373,7 +389,7 @@ function _vise_matchpanel_show() {
 function _vise_matchpanel_update_region_count(e) {
   switch(e.target.value) {
   case 'drawall':
-    rand_pts_count = _VISE_MATCH_DETAILS.matches.length;
+    rand_pts_count = _vise_data.MATCH_DETAILS.matches.length;
     break;
   case 'draw_random_regions':
     rand_pts_count = parseInt(document.getElementById('rand_pts_count_input').value);
@@ -404,13 +420,13 @@ function _vise_matchpanel_update_draw_property(e) {
 
 function _vise_matchpanel_update() {
   rand_selected_match_pts_index = [];
-  if(rand_pts_count === _VISE_MATCH_DETAILS.matches.length) {
-    for(var i=0; i<_VISE_MATCH_DETAILS.matches.length; ++i) {
+  if(rand_pts_count === _vise_data.MATCH_DETAILS.matches.length) {
+    for(var i=0; i<_vise_data.MATCH_DETAILS.matches.length; ++i) {
       rand_selected_match_pts_index.push(i);
     }
   } else {
     rand_selected_match_pts_index = _vise_get_rand_int_list(0,
-                                                            _VISE_MATCH_DETAILS.matches.length,
+                                                            _vise_data.MATCH_DETAILS.matches.length,
                                                             rand_pts_count);
   }
   _vise_matchpanel_draw_correspondence(rand_selected_match_pts_index);
@@ -425,7 +441,7 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   if(typeof(selected_match_pts_index) === 'undefined' ||
      selected_match_pts_index.length === 0 ) {
     match_pts_index = [];
-    for(var i=0; i<_VISE_MATCH_DETAILS.matches.length; ++i) {
+    for(var i=0; i<_vise_data.MATCH_DETAILS.matches.length; ++i) {
       match_pts_index.push(i);
     }
   }
@@ -438,6 +454,7 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   var qh = query_img.naturalHeight;
   var mw = match_img.naturalWidth;
   var mh = match_img.naturalHeight;
+
   var imv_maxw = (vw_max/2) - 2*pad;
   var imv_maxh = vh_max - 2*pad;
 
@@ -454,7 +471,7 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   feat_match_canvas.height = vh;
   feat_match_canvas.width = vw;
 
-  ctx = feat_match_canvas.getContext('2d', { alpha: false });
+  var ctx = feat_match_canvas.getContext('2d', { alpha: false });
   ctx.clearRect(0, 0, vw, vh);
   ctx.drawImage(query_img,
                 0, 0, qw, qh,
@@ -466,14 +483,14 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   // draw query and match regions
   ctx.strokeStyle = 'yellow';
   ctx.lineWidth = stroke_width;
-  var qx1 = _VISE_QUERY['x'];
-  var qy1 = _VISE_QUERY['y'];
-  var qx2 = qx1 + _VISE_QUERY['width'];
-  var qy2 = qy1 + _VISE_QUERY['height'];
+  var qx1 = _vise_data.QUERY['x'];
+  var qy1 = _vise_data.QUERY['y'];
+  var qx2 = qx1 + _vise_data.QUERY['width'];
+  var qy2 = qy1 + _vise_data.QUERY['height'];
   ctx.strokeRect(qoffsetx + qx1*qsdim[2], qoffsety + qy1*qsdim[2],
                  (qx2-qx1)*qsdim[2], (qy2-qy1)*qsdim[2]);
 
-  var H = _VISE_MATCH_DETAILS['H'];
+  var H = _vise_data.MATCH_DETAILS['H'];
   var mx1 = (H[0] * qx1 + H[1] * qy1 + H[2]);
   var my1 = (H[3] * qx1 + H[4] * qy1 + H[5]);
   var mx2 = (H[0] * qx2 + H[1] * qy2 + H[2]);
@@ -487,7 +504,7 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
     ctx.lineWidth = stroke_width;
     for(var i=0; i<match_pts_index.length; ++i) {
       var rand_index = match_pts_index[i];
-      var d = _VISE_MATCH_DETAILS.matches[rand_index];
+      var d = _vise_data.MATCH_DETAILS.matches[rand_index];
       var ellipse1_param = _vise_matchpanel_get_ellipse_param(d[2], d[3], d[4]);
       ctx.beginPath();
       ctx.ellipse(qoffsetx + d[0]*qsdim[2], qoffsety + d[1]*qsdim[2],
@@ -501,7 +518,7 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
     ctx.lineWidth = stroke_width;
     for(var i=0; i<match_pts_index.length; ++i) {
       var rand_index = match_pts_index[i];
-      var d = _VISE_MATCH_DETAILS.matches[rand_index];
+      var d = _vise_data.MATCH_DETAILS.matches[rand_index];
       var ellipse2_param = _vise_matchpanel_get_ellipse_param(d[7], d[8], d[9]);
       ctx.beginPath();
       ctx.ellipse(moffsetx + d[5]*msdim[2], moffsety + d[6]*msdim[2],
@@ -519,7 +536,7 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
     //ctx.setLineDash([10, 5]);
     for(var i=0; i<match_pts_index.length; ++i) {
       var rand_index = match_pts_index[i];
-      var d = _VISE_MATCH_DETAILS.matches[rand_index];
+      var d = _vise_data.MATCH_DETAILS.matches[rand_index];
       ctx.moveTo(qoffsetx + d[0]*qsdim[2], qoffsety + d[1]*qsdim[2]);
       ctx.lineTo(moffsetx + d[5]*msdim[2], moffsety + d[6]*msdim[2]);
     }
@@ -530,19 +547,19 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   ctx.fillStyle = 'yellow';
   ctx.font = '14px Sans';
   var charwidth = ctx.measureText('M').width;
-  var qlabel = _VISE_QUERY['filename'];
+  var qlabel = _vise_data.QUERY['filename'];
   var qmeasure = ctx.measureText(qlabel);
   if(qmeasure.width > qsdim[0]) {
     var maxchar = qsdim[0] / charwidth;
-    var qlabel = '...' + _VISE_QUERY['filename'].substring(_VISE_QUERY['filename'].length - maxchar);
+    var qlabel = '...' + _vise_data.QUERY['filename'].substring(_vise_data.QUERY['filename'].length - maxchar);
   }
   ctx.fillText(qlabel, qoffsetx, vh - pad);
 
-  var mlabel = _VISE_MATCH['filename'];
+  var mlabel = _vise_data.MATCH['filename'];
   var mmeasure = ctx.measureText(mlabel);
   if(mmeasure.width > msdim[0]) {
     var maxchar = msdim[0] / charwidth;
-    var mlabel = '...' + _VISE_MATCH['filename'].substring(_VISE_MATCH['filename'].length - maxchar);
+    var mlabel = '...' + _vise_data.MATCH['filename'].substring(_vise_data.MATCH['filename'].length - maxchar);
   }
   ctx.fillText(mlabel, moffsetx, vh - pad);
 }
@@ -558,7 +575,7 @@ function _vise_matchpanel_init_toolbar(toolbar) {
   drawall.addEventListener('click', _vise_matchpanel_update_region_count);
   var drawall_label = document.createElement('label');
   drawall_label.setAttribute('for', 'drawall');
-  drawall_label.innerHTML = 'Draw all ' + _VISE_MATCH_DETAILS.matches.length + ' regions';
+  drawall_label.innerHTML = 'Draw all ' + _vise_data.MATCH_DETAILS.matches.length + ' regions';
   region_sel.appendChild(drawall);
   region_sel.appendChild(drawall_label);
 
@@ -686,6 +703,7 @@ function _vise_matchpanel_get_ellipse_param(a, b, c) {
 function _vise_matchpanel_img_scale_dim(maxw, maxh, imgw, imgh) {
   var imgsw = 0;
   var imgsh = 0;
+
   if( imgw > maxw ) {
     imgsw = maxw;
     imgsh = imgsw * (imgh/imgw);
@@ -701,6 +719,9 @@ function _vise_matchpanel_img_scale_dim(maxw, maxh, imgw, imgh) {
         imgsw = maxw;
         imgsh = imgsw * (imgh/imgw);
       }
+    } else {
+      imgsw = imgw;
+      imgsh = imgh;
     }
   }
   return [imgsw, imgsh, imgsw/imgw];

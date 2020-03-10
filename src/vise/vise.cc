@@ -5,26 +5,46 @@
 // Date: 12 Nov. 2019
 //
 
+#include "vise_version.h"
 #include "vise_util.h"
 #include "http_server.h"
 
+#include <boost/filesystem.hpp>
+#include <Magick++.h>
+
 #include <iostream>
 #include <memory>
+#include <cstdlib>
 
 int main(int argc, char **argv) {
-  std::cout << "VGG Image Search Engine (VISE)"
+  std::cout << VISE_FULLNAME << " (" << VISE_NAME << ") "
+            << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH
             << std::endl;
-  if (argc != 2) {
-    std::cout << "Usage: " << argv[0]
-              << " VISE_CONF_FILENAME" << std::endl;
-    return 0;
-  }
-
-  std::string conf_fn(argv[1]);
-
-  // load VISE configuration
+  const boost::filesystem::path visehome = vise::vise_home();
+  boost::filesystem::path vise_settings = visehome / "vise_settings.txt";
   std::map<std::string, std::string> conf;
-  vise::configuration_load(conf_fn, conf);
+  if(!boost::filesystem::exists(vise_settings)) {
+    // use default configuration for VISE
+    boost::filesystem::path vise_store = visehome / "store";
+    boost::filesystem::path www_store = visehome / "www";
+
+    if(!boost::filesystem::exists(visehome)) {
+      boost::filesystem::create_directories(visehome);
+      boost::filesystem::create_directory(vise_store);
+      boost::filesystem::create_directory(www_store);
+    }
+
+    conf["vise_store"] = vise_store.string();
+    conf["www_store"] = www_store.string();
+    conf["address"] = "0.0.0.0";
+    conf["port"] = "9670";
+    conf["nthread"] = "4";
+    vise::configuration_save(conf, vise_settings.string());
+  }
+  // load VISE configuration
+  vise::configuration_load(vise_settings.string(), conf);
+
+  Magick::InitializeMagick(*argv);
 
   // start http server to serve contents in a web browser
   vise::http_server server(conf);

@@ -73,6 +73,7 @@ namespace vise {
     bool is_header_field_present(std::string field_name) const;
     std::string header_field_value(std::string field_name) const;
 
+    bool parse_urlencoded_form_data();
     bool parse_multipart_form_data();
     size_t multipart_data_size() const {
       return d_multipart_data.size();

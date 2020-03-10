@@ -21,6 +21,7 @@ No usage or redistribution is allowed without explicit permission.
 
 #include "embedder.h"
 #include "feat_getter.h"
+#include "vise/task_progress.h"
 
 namespace buildIndex {
 
@@ -32,7 +33,8 @@ namespace buildIndex {
               std::string const tmpDir,
               featGetter const &featGetter_obj,
               std::string const clstFn,
-              embedderFactory const *embFactory= NULL);
+              embedderFactory const *embFactory= NULL,
+              vise::task_progress *progress = nullptr);
 };
 
 #endif

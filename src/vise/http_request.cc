@@ -208,6 +208,29 @@ std::string vise::http_request::current_state_name() const {
 /// Multipart Form Data
 ///
 
+
+bool vise::http_request::parse_urlencoded_form_data() {
+  std::string ctype = header_field_value("Content-Type");
+  if(ctype != "application/x-www-form-urlencoded") {
+    return false;
+  }
+  std::string payload_str = d_payload.str();
+  std::size_t start = 0;
+  std::size_t amppos = payload_str.find('&', start);
+  while(amppos != std::string::npos) {
+    std::string param_i = payload_str.substr(start, amppos);
+    std::size_t eqpos = param_i.find('=');
+    if(eqpos != std::string::npos) {
+      std::string key = param_i.substr(0, eqpos);
+      std::string value = param_i.substr(eqpos+1);
+      d_multipart_data.insert( std::pair<std::string, std::string>(key, value) );
+    }
+    start = amppos + 1;
+    amppos = payload_str.find('&', start);
+  }
+  return true;
+}
+
 // see : https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
 bool vise::http_request::parse_multipart_form_data() {
   std::string ctype = header_field_value("Content-Type");

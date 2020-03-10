@@ -15,6 +15,7 @@
 #include <memory>
 #include <thread>
 #include <exception>
+#include <functional>
 
 #include <boost/filesystem.hpp>
 
@@ -34,6 +35,8 @@ namespace vise {
     bool index_is_done();
     bool index_is_incomplete();
     bool index_is_ongoing();
+    std::string index_status_to_json();
+
     void index_search(vise::search_query const &query,
                       std::vector<vise::search_result> &result) const;
     void index_internal_match(vise::search_query const &q,
@@ -51,11 +54,18 @@ namespace vise {
     uint32_t fid(std::string filename) const;
     std::string filename(uint32_t fid) const;
 
+    uint32_t image_src_count() const;
+
+    void conf_to_json(std::ostringstream &json);
+    bool conf_from_plaintext(std::string plaintext);
+    std::string pconf(std::string key);
+
   private:
     std::string d_pname;
-    boost::filesystem::path d_storedir;
-    boost::filesystem::path d_datadir;
-    boost::filesystem::path d_pconf_fn;
+    boost::filesystem::path d_project_dir;
+    boost::filesystem::path d_data_dir;
+    boost::filesystem::path d_image_dir;
+    boost::filesystem::path d_image_src_dir;
 
     const std::map<std::string, std::string> d_conf;  // VISE application configuration
     std::map<std::string, std::string> d_pconf;       // project configuration
@@ -73,7 +83,8 @@ namespace vise {
     void search_engine_init(std::string search_engine_name,
                             bool &success,
                             std::string &message);
-    void conf_reload();
+    bool conf_reload();
+    void conf_load_default();
   };
 }
 #endif

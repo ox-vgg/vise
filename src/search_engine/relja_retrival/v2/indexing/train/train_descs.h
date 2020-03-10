@@ -20,6 +20,7 @@ No usage or redistribution is allowed without explicit permission.
 #include <omp.h>
 
 #include "feat_getter.h"
+#include "vise/task_progress.h"
 
 namespace buildIndex {
 
@@ -27,7 +28,8 @@ namespace buildIndex {
         computeTrainDescs(std::string const trainImagelistFn, std::string const trainDatabasePath,
                           std::string const trainDescsFn,
                           int32_t const trainNumDescs,
-                          featGetter const &featGetter_obj);
+                          featGetter const &featGetter_obj,
+                          vise::task_progress *progress = nullptr);
 }
 
 #endif

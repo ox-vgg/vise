@@ -64,6 +64,12 @@ void vise::connection::on_request_data(const boost::system::error_code& e, std::
       return;
     }
 
+    /*
+    if(d_request.d_method == "POST") {
+      d_request.parse_urlencoded_form_data();
+      d_request.parse_multipart_form_data();
+    }
+    */
     d_manager->process_http_request(d_request, d_response);
     send_response();
     return;

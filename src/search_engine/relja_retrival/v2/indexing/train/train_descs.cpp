@@ -44,13 +44,16 @@ namespace buildIndex {
                       uint32_t numDims,
                       uint8_t dtypeCode,
                       int64_t trainNumDescs,
-                      std::string const trainDescsFn)
+                      std::string const trainDescsFn,
+                      vise::task_progress *progress)
       : allDescs_(trainNumDescs<0),
         remainNumDescs_(trainNumDescs<0 ? 0 : trainNumDescs),
         nextID_(0),
         progressPrint_(
                        trainNumDescs<0 ? numDocs : trainNumDescs,
-                       std::string("trainDescsManager") + (trainNumDescs<0 ? "(images)" : "(descs)") ) {
+                       std::string("trainDescsManager") + (trainNumDescs<0 ? "(images)" : "(descs)") ) ,
+        d_progress(progress)
+    {
 
       f_= fopen(trainDescsFn.c_str(), "wb");
       ASSERT(f_!=NULL);
@@ -58,7 +61,9 @@ namespace buildIndex {
       fwrite( &dtypeCode, sizeof(dtypeCode), 1, f_ );
     }
 
-    ~trainDescsManager(){ fclose(f_); }
+    ~trainDescsManager() {
+      fclose(f_);
+    }
 
     void
     operator()( uint32_t jobID, trainDescsResult &result );
@@ -70,6 +75,7 @@ namespace buildIndex {
     std::map<uint32_t, trainDescsResult> results_;
     FILE *f_;
     timing::progressPrint progressPrint_;
+    vise::task_progress *d_progress;
 
     DISALLOW_COPY_AND_ASSIGN(trainDescsManager)
   };
@@ -92,8 +98,13 @@ namespace buildIndex {
            ++nextID_){
 
         trainDescsResult const &res= it->second;
-        if (allDescs_)
-          progressPrint_.inc();
+        if (allDescs_) {
+          if(d_progress != nullptr) {
+            d_progress->add(1);
+          } else {
+            progressPrint_.inc();
+          }
+        }
 
         if (res.first>0) {
           uint32_t numToCopy= (allDescs_ || res.first < remainNumDescs_) ?
@@ -105,8 +116,13 @@ namespace buildIndex {
                   sizeof(char),
                   numToCopy*res.second.size()/res.first,
                   f_ );
-          if (!allDescs_)
-            progressPrint_.inc(numToCopy);
+          if (!allDescs_) {
+            if(d_progress != nullptr) {
+              d_progress->add(numToCopy);
+            } else {
+              progressPrint_.inc(numToCopy);
+            }
+          }
           remainNumDescs_-= numToCopy;
         }
         results_.erase(it++);
@@ -197,7 +213,8 @@ namespace buildIndex {
                     std::string const trainDatabasePath,
                     std::string const trainDescsFn,
                     int32_t const trainNumDescs,
-                    featGetter const &featGetter_obj){
+                    featGetter const &featGetter_obj,
+                    vise::task_progress *progress){
 
     MPI_GLOBAL_RANK;
 
@@ -240,7 +257,8 @@ namespace buildIndex {
                             featGetter_obj.numDims(),
                             featGetter_obj.getDtypeCode(),
                             trainNumDescs,
-                            trainDescsFn) :
+                            trainDescsFn,
+                            progress) :
       NULL;
 
     trainDescsWorker worker(imageFns, trainDatabasePath, featGetter_obj);

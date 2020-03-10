@@ -1,0 +1,10 @@
+#ifndef _VISE_VERSION_H
+#define _VISE_VERSION_H
+
+// values are defined in src/CMakeLists.txt
+#define VISE_NAME "${VISE_NAME}"
+#define VISE_FULLNAME "${VISE_FULLNAME}"
+#define VISE_VERSION_MAJOR "${VISE_VERSION_MAJOR}"
+#define VISE_VERSION_MINOR "${VISE_VERSION_MINOR}"
+#define VISE_VERSION_PATCH "${VISE_VERSION_PATCH}"
+#endif

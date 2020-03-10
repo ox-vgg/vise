@@ -37,10 +37,24 @@ _via0.prototype._on_img_load = function(e) {
   container_css.push('border:none');
   this.c.setAttribute('style', container_css.join(';'));
 
-  if(this.img.height > this.c.clientHeight) {
-    this.scale = this.img.height / this.c.clientHeight;
+  if(this.img.naturalHeight > this.c.clientHeight) {
+    this.scale = this.img.naturalHeight / this.c.clientHeight;
     this.sheight = this.c.clientHeight;
-    this.swidth = Math.floor(this.img.width / this.scale);
+    this.swidth = Math.floor(this.img.naturalWidth / this.scale);
+    if(this.swidth > this.c.clientWidth) {
+      this.swidth = this.c.clientWidth;
+      this.sheight = Math.floor(this.img.naturalHeight / this.scale);
+    }
+  } else {
+    //this.sheight = this.img.naturalHeight;
+    //this.swidth = this.img.naturalWidth;
+    this.sheight = this.c.clientHeight;
+    this.scale = this.img.naturalHeight / this.c.clientHeight;
+    this.swidth = Math.floor(this.img.naturalWidth / this.scale);
+    if(this.swidth > this.c.clientWidth) {
+      this.swidth = this.c.clientWidth;
+      this.sheight = Math.floor(this.img.naturalHeight / this.scale);
+    }
   }
   this.left = Math.floor(this.c.clientWidth/2 - this.swidth/2); // center align
 

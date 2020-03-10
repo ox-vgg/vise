@@ -44,9 +44,11 @@ namespace buildIndex {
   class trainAssignsManager : public managerWithTiming<trainAssignsResult> {
   public:
 
-    trainAssignsManager(uint32_t numDocs, std::string const trainAssignsFn)
+    trainAssignsManager(uint32_t numDocs, std::string const trainAssignsFn, vise::task_progress *progress)
       : managerWithTiming<trainAssignsResult>(numDocs, "trainAssignsManager"),
-        nextID_(0){
+        nextID_(0),
+        d_progress(progress)
+    {
       f_= fopen(trainAssignsFn.c_str(), "wb");
       ASSERT(f_!=NULL);
     }
@@ -60,6 +62,7 @@ namespace buildIndex {
     FILE *f_;
     uint32_t nextID_;
     std::map<uint32_t, trainAssignsResult> results_;
+    vise::task_progress *d_progress;
 
     DISALLOW_COPY_AND_ASSIGN(trainAssignsManager)
   };
@@ -84,6 +87,9 @@ namespace buildIndex {
                 f_ );
 
         results_.erase(it++);
+      }
+      if(d_progress != nullptr) {
+        d_progress->add(1);
       }
     }
   }
@@ -147,7 +153,8 @@ namespace buildIndex {
                       std::string const clstFn,
                       bool const RootSIFT,
                       std::string const trainDescsFn,
-                      std::string const trainAssignsFn){
+                      std::string const trainAssignsFn,
+                      vise::task_progress *progress){
 
     MPI_GLOBAL_ALL;
 
@@ -194,6 +201,9 @@ namespace buildIndex {
                 static_cast<uint32_t>(
                                       std::ceil(static_cast<double>(numTrainDescs)/std::max(numWorkerThreads, numProc))) );
     uint32_t const nJobs= static_cast<uint32_t>( std::ceil(static_cast<double>(numTrainDescs)/chunkSize) );
+    if(progress != nullptr) {
+      progress->start(0, nJobs);
+    }
 
     // assign training descriptors
 
@@ -202,7 +212,7 @@ namespace buildIndex {
 #endif
 
     trainAssignsManager *manager= (rank==0) ?
-      new trainAssignsManager(nJobs, trainAssignsFn) :
+      new trainAssignsManager(nJobs, trainAssignsFn, progress) :
       NULL;
 
     trainAssignsWorker worker(kd_forest, descFile, chunkSize, clstCentres_obj.numDims);

@@ -6,12 +6,14 @@
 
 #include "vise_util.h"
 
-void vise::configuration_load(std::string filename,
+bool vise::configuration_load(std::string filename,
                               std::map<std::string, std::string> &conf ) {
   conf.clear();
   std::ifstream file(filename);
   if (!file.is_open()) {
-    throw std::runtime_error("failed to open configuration file [" + filename + "]");
+    std::cerr << "failed to open configuration file ["
+              << filename << "]" << std::endl;
+    return false;
   }
 
   std::string line;
@@ -29,6 +31,24 @@ void vise::configuration_load(std::string filename,
     conf[key] = value;
   }
   file.close();
+  return true;
+}
+
+bool vise::configuration_save(std::map<std::string, std::string> &conf,
+                              std::string filename) {
+  std::ofstream file(filename);
+  if (!file.is_open()) {
+    std::cerr << "failed to open configuration file ["
+              << filename << "]" << std::endl;
+    return false;
+  }
+
+  std::map<std::string, std::string>::const_iterator itr;
+  for(itr = conf.begin(); itr != conf.end(); ++itr) {
+    file << itr->first << "=" << itr->second << std::endl;
+  }
+  file.close();
+  return true;
 }
 
 void vise::configuration_show(std::map<std::string, std::string> const &conf) {
@@ -242,4 +262,39 @@ bool vise::url_decode(const std::string& in, std::string& out)
     }
   }
   return true;
+}
+
+void vise::parse_urlencoded_form(const std::string &formdata_str,
+                                 std::map<std::string, std::string> &formdata) {
+  formdata.clear();
+  std::vector<std::string> tokens = vise::split(formdata_str, '&');
+  if(tokens.size()) {
+    for(uint32_t i=0; i<tokens.size(); ++i) {
+      std::vector<std::string> keyval = vise::split(tokens.at(i), '=');
+      if(keyval.size() == 2) {
+        formdata.insert( std::pair<std::string, std::string>(keyval[0], keyval[1]) );
+      }
+    }
+  }
+}
+
+std::string vise::json_escape_str(const std::string &in) {
+  return std::regex_replace(in, std::regex("\""), "\\\"");
+}
+
+std::string vise::now_timestamp() {
+  std::time_t now = std::time(nullptr);
+  return std::string( std::asctime(std::localtime(&now)) );
+}
+
+uint32_t vise::getmillisecs() {
+  std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+  return std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
+}
+
+boost::filesystem::path vise::vise_home() {
+  boost::filesystem::path home(std::getenv("HOME"));
+  boost::filesystem::path vise_home_dir = home / "vgg";
+  vise_home_dir = vise_home_dir / "vise";
+  return vise_home_dir;
 }

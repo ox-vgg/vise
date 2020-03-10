@@ -11,19 +11,24 @@
 
 #include <iostream>
 #include <vector>
+#include <functional>
 
 namespace vise {
   class search_engine {
   public:
     search_engine(std::string se_name);
     virtual ~search_engine();
-    virtual void index_create(bool &success, std::string &message) = 0;
+    virtual void index_create(bool &success,
+                              std::string &message,
+                              std::function<void(void)> callback) = 0;
     virtual void index_load(bool &success, std::string &message) = 0;
     virtual void index_unload(bool &success, std::string &message) = 0;
-    virtual bool index_is_loaded() = 0;
-    virtual bool index_is_done() = 0;
-    virtual bool index_is_incomplete() = 0;
-    virtual bool index_is_ongoing() = 0;
+    virtual bool index_is_loaded() const = 0;
+    virtual bool index_is_done() const = 0;
+    virtual bool index_is_incomplete() const = 0;
+    virtual bool index_is_ongoing() const = 0;
+    virtual std::string index_status() const = 0;
+
     virtual void index_search(vise::search_query const &q,
                               std::vector<vise::search_result> &r) const = 0;
     virtual void index_internal_match(vise::search_query const &q,

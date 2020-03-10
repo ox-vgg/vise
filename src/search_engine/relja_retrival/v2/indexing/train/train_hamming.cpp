@@ -53,12 +53,14 @@ class trainHammingManager : public managerWithTiming<trainHammingResult> {
                             std::vector<float> const &rot,
                             uint32_t const numDims,
                             uint32_t const numClst,
-                            uint32_t const vocChunkSize)
+                            uint32_t const vocChunkSize,
+                            vise::task_progress *progress)
                             : managerWithTiming<trainHammingResult>(nJobs, "trainHammingManager"),
                               trainHammFn_(trainHammFn),
                               vocChunkSize_(vocChunkSize),
                               hammEmbBits_(rot.size() / numDims),
-                              rot_(&rot) {
+                              rot_(&rot),
+                              d_progress(progress) {
                 ASSERT(rot.size() % numDims==0);
 
                 hamm_.set_k(numClst);
@@ -80,6 +82,7 @@ class trainHammingManager : public managerWithTiming<trainHammingResult> {
         rr::hammingData hamm_;
         std::vector<float> const *rot_;
         std::vector<float> median_;
+        vise::task_progress *d_progress;
         DISALLOW_COPY_AND_ASSIGN(trainHammingManager)
 };
 
@@ -115,6 +118,9 @@ trainHammingManager::compute( uint32_t jobID, trainHammingResult &result ){
     std::memcpy( &median_[wordStart*hammEmbBits_],
                  &result[0],
                  result.size() * sizeof(float) );
+    if(d_progress != nullptr) {
+      d_progress->add(1);
+    }
 }
 
 
@@ -239,7 +245,8 @@ computeHamming(
         std::string const trainDescsFn,
         std::string const trainAssignsFn,
         std::string const trainHammFn,
-        uint32_t const hammEmbBits){
+        uint32_t const hammEmbBits,
+        vise::task_progress *progress){
 
     MPI_GLOBAL_ALL;
 
@@ -397,6 +404,9 @@ computeHamming(
                   static_cast<uint32_t>(
                       std::ceil(static_cast<double>(numClst)/std::max(numWorkerThreads, numProc))) );
     uint32_t const nJobs= static_cast<uint32_t>( std::ceil(static_cast<double>(numClst)/vocChunkSize) );
+    if(progress != nullptr) {
+      progress->start(0, nJobs);
+    }
 
     // compute hamming stuff
 
@@ -405,7 +415,7 @@ computeHamming(
     #endif
 
     trainHammingManager *manager= (rank==0) ?
-        new trainHammingManager(nJobs, trainHammFn, rot, numDims, numClst, vocChunkSize) :
+      new trainHammingManager(nJobs, trainHammFn, rot, numDims, numClst, vocChunkSize, progress) :
         NULL;
 
     trainHammingWorker worker(trainDescsFn, trainAssignsFn,

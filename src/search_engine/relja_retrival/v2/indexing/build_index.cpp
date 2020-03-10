@@ -88,14 +88,18 @@ namespace buildIndex {
   class buildManagerFiles : public managerWithTiming<std::string> {
   public:
 
-    buildManagerFiles(uint32_t nJobs, std::string const desc) : managerWithTiming<std::string>(nJobs, desc) {}
+    buildManagerFiles(uint32_t nJobs, std::string const desc, vise::task_progress *progress) : managerWithTiming<std::string>(nJobs, desc), d_progress(progress) {}
 
     void
     compute( uint32_t jobID, std::string &result ){
       fns_.push_back(result);
+      if(d_progress != nullptr) {
+        d_progress->add(1);
+      }
     }
 
     std::vector<std::string> fns_;
+    vise::task_progress *d_progress;
   };
 
 
@@ -180,10 +184,11 @@ namespace buildIndex {
   class buildManagerSemiSorted : public managerWithTiming<buildResultSemiSorted> {
   public:
 
-    buildManagerSemiSorted(uint32_t numDocs, std::string const dsetFn)
+    buildManagerSemiSorted(uint32_t numDocs, std::string const dsetFn, vise::task_progress *progress)
       : managerWithTiming<buildResultSemiSorted>(numDocs, "buildManagerSemiSorted"),
         dsetBuilder_(dsetFn),
-        nextID_(0)
+        nextID_(0),
+        d_progress(progress)
     {}
 
     void
@@ -193,6 +198,7 @@ namespace buildIndex {
     datasetBuilder dsetBuilder_;
     uint32_t nextID_;
     std::map<uint32_t, buildResultSemiSorted> results_;
+    vise::task_progress *d_progress;
 
     DISALLOW_COPY_AND_ASSIGN(buildManagerSemiSorted)
   };
@@ -213,6 +219,9 @@ namespace buildIndex {
                           res.second.first,
                           res.second.second );
         results_.erase(it++);
+        if(d_progress != nullptr) {
+          d_progress->add(1);
+        }
       }
     }
   }
@@ -995,7 +1004,8 @@ namespace buildIndex {
         std::string const tmpDir,
         featGetter const &featGetter_obj,
         std::string const clstFn,
-        embedderFactory const *embFactory) {
+        embedderFactory const *embFactory,
+        vise::task_progress *progress) {
 
     MPI_GLOBAL_ALL
       bool useThreads= detectUseThreads();
@@ -1066,6 +1076,9 @@ namespace buildIndex {
         }
         fImagelist.close();
       }
+      if(progress != nullptr) {
+        progress->start(0, numDocs);
+      }
 
       // communicate numDocs to everyone
 #ifdef RR_MPI
@@ -1074,7 +1087,7 @@ namespace buildIndex {
 #endif
 
       buildManagerSemiSorted *manager= (rank==0) ?
-        new buildManagerSemiSorted(numDocs, dsetFn) :
+        new buildManagerSemiSorted(numDocs, dsetFn, progress) :
         NULL;
 
       std::vector<std::string> fns;
@@ -1189,9 +1202,12 @@ namespace buildIndex {
         fns.push_back(status.filename(i));
 
       uint32_t nJobs= fns.size();
+      if(progress != nullptr) {
+        progress->start(0, nJobs);
+      }
 
       buildManagerFiles *manager= (rank==0) ?
-        new buildManagerFiles(nJobs, "buildManagerSorted") :
+        new buildManagerFiles(nJobs, "buildManagerSorted", progress) :
         NULL;
       buildWorkerSorted worker(tmpDir, fns, mergingMemoryLim / std::max(numProc, numWorkerThreads), embFactory );
 
@@ -1245,6 +1261,10 @@ namespace buildIndex {
       for (int i= 0; i < status.fidx_filename_size(); ++i)
         fidxFns.push_back(status.fidx_filename(i));
 
+      if(progress != nullptr) {
+        progress->start(0, 2);
+      }
+
       if (useThreads){
 
         // merge fidx
@@ -1254,8 +1274,9 @@ namespace buildIndex {
         boost::thread thread2( boost::bind(mergeSortedFiles, fns, iidxFn, status.totalfeats(), embFactory) );
 
         thread1.join();
+        progress->add(1);
         thread2.join();
-
+        progress->add(1);
       } else {
 
 #ifdef RR_MPI

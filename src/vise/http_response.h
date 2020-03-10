@@ -108,6 +108,12 @@ namespace vise {
       set_field("Content-Type", "application/json");
     }
 
+    void set_text_payload(std::string payload) {
+      d_payload = payload;
+      d_fields["Content-Length"] = std::to_string(d_payload.length());
+      set_field("Content-Type", "text/plain");
+    }
+
     std::string get_response_str() {
       std::ostringstream s;
       s << d_status << "\r\n";

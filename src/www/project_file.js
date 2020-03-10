@@ -1,3 +1,12 @@
+/**
+ *
+ * @desc code to build HTML user interface for /{PNAME}/file endpoint
+ * @author Abhishek Dutta <adutta@robots.ox.ac.uk>
+ * @date 11 Feb. 2020
+ *
+ */
+'use strict'
+
 var toolbar = document.createElement('div');
 toolbar.setAttribute('id', 'toolbar');
 var pname = document.createElement('div');
@@ -13,7 +22,6 @@ var fileview_panel = document.createElement('div');
 fileview_panel.setAttribute('class', 'fileview_panel');
 content.appendChild(fileview_panel);
 
-document.body.innerHTML = '';
 document.body.appendChild(toolbar);
 document.body.appendChild(content);
 
@@ -23,7 +31,20 @@ var query_img;
 if( !_vise_self_check_is_ok()) {
   console.log('self check failed');
 } else {
-  pname.innerHTML = '<a href="/' + _vise_data.PNAME + '/">' + _vise_data.PNAME + '</a>';
+  var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
+  var home_link = document.createElement('a');
+  home_link.setAttribute('href', '/index.html');
+  home_link.appendChild(home_icon);
+
+  var pname_link = document.createElement('a');
+  pname_link.setAttribute('href', '/' + _vise_data.PNAME + '/');
+  pname_link.setAttribute('title', 'Home of ' + _vise_data.PNAME + ' project');
+  pname_link.innerHTML = _vise_data.PNAME;
+
+  pname.innerHTML = '';
+  pname.appendChild(home_link);
+  pname.appendChild(pname_link);
+
   document.title = _vise_data.PNAME;
   _vise_show_query_ui();
 }

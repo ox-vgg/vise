@@ -20,6 +20,17 @@ set( VISE_SOURCE_ROOT_DIR ${CMAKE_SOURCE_DIR}/../ )
 
 set(CTEST_OUTPUT_ON_FAILURE 1)
 
+## export version number in version file
+set (VISE_NAME "VISE")
+set (VISE_FULLNAME "VGG Image Search Engine")
+set (VISE_VERSION_MAJOR "2")
+set (VISE_VERSION_MINOR "0")
+set (VISE_VERSION_PATCH "0")
+configure_file (
+  "${PROJECT_SOURCE_DIR}/vise/vise_version.h.in"
+  "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
+  )
+
 ## Boost
 set(Boost_DEBUG 0)
 find_package(Boost 1.70.0 COMPONENTS filesystem system thread unit_test_framework REQUIRED)

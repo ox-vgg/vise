@@ -18,6 +18,7 @@ No usage or redistribution is allowed without explicit permission.
 #include <stdint.h>
 #include <string>
 #include <omp.h>
+#include "vise/task_progress.h"
 
 namespace buildIndex {
 
@@ -27,7 +28,8 @@ namespace buildIndex {
                        std::string const trainDescsFn,
                        std::string const trainAssignsFn,
                        std::string const trainHammFn,
-                       uint32_t const hammEmbBits);
+                       uint32_t const hammEmbBits,
+                       vise::task_progress *progress = nullptr);
 }
 
 #endif

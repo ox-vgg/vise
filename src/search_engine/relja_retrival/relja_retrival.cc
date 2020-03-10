@@ -1,28 +1,48 @@
 #include "relja_retrival.h"
 
+const std::vector<std::string> vise::relja_retrival::task_name_list = {
+                                                                       "preprocess",
+                                                                       "traindesc",
+                                                                       "cluster",
+                                                                       "assign",
+                                                                       "hamm",
+                                                                       "index"
+};
+
 vise::relja_retrival::relja_retrival(std::map<std::string, std::string> const &pconf)
   : search_engine("relja_retrival"),
-    d_pconf(pconf),
-    d_storedir(pconf.at("storedir")),
-    d_datadir(pconf.at("datadir"))
+    d_pconf(pconf)
 {
   std::cout << "relja_retrival()" << std::endl;
+  if(d_pconf.count("data_dir") == 0 ||
+     d_pconf.count("image_dir") == 0) {
+    std::cout << "relja_retrival(): malformed config file" << std::endl;
+  }
 
-  d_filelist_fn    = d_datadir / "filelist.txt";
-  d_traindesc_fn   = d_datadir / "traindesc.bin";
-  d_bowcluster_fn  = d_datadir / "bowcluster.bin";
-  d_trainassign_fn = d_datadir / "trainassign.bin";
-  d_trainhamm_fn   = d_datadir / "trainhamm.bin";
-  d_index_dset_fn  = d_datadir / "index_dset.bin";
-  d_index_iidx_fn  = d_datadir / "index_iidx.bin";
-  d_index_fidx_fn  = d_datadir / "index_fidx.bin";
-  d_index_tmp_dir  = d_datadir / "_tmp";
-  d_index_status_fn= d_datadir / "index_status.txt";
-  d_weight_fn      = d_datadir / "weight.bin";
+  const boost::filesystem::path data_dir(d_pconf.at("data_dir"));
+
+  d_filelist_fn    = data_dir / "filelist.txt";
+  d_filestat_fn    = data_dir / "filestat.txt";
+  d_traindesc_fn   = data_dir / "traindesc.bin";
+  d_bowcluster_fn  = data_dir / "bowcluster.bin";
+  d_trainassign_fn = data_dir / "trainassign.bin";
+  d_trainhamm_fn   = data_dir / "trainhamm.bin";
+  d_index_dset_fn  = data_dir / "index_dset.bin";
+  d_index_iidx_fn  = data_dir / "index_iidx.bin";
+  d_index_fidx_fn  = data_dir / "index_fidx.bin";
+  d_index_tmp_dir  = data_dir / "_tmp";
+  d_index_status_fn= data_dir / "index_status.txt";
+  d_weight_fn      = data_dir / "weight.bin";
 
   d_is_search_engine_loaded = false;
   d_is_indexing_ongoing = false;
   d_is_indexing_done = false;
+
+  d_index_log_fn   = data_dir / "index.log";
+  d_log.open(d_index_log_fn.string());
+  d_log << "logging started on " << vise::now_timestamp() << std::endl;
+
+  d_task_progress_list.clear();
 }
 
 vise::relja_retrival::~relja_retrival() {
@@ -44,9 +64,16 @@ vise::relja_retrival::~relja_retrival() {
                 << std::endl;
     }
   }
+
+  if(d_log) {
+    d_log << "logging ended on " << vise::now_timestamp() << std::endl;
+    d_log.close();
+  }
 }
 
-void vise::relja_retrival::index_create(bool &success, std::string &message) {
+void vise::relja_retrival::index_create(bool &success,
+                                        std::string &message,
+                                        std::function<void(void)> callback) {
   std::lock_guard<std::mutex> lock(d_search_engine_index_mutex);
   if (d_is_indexing_ongoing || d_is_indexing_done) {
     success = false;
@@ -60,7 +87,7 @@ void vise::relja_retrival::index_create(bool &success, std::string &message) {
   }
 
   try {
-    d_thread_index = std::thread(&relja_retrival::index_run_all_stages, this);
+    d_thread_index = std::thread(&relja_retrival::index_run_all_stages, this, callback);
     success = true;
     message = "indexing started";
   } catch(std::exception &e) {
@@ -72,19 +99,95 @@ void vise::relja_retrival::index_create(bool &success, std::string &message) {
   }
 }
 
-void vise::relja_retrival::create_file_list() {
-  std::cout << "reading filelist from " << d_storedir.string() << std::endl;
-  std::cout << "saving filelist to " << d_filelist_fn.string() << std::endl;
-  std::ofstream filelist(d_filelist_fn.string());
+void vise::relja_retrival::preprocess_image(std::string srcfn,
+                                            std::string dstfn,
+                                            bool &result,
+                                            std::string &message) {
+  try {
+    std::ostringstream resize_stat;
+    std::ostringstream geom_spec;
+    if(d_pconf.count("resize_dimension")) {
+      geom_spec << d_pconf.at("resize_dimension");
+    } else {
+      geom_spec << "512x512";
+    }
+    geom_spec << "+0+0>";
 
-  boost::filesystem::path store(d_pconf.at("storedir"));
+    Magick::Geometry dst_img_size(geom_spec.str());
+    Magick::Image src(srcfn);
+    resize_stat << src.rows() << "," << src.columns();
+    src.magick("JPEG");
+    src.colorSpace(Magick::RGBColorspace);
+    src.resize(dst_img_size);
+    src.write(dstfn);
+    resize_stat << "," << src.rows() << "," << src.columns();
+    result = true;
+    message = resize_stat.str();
+  } catch(std::exception &ex) {
+    result = false;
+    message = ex.what();
+  }
+}
+uint32_t vise::relja_retrival::image_src_count() const {
+  uint32_t count = 0;
+  const boost::filesystem::path image_src_dir(d_pconf.at("image_src_dir"));
   boost::filesystem::directory_iterator end_itr;
-  for (boost::filesystem::directory_iterator it(d_storedir); it!=end_itr; ++it) {
+  for (boost::filesystem::directory_iterator it(image_src_dir); it!=end_itr; ++it) {
     if (boost::filesystem::is_regular_file(it->path())) {
-      filelist << boost::filesystem::relative(it->path(), d_storedir).string() << std::endl;
+      count++;
+    }
+  }
+  return count;
+}
+
+void vise::relja_retrival::create_file_list() {
+  d_task_progress_list.at("preprocess").start(0, image_src_count());
+
+  const boost::filesystem::path image_src_dir(d_pconf.at("image_src_dir"));
+  const boost::filesystem::path image_dir(d_pconf.at("image_dir"));
+  d_log << "preprocess: preprocessing images in : " << std::endl
+        << "preprocess:   source: " << image_src_dir << std::endl
+        << "preprocess:   target: " << image_dir << std::endl;
+
+  uint32_t success_count = 0;
+  uint32_t fail_count = 0;
+  std::ofstream filelist(d_filelist_fn.string());
+  std::ofstream filestat(d_filestat_fn.string());
+  boost::filesystem::directory_iterator end_itr;
+  uint32_t count = 0;
+  for (boost::filesystem::directory_iterator it(image_src_dir); it!=end_itr; ++it) {
+    if (boost::filesystem::is_regular_file(it->path())) {
+      boost::filesystem::path fn = boost::filesystem::relative(it->path(), image_src_dir).string();
+      boost::filesystem::path dst = image_dir / fn.stem();
+      std::string dst_str = dst.string() + ".jpg";
+      bool result;
+      std::string message;
+      preprocess_image(it->path().string(), dst_str, result, message);
+      if(result) {
+        boost::filesystem::path dst_path(dst_str);
+        std::string dst_relpath(boost::filesystem::relative(dst_path, image_dir).string());
+        filelist << dst_relpath << std::endl;
+        filestat << dst_relpath << "," << message << std::endl;
+        success_count++;
+      } else {
+        d_log << "preprocess: discarded " << fn.string()
+              << " [reason: " << message << "]" << std::endl;
+        fail_count++;
+      }
+      count++;
+      d_task_progress_list.at("preprocess").update(count);
     }
   }
   filelist.close();
+  filestat.close();
+  d_task_progress_list.at("preprocess").finish_success();
+  d_log << "preprocess: written " << success_count
+        << " (discarded " << fail_count << ")"
+        << " filenames to " << d_filelist_fn << std::endl;
+  d_log << "preprocess: completed in "
+        << d_task_progress_list.at("preprocess").d_elapsed_ms
+        << "ms" << std::endl;
+  d_log << std::flush;
 }
 
 void vise::relja_retrival::extract_train_descriptors() {
@@ -101,12 +204,20 @@ void vise::relja_retrival::extract_train_descriptors() {
   int32_t bow_descriptor_count = -1;
   std::istringstream ss(d_pconf.at("bow_descriptor_count"));
   ss >> bow_descriptor_count;
+  if(bow_descriptor_count == -1) {
+    d_task_progress_list.at("traindesc").start(0, image_src_count());
+  } else {
+    d_task_progress_list.at("traindesc").start(0, bow_descriptor_count);
+  }
 
   buildIndex::computeTrainDescs(d_filelist_fn.string(),
-                                d_storedir.string(),
+                                d_pconf.at("image_dir"),
                                 d_traindesc_fn.string(),
                                 bow_descriptor_count,
-                                feat_getter_obj);
+                                feat_getter_obj,
+                                &d_task_progress_list.at("traindesc"));
+  d_task_progress_list.at("traindesc").finish_success();
+
 }
 
 void vise::relja_retrival::cluster_train_descriptors() {
@@ -123,11 +234,14 @@ void vise::relja_retrival::cluster_train_descriptors() {
   std::istringstream ss2(d_pconf.at("cluster_num_iteration"));
   ss2 >> cluster_num_iteration;
 
+  d_task_progress_list.at("cluster").start(0, cluster_num_iteration);
   buildIndex::compute_train_cluster(d_traindesc_fn.string(),
                                     use_root_sift,
                                     d_bowcluster_fn.string(),
                                     bow_cluster_count,
-                                    cluster_num_iteration);
+                                    cluster_num_iteration,
+                                    &d_task_progress_list.at("cluster"));
+  d_task_progress_list.at("cluster").finish_success();
 }
 
 void vise::relja_retrival::assign_train_descriptors() {
@@ -137,10 +251,13 @@ void vise::relja_retrival::assign_train_descriptors() {
     use_root_sift = false;
   }
 
+  //d_task_progress_list.at("assign").start() is invoked by computeTrainAssigns();
   buildIndex::computeTrainAssigns(d_bowcluster_fn.string(),
                                   use_root_sift,
                                   d_traindesc_fn.string(),
-                                  d_trainassign_fn.string());
+                                  d_trainassign_fn.string(),
+                                  &d_task_progress_list.at("assign"));
+  d_task_progress_list.at("assign").finish_success();
 }
 
 void vise::relja_retrival::hamm_train_descriptors() {
@@ -154,12 +271,15 @@ void vise::relja_retrival::hamm_train_descriptors() {
   std::istringstream ss(d_pconf.at("hamm_embedding_bits"));
   ss >> hamm_embedding_bits;
 
+  //d_task_progress_list.at("hamm").start() is invoked by computeHamming();
   buildIndex::computeHamming(d_bowcluster_fn.string(),
                              use_root_sift,
                              d_traindesc_fn.string(),
                              d_trainassign_fn.string(),
                              d_trainhamm_fn.string(),
-                             hamm_embedding_bits);
+                             hamm_embedding_bits,
+                             &d_task_progress_list.at("hamm"));
+  d_task_progress_list.at("hamm").finish_success();
 }
 
 void vise::relja_retrival::create_index() {
@@ -187,27 +307,39 @@ void vise::relja_retrival::create_index() {
   boost::filesystem::create_directory(d_index_tmp_dir);
   std::string tmp_dir = d_index_tmp_dir.string() + boost::filesystem::path::preferred_separator;
 
+  //d_task_progress_list.at("index").start() is invoked by buildIndex::build();
   buildIndex::build(d_filelist_fn.string(),
-                    d_storedir.string(),
+                    d_pconf.at("image_dir"),
                     d_index_dset_fn.string(),
                     d_index_iidx_fn.string(),
                     d_index_fidx_fn.string(),
                     tmp_dir,
                     feat_getter_obj,
                     d_bowcluster_fn.string(),
-                    embed_factory );
+                    embed_factory,
+                    &d_task_progress_list.at("index"));
   delete embed_factory; // @todo: for safety, use shared_ptr
+  d_task_progress_list.at("index").finish_success();
 }
 
-void vise::relja_retrival::index_run_all_stages() {
+void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callback) {
   d_is_indexing_ongoing = true;
   d_is_indexing_done = false;
-  std::ofstream index_status_f(d_index_status_fn.string());
-  index_status_f << "start" << std::flush;
   try {
+    std::ofstream index_status_f(d_index_status_fn.string());
+    index_status_f << "start" << std::flush;
+
+    d_task_progress_list.clear();
+    for(uint32_t i=0; i<vise::relja_retrival::task_name_list.size(); ++i) {
+      std::string task_name(vise::relja_retrival::task_name_list.at(i));
+      d_task_progress_list.insert( std::pair<std::string, vise::task_progress>(task_name, vise::task_progress(task_name)));
+    }
+
     std::cout << "relja_retrival::index_run_all_stages(): start, "
               << "thread_id=" << std::this_thread::get_id()
               << std::endl;
+    d_log << "indexing started on " << vise::now_timestamp() << std::endl;
+
     if (!boost::filesystem::exists(d_filelist_fn)) {
       create_file_list();
       index_status_f << ",filelist" << std::flush;
@@ -247,15 +379,15 @@ void vise::relja_retrival::index_run_all_stages() {
     d_is_indexing_done = true;
     index_status_f << ",end";
     index_status_f.close();
+    callback();
   } catch(std::exception &e) {
     d_is_indexing_ongoing = false;
     d_is_indexing_done = false;
-    index_status_f << ",fail";
-    index_status_f.close();
+    callback();
   }
 }
 
-bool vise::relja_retrival::index_is_done() {
+bool vise::relja_retrival::index_is_done() const {
   std::cout << "d_is_indexing_done=" << d_is_indexing_done
             << ", d_is_indexing_ongoing=" << d_is_indexing_ongoing << std::endl;
   if(d_is_indexing_done) {
@@ -268,6 +400,9 @@ bool vise::relja_retrival::index_is_done() {
 
   std::vector<std::string> status_tokens;
   index_read_status(status_tokens);
+  if(status_tokens.size()==0) {
+    return false;
+  }
 
   if(status_tokens.at(0) == "start" &&
      status_tokens.at(status_tokens.size()-1) == "end" &&
@@ -278,7 +413,7 @@ bool vise::relja_retrival::index_is_done() {
   }
 }
 
-void vise::relja_retrival::index_read_status(std::vector<std::string> &status_tokens) {
+void vise::relja_retrival::index_read_status(std::vector<std::string> &status_tokens) const {
   status_tokens.clear();
   std::ifstream index_status_f(d_index_status_fn.string());
   if(index_status_f) {
@@ -291,15 +426,15 @@ void vise::relja_retrival::index_read_status(std::vector<std::string> &status_to
     }
     std::cout << std::endl;
   } else {
-    std::cerr << "failed to read index status: " << d_index_status_fn << std::endl;
+    std::cerr << "index status not yet available in " << d_index_status_fn << std::endl;
   }
 }
 
-bool vise::relja_retrival::index_is_ongoing() {
+bool vise::relja_retrival::index_is_ongoing() const {
   return d_is_indexing_ongoing;
 }
 
-bool vise::relja_retrival::index_is_incomplete() {
+bool vise::relja_retrival::index_is_incomplete() const {
   if(d_is_indexing_done) {
     return false;
   }
@@ -310,7 +445,7 @@ bool vise::relja_retrival::index_is_incomplete() {
   std::vector<std::string> status_tokens;
   index_read_status(status_tokens);
   if(status_tokens.size()==0) {
-    return true;
+    return false;
   }
 
   if(! (status_tokens[0] == "start")) {
@@ -321,6 +456,26 @@ bool vise::relja_retrival::index_is_incomplete() {
   }
 
   return false;
+}
+
+std::string vise::relja_retrival::index_status() const {
+  std::ostringstream ss;
+  ss << "{\"index_is_ongoing\":" << index_is_ongoing()
+     << ",\"index_is_done\":" << index_is_done()
+     << ",\"task_progress\":[";
+  if(d_task_progress_list.size()) {
+    for(uint32_t i=0; i<vise::relja_retrival::task_name_list.size(); ++i) {
+      std::string task_name = vise::relja_retrival::task_name_list.at(i);
+      if(d_task_progress_list.count(task_name)) {
+        if( i!=0 ) {
+          ss << ",";
+        }
+        ss << d_task_progress_list.at(task_name).to_json();
+      }
+    }
+  }
+  ss << "]}";
+  return ss.str();
 }
 
 void vise::relja_retrival::index_load(bool &success,
@@ -337,7 +492,7 @@ void vise::relja_retrival::index_load(bool &success,
     std::cout << "loading dataset from " << d_index_dset_fn
               << std::endl;
     d_dataset = new datasetV2( d_index_dset_fn.string(),
-                               d_storedir.string() );
+                               d_pconf.at("data_dir") );
     std::cout << "done loading dataset"<< std::endl;
 
     // needed to setup forward and inverted index
@@ -397,6 +552,7 @@ void vise::relja_retrival::index_load(bool &success,
     uint32_t hamm_embedding_bits = 0;
     std::istringstream ss(d_pconf.at("hamm_embedding_bits"));
     ss >> hamm_embedding_bits;
+    std::cout << "hamm_embedding_bits=" << hamm_embedding_bits << std::endl;
 
     if (hamm_embedding_bits == 0) {
       if (use_root_sift) {
@@ -477,34 +633,65 @@ void vise::relja_retrival::index_unload(bool &success,
   }
 
   try {
-    delete d_cons_queue;
+    if(d_cons_queue != nullptr) {
+      delete d_cons_queue;
+    }
 
-    if (d_hamming_emb != NULL) {
+    if (d_hamming_emb != nullptr) {
       delete d_hamming_emb;
+    }
+
+    if(d_multi_query_max != nullptr) {
       delete d_multi_query_max;
     }
-    if (d_multi_query != NULL) {
+
+    if (d_multi_query != nullptr) {
       delete d_multi_query;
     }
-    delete d_emb_factory;
 
-    if (d_soft_assigner != NULL) {
+    if (d_emb_factory != nullptr) {
+      delete d_emb_factory;
+    }
+
+    if (d_soft_assigner != nullptr) {
       delete d_soft_assigner;
     }
 
-    vl_kdforest_delete(d_kd_forest);
-    delete d_clst_centres;
-    delete d_feat_getter;
+    if(d_kd_forest != nullptr) {
+      vl_kdforest_delete(d_kd_forest);
+    }
 
-    delete d_fidx;
-    delete d_iidx;
+    if(d_clst_centres != nullptr) {
+      delete d_clst_centres;
+    }
 
-    delete d_tfidf;
+    if(d_feat_getter != nullptr) {
+      delete d_feat_getter;
+    }
 
-    delete d_dataset;
+    if(d_fidx != nullptr) {
+      delete d_fidx;
+    }
 
-    delete d_db_fidx;
-    delete d_db_iidx;
+    if(d_iidx != nullptr) {
+      delete d_iidx;
+    }
+
+    if(d_tfidf != nullptr) {
+      delete d_tfidf;
+    }
+
+    if(d_dataset != nullptr) {
+      delete d_dataset;
+    }
+
+    if(d_db_fidx != nullptr) {
+      delete d_db_fidx;
+    }
+
+    if(d_db_iidx != nullptr) {
+      delete d_db_iidx;
+    }
 
     d_is_search_engine_loaded = false;
     success = true;
@@ -610,9 +797,9 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
   if(!d_is_search_engine_loaded) {
     return;
   }
-
-  boost::filesystem::path fn1 = d_storedir / d_dataset->getInternalFn(file1_id);
-  boost::filesystem::path fn2 = d_storedir / d_dataset->getInternalFn(file2_id);
+  boost::filesystem::path image_dir(d_pconf.at("image_dir"));
+  boost::filesystem::path fn1 = image_dir / d_dataset->getInternalFn(file1_id);
+  boost::filesystem::path fn2 = image_dir / d_dataset->getInternalFn(file2_id);
 
   featGetter *featGetterObj= new featGetter_standard( "hesaff-rootsift" );
 
@@ -733,7 +920,7 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
   homography::normLast(H.data());
 }
 
-bool vise::relja_retrival::index_is_loaded() {
+bool vise::relja_retrival::index_is_loaded() const {
   return d_is_search_engine_loaded;
 }
 

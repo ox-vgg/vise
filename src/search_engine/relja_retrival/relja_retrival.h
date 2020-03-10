@@ -11,6 +11,8 @@
 
 #include "vise/search_engine.h"
 #include "vise/search_result.h"
+#include "vise/vise_util.h"
+#include "vise/task_progress.h"
 
 // for building an index
 #include "build_index.h"
@@ -61,6 +63,8 @@
 #include <mutex>
 #include <exception>
 #include <fstream>
+#include <unordered_map>
+#include <functional>
 
 #include <boost/filesystem.hpp>
 
@@ -71,13 +75,17 @@ namespace vise {
   public:
     relja_retrival(std::map<std::string, std::string> const &pconf);
     ~relja_retrival();
-    void index_create(bool &success, std::string &message) override;
+    void index_create(bool &success,
+                      std::string &message,
+                      std::function<void(void)> callback) override;
     void index_load(bool &success, std::string &message) override;
     void index_unload(bool &success, std::string &message) override;
-    bool index_is_loaded() override;
-    bool index_is_done() override;
-    bool index_is_incomplete() override;
-    bool index_is_ongoing() override;
+    bool index_is_loaded() const override;
+    bool index_is_done() const override;
+    bool index_is_incomplete() const override;
+    bool index_is_ongoing() const override;
+    std::string index_status() const override;
+
     void index_search(vise::search_query const &q,
                       std::vector<vise::search_result> &r) const override;
     void index_internal_match(vise::search_query const &q,
@@ -91,7 +99,12 @@ namespace vise {
     uint32_t fid(std::string filename) const override;
     std::string filename(uint32_t fid) const override;
   private:
-    void index_run_all_stages();
+    void index_run_all_stages(std::function<void(void)> callback);
+    void preprocess_image(std::string srcfn,
+                          std::string dstfn,
+                          bool &result,
+                          std::string &message);
+    uint32_t image_src_count() const;
     void create_file_list();
     void extract_train_descriptors();
     void cluster_train_descriptors();
@@ -99,14 +112,13 @@ namespace vise {
     void hamm_train_descriptors();
     void create_index();
 
-    void index_read_status(std::vector<std::string> &status_tokens);
+    void index_read_status(std::vector<std::string> &status_tokens) const;
 
     void findBBox2( double xl, double xu, double yl, double yu, homography const &H, double &xl2, double &xu2, double &yl2, double &yu2, uint32_t w2, uint32_t h2 ) const;
 
     const std::map<std::string, std::string> d_pconf;
-    const boost::filesystem::path d_storedir;
-    const boost::filesystem::path d_datadir;
     boost::filesystem::path d_filelist_fn;
+    boost::filesystem::path d_filestat_fn;
     boost::filesystem::path d_traindesc_fn;
     boost::filesystem::path d_bowcluster_fn;
     boost::filesystem::path d_trainassign_fn;
@@ -117,6 +129,7 @@ namespace vise {
     boost::filesystem::path d_index_tmp_dir;
     boost::filesystem::path d_weight_fn;
     boost::filesystem::path d_index_status_fn;
+    boost::filesystem::path d_index_log_fn;
 
     std::thread d_thread_index;
     std::mutex d_search_engine_load_mutex;
@@ -128,26 +141,30 @@ namespace vise {
     bool d_is_indexing_done;
 
     // search engine data structures
-    datasetV2 *d_dataset;
-    sequentialConstructions *d_cons_queue;
-    protoDbFile *d_db_fidx_file;
-    protoDbFile *d_db_iidx_file;
-    protoDbInRamStartDisk *d_db_fidx;
-    protoDbInRamStartDisk *d_db_iidx;
-    protoIndex *d_fidx;
-    protoIndex *d_iidx;
-    featGetter *d_feat_getter;
-    clstCentres *d_clst_centres;
-    VlKDForest *d_kd_forest;
-    softAssigner *d_soft_assigner;
-    hamming *d_hamming_emb;
-    embedderFactory *d_emb_factory;
-    tfidfV2 *d_tfidf;
-    retrieverFromIter *d_base_retriever;
-    spatialVerifV2 *d_spatial_verif_v2;
-    spatialRetriever *d_spatial_retriever;
-    multiQuery *d_multi_query;
-    multiQueryMax *d_multi_query_max;
+    datasetV2 *d_dataset = nullptr;
+    sequentialConstructions *d_cons_queue = nullptr;
+    protoDbFile *d_db_fidx_file = nullptr;
+    protoDbFile *d_db_iidx_file = nullptr;
+    protoDbInRamStartDisk *d_db_fidx = nullptr;
+    protoDbInRamStartDisk *d_db_iidx = nullptr;
+    protoIndex *d_fidx = nullptr;
+    protoIndex *d_iidx = nullptr;
+    featGetter *d_feat_getter = nullptr;
+    clstCentres *d_clst_centres = nullptr;
+    VlKDForest *d_kd_forest = nullptr;
+    softAssigner *d_soft_assigner = nullptr;
+    hamming *d_hamming_emb = nullptr;
+    embedderFactory *d_emb_factory = nullptr;
+    tfidfV2 *d_tfidf = nullptr;
+    retrieverFromIter *d_base_retriever = nullptr;
+    spatialVerifV2 *d_spatial_verif_v2 = nullptr;
+    spatialRetriever *d_spatial_retriever = nullptr;
+    multiQuery *d_multi_query = nullptr;
+    multiQueryMax *d_multi_query_max = nullptr;
+
+    std::ofstream d_log;
+    static const std::vector<std::string> task_name_list;
+    std::unordered_map<std::string, vise::task_progress> d_task_progress_list;
   };
 }
 #endif

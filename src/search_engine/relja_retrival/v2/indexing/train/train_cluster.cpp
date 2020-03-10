@@ -19,13 +19,15 @@ namespace buildIndex {
                              bool const use_root_sift,
                              std::string const cluster_fn,
                              uint32_t const bow_cluster_count,
-                             uint32_t const cluster_num_iteration) {
-    std::cout << "buildIndex::compute_train_cluster()" << std::endl;
-    std::cout << "train_desc_fn = " << train_desc_fn << std::endl;
-    std::cout << "use_root_sift = " << use_root_sift << std::endl;
-    std::cout << "cluster_fn = " << cluster_fn << std::endl;
-    std::cout << "bow_cluster_count = " << bow_cluster_count << std::endl;
-
+                             uint32_t const cluster_num_iteration,
+                             vise::task_progress *progress) {
+    if(progress == nullptr) {
+      std::cout << "buildIndex::compute_train_cluster()" << std::endl;
+      std::cout << "train_desc_fn = " << train_desc_fn << std::endl;
+      std::cout << "use_root_sift = " << use_root_sift << std::endl;
+      std::cout << "cluster_fn = " << cluster_fn << std::endl;
+      std::cout << "bow_cluster_count = " << bow_cluster_count << std::endl;
+    }
     FILE *f = fopen(train_desc_fn.c_str(), "rb");
     if ( f == NULL ) {
       std::cerr << "Failed to open training descriptors file: "
@@ -187,16 +189,22 @@ namespace buildIndex {
       }
 
       std::chrono::steady_clock::time_point iter_end = std::chrono::steady_clock::now();
-      std::cout << "Iteration " << iter << " of "
-                << cluster_num_iteration << " : "
-                << "Sum of distance to cluster=" << cluster_distance_sum << ", "
-                << "completed in "
-                << std::chrono::duration_cast<std::chrono::milliseconds>(iter_end - iter_start).count()
-                << " ms"
-                << std::endl;
 
       // cleanup of kd-tree
       vl_kdforest_delete(kd_forest);
+
+      std::ostringstream ss;
+      ss << "Iteration " << iter << " of "
+         << cluster_num_iteration << " : "
+         << "Sum of distance to cluster=" << cluster_distance_sum << ", "
+         << "completed in "
+         << std::chrono::duration_cast<std::chrono::milliseconds>(iter_end - iter_start).count()
+         << " ms";
+      if(progress != nullptr) {
+        progress->update(iter, ss.str());
+      } else {
+        std::cout << ss.str() << std::endl;
+      }
     }
 
     // save clusters
