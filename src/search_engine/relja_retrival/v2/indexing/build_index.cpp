@@ -1011,7 +1011,7 @@ namespace buildIndex {
       bool useThreads= detectUseThreads();
     uint32_t numWorkerThreads= omp_get_max_threads();
 
-    ASSERT(tmpDir[tmpDir.length()-1]=='/');
+    ASSERT(tmpDir[tmpDir.length()-1]=='/' || tmpDir[tmpDir.length() - 1] == '\\');
     std::string indexingStatusFn= tmpDir+"indexingstatus.bin";
 
     // load status

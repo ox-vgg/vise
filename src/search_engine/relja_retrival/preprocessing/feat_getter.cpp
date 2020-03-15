@@ -38,8 +38,9 @@ featGetter::getFeats( const char fileName[], uint32_t xl, uint32_t xu, uint32_t 
     if (yl>yu) std::swap(yl,yu);
     
 #ifdef RR_MAGICK
-    
-    std::string tempCropImageFn= boost::filesystem::unique_path("/tmp/rr_image_%%%%-%%%%-%%%%-%%%%.jpg").native();
+    boost::filesystem::path tmpdir = boost::filesystem::temp_directory_path();
+    boost::filesystem::path tmpfn = tmpdir / boost::filesystem::unique_path("vise_relja_retrival_%%%%%%%%%%%%%%%%.jpg");
+    std::string tempCropImageFn= tmpfn.string();
     try {
         Magick::Image im;
         im.read(fileName_);

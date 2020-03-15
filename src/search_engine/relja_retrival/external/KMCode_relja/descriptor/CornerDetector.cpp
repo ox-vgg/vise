@@ -1,4 +1,6 @@
 #include "cornerDetector.h"
+
+#define QUIET 1
 /**
 DARY *image_in - input image
 
@@ -319,7 +321,8 @@ void selectSimilarPoints(vector<CornerDescriptor*>&cor, vector<float> scales){
   int similar=-1, scalei=0,flag;
   do{
     cor_tmp.push_back(cor[0]);
-    cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[0]);
+    //cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[0]);
+    cor.erase(cor.begin());
     scalei=-1;
     //cout << "scale " << (cor_tmp[cor_tmp.size()-1]->getCornerScale())<< endl;
     for(unsigned int i=0;i<(scales.size()-1);i++){
@@ -335,12 +338,14 @@ void selectSimilarPoints(vector<CornerDescriptor*>&cor, vector<float> scales){
 	  if(similar!=-1){
 	      flag=0;
 	      cor_tmp.push_back(cor[similar]);
-	      cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[similar]);
+	      //cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[similar]);
+          cor.erase(cor.begin() + similar);
 	      if(scalei<(int)(scales.size()-1))scalei++;
 	      else similar=-1;
 	  } else if(flag){
 	      cor_single.push_back(cor_tmp[cor_tmp.size()-1]);
-	      cor_tmp.erase((std::vector<CornerDescriptor*>::iterator)&cor_tmp[cor_tmp.size()-1]);
+	      //cor_tmp.erase((std::vector<CornerDescriptor*>::iterator)&cor_tmp[cor_tmp.size()-1]);
+          cor_tmp.erase(cor_tmp.begin() + (cor_tmp.size() - 1));
 	  }	
       }while(similar!=-1);    
       if(cor_tmp.size()>0){
@@ -349,7 +354,8 @@ void selectSimilarPoints(vector<CornerDescriptor*>&cor, vector<float> scales){
       }
     }else{
 	cor_single.push_back(cor_tmp[cor_tmp.size()-1]);
-	cor_tmp.erase((std::vector<CornerDescriptor*>::iterator)&cor_tmp[cor_tmp.size()-1]);
+	//cor_tmp.erase((std::vector<CornerDescriptor*>::iterator)&cor_tmp[cor_tmp.size()-1]);
+    cor_tmp.erase(cor_tmp.begin() + (cor_tmp.size() - 1));
     }
   }while(cor.size()>0);
   cout << endl;
@@ -387,8 +393,9 @@ void computLaplacian(DARY* image, vector<CornerDescriptor*>&corners, float lap_t
     for(uint i=0;i<corners.size();i++){
       if(!corners[i]->isExtr()){
         delete corners[i];
-	corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[i]);
-	i--;
+	    //corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[i]);
+        corners.erase(corners.begin() + i);
+	    i--;
       }
     }    
 }
@@ -441,15 +448,20 @@ void removeNeighbours(vector<CornerDescriptor*> &corners){
     cout <<"\r corner: " <<  corners.size() << "  " << flush;
     cor=corners[0];
     rad=(int)(cor->getCornerScale()/2.0);
-    corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[0]);
+    //corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[0]);
+    corners.erase(corners.begin());
     for(int i=0;(uint)i<corners.size() && i>=0;i++){
       if(cor->getCornerScale()==corners[i]->getCornerScale())
 	if(fabs(cor->getX()-corners[i]->getX())<rad && fabs(cor->getY()-corners[i]->getY())<rad)
 	  if(cor->getCornerness()>corners[i]->getCornerness()){
-	    corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[i]);i--;
+	    //corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[i]);
+          corners.erase(corners.begin() + i);
+          i--;
 	  }else {
 	    cor=corners[i];
-	    corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[i]);i=-1;	    
+	    //corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[i]);
+        corners.erase(corners.begin() + i);
+        i=-1;	    
 	  }  
     }
     cors.push_back(cor);
@@ -987,12 +999,14 @@ void harris_lap(vector<DARY *> har,vector<DARY *> har11,vector<DARY *> har12,vec
 	    if(fabs(cor->getX()-cor1->getX())<0.3*scale[i] && fabs(cor->getY()-cor1->getY())<0.3*scale[i]){
 	      if(cor->getCornerness()>cor1->getCornerness()){
                 delete tmpcor[s][c1];
-		tmpcor[s].erase((std::vector<CornerDescriptor*>::iterator)&tmpcor[s][c1]);
-		c1--;
+        		//tmpcor[s].erase((std::vector<CornerDescriptor*>::iterator)&tmpcor[s][c1]);
+                tmpcor[s].erase(tmpcor[s].begin() + c1);
+		        c1--;
 	      } else{
                 delete tmpcor[i][c];
-		tmpcor[i].erase((std::vector<CornerDescriptor*>::iterator)&tmpcor[i][c]);
-		c--;flag=0;	
+		        //tmpcor[i].erase((std::vector<CornerDescriptor*>::iterator)&tmpcor[i][c]);
+                tmpcor[i].erase(tmpcor[i].begin() + c);
+		        c--;flag=0;	
 	      }
 	    }
 	  }
@@ -1253,6 +1267,9 @@ void findAffineRegion(vector<DARY *> image,vector<DARY *> laplacian, vector<floa
     }else { 
       //cout<<"\r  cor  "<<i<<" of "<< size << "  "<<cor[i]->getDerLev()<< "  " << cor[i]->getX() << "  " << cor[i]->getY()<<"  no  "<< flush;
       delete cor[i];
-      cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[i]);i--;}    
+      //cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[i]);
+      cor.erase(cor.begin() + i);
+      i--;
+    }    
   }    
 }

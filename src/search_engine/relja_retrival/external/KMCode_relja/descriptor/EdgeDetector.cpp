@@ -20,127 +20,131 @@ float bilin(DARY *grad, float x, float y){
 }
 
 
-void followEdge(int x,int y, DARY *edge,Segment *se, int dir){
-  float  dori_max=100;
-  int flag=1,isNew=0;
-  int actx = x,acty=y, x_2=x,y_2=y,x_1=x,y_1=y,nx=0,ny=0,nb=0;
-  float  dx=0,dy=0,da_2=0,da_1=0,da=0,da_max,da_act=0;
-  do{
-    flag=0;da_max=0;isNew=0;dori_max=10;
-    x_2=x_1;y_2=y_1;x_1=actx;y_1=acty;da_2=da_1;da_1=da_act;
+void followEdge(int x, int y, DARY* edge, Segment* se, int dir) {
+	float  dori_max = 100;
+	int flag = 1, isNew = 0;
+	int actx = x, acty = y, x_2 = x, y_2 = y, x_1 = x, y_1 = y, nx = 0, ny = 0, nb = 0;
+	float  dx = 0, dy = 0, da_2 = 0, da_1 = 0, da = 0, da_max, da_act = 0;
+	do {
+		flag = 0; da_max = 0; isNew = 0; dori_max = 10;
+		x_2 = x_1; y_2 = y_1; x_1 = actx; y_1 = acty; da_2 = da_1; da_1 = da_act;
 
-    if(edge->fel[acty][actx+1]>0){
-      dy=acty-y_2;dx=actx+1-x_2;
-      da=atan2(dy,dx);
-      da_max=fabs(da-da_2);
-      if(da_max>M_PI)da_max=M_2PI-da_max;
-      if(da_max<dori_max){
-	dori_max=da_max;
-	da_act=da;
-	nx=actx+1;ny=acty;
-	isNew=1;
-      }      
-    }
-    if(edge->fel[acty+1][actx+1]>0){
-      dy=acty+1-y_2;dx=actx+1-x_2;
-      da=atan2(dy,dx);
-      da_max=fabs(da-da_2);
-      if(da_max>M_PI)da_max=M_2PI-da_max;
-      if(da_max<dori_max){
-	dori_max=da_max;
-	da_act=da;
-	nx=actx+1;ny=acty+1;
-	isNew=1;
-      }      
-    }
-    if(edge->fel[acty+1][actx]>0){
-      dy=acty+1-y_2;dx=actx-x_2;
-      da=atan2(dy,dx);
-      da_max=fabs(da-da_2);
-      if(da_max>M_PI)da_max=M_2PI-da_max;
-      if(da_max<dori_max){
-	dori_max=da_max;
-	da_act=da;
-	nx=actx;ny=acty+1;
-	isNew=1;
-      }      
-    }
-    if(edge->fel[acty+1][actx-1]>0){
-      dy=acty+1-y_2;dx=actx-1-x_2;
-      da=atan2(dy,dx);
-      da_max=fabs(da-da_2);
-      if(da_max>M_PI)da_max=M_2PI-da_max;
-      if(da_max<dori_max){
-	dori_max=da_max;
-	da_act=da;
-	nx=actx-1;ny=acty+1;
-	isNew=1;
-      }      
-    }
-    if(edge->fel[acty][actx-1]>0){
-      dy=acty-y_2;dx=actx-1-x_2;
-      da=atan2(dy,dx);
-      da_max=fabs(da-da_2);
-      if(da_max>M_PI)da_max=M_2PI-da_max;
-      if(da_max<dori_max){
-	dori_max=da_max;
-	da_act=da;
-	nx=actx-1;ny=acty;
-	isNew=1;
-      }      
-    }
-    if(edge->fel[acty-1][actx-1]>0){
-      dy=acty-1-y_2;dx=actx-1-x_2;
-      da=atan2(dy,dx);
-      da_max=fabs(da-da_2);
-      if(da_max>M_PI)da_max=M_2PI-da_max;
-      if(da_max<dori_max){
-	dori_max=da_max;
-	da_act=da;
-	nx=actx-1;ny=acty-1;
-	isNew=1;
-      }      
-    }
-    if(edge->fel[acty-1][actx]>0){
-      dy=acty-1-y_2;dx=actx-x_2;
-      da=atan2(dy,dx);
-      da_max=fabs(da-da_2);
-      if(da_max>M_PI)da_max=M_2PI-da_max;
-      if(da_max<dori_max){
-	dori_max=da_max;
-	da_act=da;
-	nx=actx;ny=acty-1;
-	isNew=1;
-      }      
-    }
-    if(edge->fel[acty-1][actx+1]>0){
-      dy=acty-1-y_2;dx=actx+1-x_2;
-      da=atan2(dy,dx);
-      da_max=fabs(da-da_2);
-      if(da_max>M_PI)da_max=M_2PI-da_max;
-      if(da_max<dori_max){
-	dori_max=da_max;
-	da_act=da;
-	nx=actx+1;ny=acty-1;
-	isNew=1;
-      }      
-    }
+		if (edge->fel[acty][actx + 1] > 0) {
+			dy = acty - y_2; dx = actx + 1 - x_2;
+			da = atan2(dy, dx);
+			da_max = fabs(da - da_2);
+			if (da_max > M_PI)da_max = M_2PI - da_max;
+			if (da_max < dori_max) {
+				dori_max = da_max;
+				da_act = da;
+				nx = actx + 1; ny = acty;
+				isNew = 1;
+			}
+		}
+		if (edge->fel[acty + 1][actx + 1] > 0) {
+			dy = acty + 1 - y_2; dx = actx + 1 - x_2;
+			da = atan2(dy, dx);
+			da_max = fabs(da - da_2);
+			if (da_max > M_PI)da_max = M_2PI - da_max;
+			if (da_max < dori_max) {
+				dori_max = da_max;
+				da_act = da;
+				nx = actx + 1; ny = acty + 1;
+				isNew = 1;
+			}
+		}
+		if (edge->fel[acty + 1][actx] > 0) {
+			dy = acty + 1 - y_2; dx = actx - x_2;
+			da = atan2(dy, dx);
+			da_max = fabs(da - da_2);
+			if (da_max > M_PI)da_max = M_2PI - da_max;
+			if (da_max < dori_max) {
+				dori_max = da_max;
+				da_act = da;
+				nx = actx; ny = acty + 1;
+				isNew = 1;
+			}
+		}
+		if (edge->fel[acty + 1][actx - 1] > 0) {
+			dy = acty + 1 - y_2; dx = actx - 1 - x_2;
+			da = atan2(dy, dx);
+			da_max = fabs(da - da_2);
+			if (da_max > M_PI)da_max = M_2PI - da_max;
+			if (da_max < dori_max) {
+				dori_max = da_max;
+				da_act = da;
+				nx = actx - 1; ny = acty + 1;
+				isNew = 1;
+			}
+		}
+		if (edge->fel[acty][actx - 1] > 0) {
+			dy = acty - y_2; dx = actx - 1 - x_2;
+			da = atan2(dy, dx);
+			da_max = fabs(da - da_2);
+			if (da_max > M_PI)da_max = M_2PI - da_max;
+			if (da_max < dori_max) {
+				dori_max = da_max;
+				da_act = da;
+				nx = actx - 1; ny = acty;
+				isNew = 1;
+			}
+		}
+		if (edge->fel[acty - 1][actx - 1] > 0) {
+			dy = acty - 1 - y_2; dx = actx - 1 - x_2;
+			da = atan2(dy, dx);
+			da_max = fabs(da - da_2);
+			if (da_max > M_PI)da_max = M_2PI - da_max;
+			if (da_max < dori_max) {
+				dori_max = da_max;
+				da_act = da;
+				nx = actx - 1; ny = acty - 1;
+				isNew = 1;
+			}
+		}
+		if (edge->fel[acty - 1][actx] > 0) {
+			dy = acty - 1 - y_2; dx = actx - x_2;
+			da = atan2(dy, dx);
+			da_max = fabs(da - da_2);
+			if (da_max > M_PI)da_max = M_2PI - da_max;
+			if (da_max < dori_max) {
+				dori_max = da_max;
+				da_act = da;
+				nx = actx; ny = acty - 1;
+				isNew = 1;
+			}
+		}
+		if (edge->fel[acty - 1][actx + 1] > 0) {
+			dy = acty - 1 - y_2; dx = actx + 1 - x_2;
+			da = atan2(dy, dx);
+			da_max = fabs(da - da_2);
+			if (da_max > M_PI)da_max = M_2PI - da_max;
+			if (da_max < dori_max) {
+				dori_max = da_max;
+				da_act = da;
+				nx = actx + 1; ny = acty - 1;
+				isNew = 1;
+			}
+		}
 
 
-   if(isNew){
-     //cout <<nb<< "dx "<<nx-actx<< " dy "<<ny-acty<<   " d_ori " <<  dori_max*180/M_PI<< endl;
-      edge->fel[acty][actx]=0;
-      if(nx>0 && nx<edge->x() && ny>0 && ny<edge->y() ){
-	flag=1;
-	if(dir)se->chain.push_back(new ChainPoint(nx,ny,da_act)); 
-	else se->chain.insert((std::vector<ChainPoint*>::iterator)&(se->chain[0]),new ChainPoint(nx,ny,da_act));
+		if (isNew) {
+			//cout <<nb<< "dx "<<nx-actx<< " dy "<<ny-acty<<   " d_ori " <<  dori_max*180/M_PI<< endl;
+			edge->fel[acty][actx] = 0;
+            if (nx > 0 && nx < edge->x() && ny>0 && ny < edge->y()) {
+                flag = 1;
+                if (dir) {
+                    se->chain.push_back(new ChainPoint(nx, ny, da_act));
+                }
+                else {
+                    //se->chain.insert((std::vector<ChainPoint*>::iterator) & (se->chain[0]), new ChainPoint(nx, ny, da_act));
+                    se->chain.insert(se->chain.begin(), new ChainPoint(nx, ny, da_act));
+                }
+				acty = ny; actx = nx;
+				nb++;
+			}
+		}//else cout << "stopping"<< endl;    
 
-	acty=ny;actx=nx;
-	nb++;
-      }
-   }//else cout << "stopping"<< endl;    
-    
-  }while(flag);
+	} while (flag);
   
 }
 
@@ -231,11 +235,13 @@ void detectPointsOnEdges( vector<Segment*> &seg, vector<CornerDescriptor*> &cor)
 	  //cout << p0<< " "<<ppp[p0]<< endl;
 	  if(seg[s]->chain[ppp[p0]]->ddori < seg[s]->chain[ppp[p0+1]]->ddori){	  
 	    //out << " erasing " << ppp[p0]<< endl;
-	    ppp.erase((std::vector<uint>::iterator)&ppp[p0]);
+	    //ppp.erase((std::vector<uint>::iterator)&ppp[p0]);
+        ppp.erase(ppp.begin() + p0);
 	  }
 	  else {
 	    //cout << " erasing " << ppp[p0+1]<< endl;
-	    ppp.erase((std::vector<uint>::iterator)&ppp[p0+1]);
+	    //ppp.erase((std::vector<uint>::iterator)&ppp[p0+1]);
+          ppp.erase(ppp.begin() + (p0 + 1));
 	  }	  	  
 	}else p0++;	
       }
@@ -608,9 +614,14 @@ void edge_points(vector<DARY *> edge,vector<DARY *> lap, vector<float> scales , 
       for(int c2=c+1;c2<all_desc[i].size()&&flag;c2++){
 	if(fabs(fx-all_desc[i][c2]->getX())<dp && fabs(fy-all_desc[i][c2]->getY())<dp){
 	  if(grad>all_desc[i][c2]->getCornerness()){
-	    all_desc[i].erase((std::vector<CornerDescriptor *>::iterator)&all_desc[i][c2]);c2--;
+	    //all_desc[i].erase((std::vector<CornerDescriptor *>::iterator)&all_desc[i][c2]);
+        all_desc[i].erase(all_desc[i].begin() + c2);
+        c2--;
 	  }else {
-	    all_desc[i].erase((std::vector<CornerDescriptor *>::iterator)&all_desc[i][c]);c--;flag=0;
+	    //all_desc[i].erase((std::vector<CornerDescriptor *>::iterator)&all_desc[i][c]);
+        all_desc[i].erase(all_desc[i].begin() + c);
+        c--;
+        flag=0;
 	  }
 	}	
 	

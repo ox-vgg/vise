@@ -20,6 +20,7 @@ using std::min;
 using std::abs;
 
 #define GRANULARITY 0.1
+#define QUIET 1
 
 // [overlap_perc] = jp_calc_ellipse_intersection(x1,y1,a1,b1,c1,x2,y2,a2,b2,c2)
 
@@ -144,7 +145,6 @@ compute_overlap(CornerDescriptor* cor1, CornerDescriptor* cor2)
 
 namespace KM_detect_points {
 int lib_main(int argc, char **argv){
-
   //int c='C';
   //cout << c<< endl;
   if(argc<2){ 

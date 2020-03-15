@@ -21,32 +21,33 @@ void convertEllips(float a, float b, float c, float &scale, float &m11, float &m
 }
 
 
-void loadVibesCorners(const char* points1, vector<CornerDescriptor*> &cor1){
+void loadVibesCorners(const char* points1, vector<CornerDescriptor*>& cor1) {
 
-    CornerDescriptor* cor;
-    ifstream input1(points1);
-    if(!input1)return;
-    float cor_nb1,size; 
-    float x,y,a,b,c;
-    input1 >> x;//cout <<x<< endl;
-    input1 >> cor_nb1; //cout<< x<< endl;getchar();  
-    if(cor_nb1==0)return;
-    float scale,m11,m12,m21,m22;
-    do{
-      cor = new CornerDescriptor();
-      input1>>x; input1>>y;input1>>a;input1>>b;input1>>c;
-      //cout << a  << "  " << b << "  "<< c << endl;
-      convertEllips(a,b,c,scale,m11,m12,m21,m22);
-      //cout << m11 <<" "<<  m12 << " "<< m21 << " " << m22<< endl;getchar();
-      cor->setX_Y(x,y);cor->setCornerScale(scale);
-      cor->setMi(m11,m12,m21,m22);
-      cor1.push_back(cor);      
-    }while(!input1.eof());
-    delete cor1[(int)cor1.size()-1];
-    cor1.erase((std::vector<CornerDescriptor*>::iterator) &cor1[(int)cor1.size()-1]);
-    if((int)cor_nb1!=(int)cor1.size()){
-      cout << "warning:"<< endl<<"in header: "<<cor_nb1 << ", in file: "<< cor1.size()<< endl; 
-    }
+	CornerDescriptor* cor;
+	ifstream input1(points1);
+	if (!input1)return;
+	float cor_nb1, size;
+	float x, y, a, b, c;
+	input1 >> x;//cout <<x<< endl;
+	input1 >> cor_nb1; //cout<< x<< endl;getchar();  
+	if (cor_nb1 == 0)return;
+	float scale, m11, m12, m21, m22;
+	do {
+		cor = new CornerDescriptor();
+		input1 >> x; input1 >> y; input1 >> a; input1 >> b; input1 >> c;
+		//cout << a  << "  " << b << "  "<< c << endl;
+		convertEllips(a, b, c, scale, m11, m12, m21, m22);
+		//cout << m11 <<" "<<  m12 << " "<< m21 << " " << m22<< endl;getchar();
+		cor->setX_Y(x, y); cor->setCornerScale(scale);
+		cor->setMi(m11, m12, m21, m22);
+		cor1.push_back(cor);
+	} while (!input1.eof());
+	delete cor1[(int)cor1.size() - 1];
+	//cor1.erase((std::vector<CornerDescriptor*>::iterator) & cor1[(int)cor1.size() - 1]);
+    cor1.erase(cor1.begin() + (cor1.size() - 1));
+	if ((int)cor_nb1 != (int)cor1.size()) {
+		cout << "warning:" << endl << "in header: " << cor_nb1 << ", in file: " << cor1.size() << endl;
+	}
 
 }
 
@@ -168,8 +169,11 @@ void removeFloatMatches(vector<CornerDescriptor*> &cor1,
   for(unsigned int i=0;i<cor2.size()-1;i++){
     for(unsigned int j=i+1;j<cor2.size();j++){
       if(cor2[i]==cor2[j] || cor1[i]==cor1[j]){
-	cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[j]);
-	cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[j]);j--;
+	    //cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[j]);
+	    //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[j]);
+        cor1.erase(cor1.begin() + j);
+        cor2.erase(cor2.begin() + j);
+        j--;
       }
     }
   }
@@ -183,7 +187,9 @@ void removeOutLiers(vector<CornerDescriptor*> &cor1, Matrix *H, float width, flo
     getHPoint(cor1[c1]->getX(),cor1[c1]->getY(),H,x,y);
     if(x<margin || y<margin ||
        x>(width-margin) || y>(height-margin)){
-      cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c1]);c1--;
+      //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c1]);
+        cor1.erase(cor1.begin() + c1);
+      c1--;
     }       
   }  
   
@@ -207,8 +213,10 @@ float  checkAngleByHomography(vector<CornerDescriptor*> &cor1,
     if(da>(M_PI))da-=M_2PI;
     sum+=fabs(da-orig_angle);
     if(fabs(da-orig_angle) > max_angle_error){
-      cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[c]);
-      cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c]);
+      //cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[c]);
+      //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c]);
+      cor1.erase(cor1.begin() + c);
+      cor2.erase(cor2.begin() + c);
       c--;
     }
   }
@@ -233,8 +241,10 @@ void checkScaleByHomography(vector<CornerDescriptor *> &cor1, vector<CornerDescr
 	scale_error=scale_error<1?scale_error:(1.0/scale_error);
 	scale_error=1-scale_error;
 	if(scale_error > max_scale_error){
-	  cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[c1]);
-	  cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c1]);
+	  //cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[c1]);
+	  //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c1]);
+      cor1.erase(cor1.begin() + c1);
+      cor2.erase(cor2.begin() + c1);
 	  c1--;
 	}
     }	                   
@@ -247,8 +257,10 @@ void checkPointsByEpipolar(vector<CornerDescriptor *> &cor1, vector<CornerDescri
   if(cor1.size()!=cor2.size()){cout << " different list size " << endl;return;}
     for(unsigned int c1=0;c1<cor1.size();c1++){
       if(!checkEpip(cor1[c1],cor2[c1],F,max_dist,dist)){
-	  cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c1]);
-	  cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[c1]);	  
+	  //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c1]);
+	  //cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[c1]);	
+      cor1.erase(cor1.begin() + c1);
+      cor2.erase(cor2.begin() + c1);
 	  c1--;
 	}                
     }     
@@ -260,8 +272,10 @@ void checkPointsByHomography(vector<CornerDescriptor *> &cor1, vector<CornerDesc
   if(cor1.size()!=cor2.size()){cout << " different list size " << endl;return;}
     for(unsigned int c1=0;c1<cor1.size();c1++){
 	if(!checkHomog(cor1[c1],cor2[c1],F,max_dist,dist)){
-	  cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c1]);
-	  cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[c1]);	  
+	  //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[c1]);
+	  //cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[c1]);	  
+      cor1.erase(cor1.begin() + c1);
+      cor2.erase(cor2.begin() + c1);
 	  c1--;
 	}                
     }     
@@ -770,7 +784,9 @@ float matchAffinePoints(CornerDescriptor * cor1,CornerDescriptor *cor2, Matrix A
    } else
     return (100);
 }
-float square(float a){
+// renamed square() to float_square() to avoid conflict with other declarations of squre()
+// Abhishek Dutta <adutta@robots.ox.ac.uk>, 12 March 2020
+float float_square(float a){
     return a*a;
 }
 
@@ -845,7 +861,8 @@ void removeSimilarPoints(vector<CornerDescriptor *> &cor1){
     cout << "\rRemoving similar points " << cor1.size() << "   "<<flush;
     c1=cor1[0];
     csim.push_back(cor1[0]);
-    cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[0]);
+    //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[0]);
+    cor1.erase(cor1.begin());
     M(1,1)=c1->getMi11();
     M(1,2)=c1->getMi12();
     M(2,1)=c1->getMi21();
@@ -855,7 +872,7 @@ void removeSimilarPoints(vector<CornerDescriptor *> &cor1){
     sc=D(1,1)/D(2,2);
     dist_max=0.6*c1->getCornerScale();
     for(uint j=0;j<cor1.size();j++){
-      dist=sqrt(square(cor1[j]->getX()-c1->getX())+square(cor1[j]->getY()-c1->getY()));
+      dist=sqrt(float_square(cor1[j]->getX()-c1->getX())+float_square(cor1[j]->getY()-c1->getY()));
       sc_dif=fabs(1-(c1->getCornerScale()/c1->getCornerScale()));  
       M(1,1)=cor1[j]->getMi11();
       M(1,2)=cor1[j]->getMi12();
@@ -865,8 +882,10 @@ void removeSimilarPoints(vector<CornerDescriptor *> &cor1){
       angle1=acos(V(1,1));
       sc1=D(1,1)/D(2,2);
       if(dist<dist_max && sc_dif<0.3 && fabs(angle1-angle)<0.2 && fabs(1-sc/sc1)<0.2){
-	csim.push_back(cor1[j]);
-	cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[j]);j--;
+	    csim.push_back(cor1[j]);
+	    //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[j]);
+        cor1.erase(cor1.begin() + j);
+        j--;
       }	
     }
     if(csim.size()>1){
@@ -897,11 +916,13 @@ void matchAffinePoints(vector<CornerDescriptor *> &cor1,vector<CornerDescriptor 
       error=matchAffinePoints(cor1[0], cor2[0], AFF);
       c1=cor1[0];
       c2=cor2[0];
-      cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[0]);
-      cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[0]);
+      //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[0]);
+      //cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[0]);
+      cor1.erase(cor1.begin());
+      cor2.erase(cor2.begin());
       if(error<max_error){
 	  for(uint i=0;i<cor1.size();i++){
-	      dist=sqrt(square(cor1[i]->getX()-c1->getX())+square(cor1[i]->getY()-c1->getY()));
+	      dist=sqrt(float_square(cor1[i]->getX()-c1->getX())+float_square(cor1[i]->getY()-c1->getY()));
 	      sc_dif=fabs(cor1[i]->getCornerScale()-c1->getCornerScale())/(c1->getCornerScale());	      
 	      if(dist<4 && sc_dif<0.3){
 		  //getAffMat(cor1[i],H,AFF2);
@@ -909,13 +930,17 @@ void matchAffinePoints(vector<CornerDescriptor *> &cor1,vector<CornerDescriptor 
 		  if(error2 < error){
 		      c1=cor1[i];
 		      c2=cor2[i];
-		      cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[i]);
-		      cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[i]);
+		      //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[i]);
+		      //cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[i]);
+              cor1.erase(cor1.begin() + i);
+              cor2.erase(cor2.begin() + i);
 		      error=error2;
 		      i--;
 		  }else {
-		      cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[i]);
-		      cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[i]);
+		      //cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[i]);
+		      //cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[i]);
+              cor1.erase(cor1.begin() + i);
+              cor2.erase(cor2.begin() + i);
 		      i--;
 		  }
 	      }
@@ -1016,10 +1041,10 @@ float SSD(DARY *img_in1, CornerDescriptor *cor1, DARY *img_in2, CornerDescriptor
     float sum=0;//,P=0,X=0;
     for(int i=0;i<im_size;i++){
 	for(int j=0;j<im_size;j++){ 
-	    //P+=square(imgn1->fel[i][j]);
-	    //X+=square(imgn2->fel[i][j]);
+	    //P+=float_square(imgn1->fel[i][j]);
+	    //X+=float_square(imgn2->fel[i][j]);
 	  //sum+=(imgn1->fel[i][j]*imgn2->fel[i][j]);
-	    sum+=square(imgn1->fel[i][j]-imgn2->fel[i][j]);
+	    sum+=float_square(imgn1->fel[i][j]-imgn2->fel[i][j]);
 	}
     }
     /*
@@ -1036,21 +1061,22 @@ float SSD(DARY *img_in1, CornerDescriptor *cor1, DARY *img_in2, CornerDescriptor
 
 
 
-void SSD(DARY *img_in1, vector<CornerDescriptor *> &cor1, 
-	 DARY *img_in2, vector<CornerDescriptor *> &cor2, float dist_cc){
-  float ssd;
-    for(uint i=0;i<cor1.size();i++){
-      ssd=SSD(img_in1,cor1[i],img_in2,cor2[i]);
-      cout << "\rSSD " << i << " of "<< cor1.size()<< " ssd  "<<ssd <<"   "<< flush;//getchar();
-	//cout << cor1[i]->getX()<< " " << cor1[i]->getY()<< " to ";
-	//cout << cor2[i]->getX()<< " " << cor2[i]->getY()<<endl; 
-      if(ssd > dist_cc){
-	    cor1.erase((std::vector<CornerDescriptor*>::iterator)&cor1[i]);
-	    cor2.erase((std::vector<CornerDescriptor*>::iterator)&cor2[i]);i--;
+void SSD(DARY* img_in1, vector<CornerDescriptor*>& cor1,
+	DARY* img_in2, vector<CornerDescriptor*>& cor2, float dist_cc) {
+	float ssd;
+	for (uint i = 0; i < cor1.size(); i++) {
+		ssd = SSD(img_in1, cor1[i], img_in2, cor2[i]);
+		cout << "\rSSD " << i << " of " << cor1.size() << " ssd  " << ssd << "   " << flush;//getchar();
+	  //cout << cor1[i]->getX()<< " " << cor1[i]->getY()<< " to ";
+	  //cout << cor2[i]->getX()<< " " << cor2[i]->getY()<<endl; 
+		if (ssd > dist_cc) {
+			//cor1.erase((std::vector<CornerDescriptor*>::iterator) & cor1[i]);
+			//cor2.erase((std::vector<CornerDescriptor*>::iterator) & cor2[i]); 
+            cor1.erase(cor1.begin() + i);
+            cor2.erase(cor2.begin() + i);
+            i--;
+		}
 	}
-    }
-
-
 }
 
 void checkMatches( vector<CornerDescriptor*> &cor1, vector<CornerDescriptor*> &cor2, Matrix *H, 
@@ -1380,7 +1406,8 @@ void matchDescriptorsNearest(vector<CornerDescriptor*> &cor1,
 	for(int r=0;r<rank10.size() && r<maxrank && flag;r++){
 	  if(ddist->fel[c1][c2] < ddist->fel[c1][rank10[r]]){
 	    //cout << c2 << "  " << rank10[r] << "  "<<ddist->fel[c1][c2] <<"  "<< ddist->fel[c1][rank10[r]]<< endl;
-	    rank10.insert((std::vector<int>::iterator)&(rank10[r]),c2);
+	    //rank10.insert((std::vector<int>::iterator)&(rank10[r]),c2);
+        rank10.insert(rank10.begin() + r, c2);
 	    flag=0;
 	  }
 	}
@@ -1409,7 +1436,8 @@ void matchDescriptorsNearest(vector<CornerDescriptor*> &cor1,
 	for(int r=0;r<rank10.size() && r<maxrank && flag;r++){
 	  if(ddist->fel[c1][c2] < ddist->fel[rank10[r]][c2]){
 	    //cout << c2 << "  " << rank10[r] << "  "<<ddist->fel[c1][c2] <<"  "<< ddist->fel[c1][rank10[r]]<< endl;
-	    rank10.insert((std::vector<int>::iterator)&(rank10[r]),c1);
+	    //rank10.insert((std::vector<int>::iterator)&(rank10[r]),c1);
+        rank10.insert(rank10.begin() + r, c1);
 	    flag=0;
 	  }
 	}
@@ -1426,13 +1454,13 @@ void matchDescriptorsNearest(vector<CornerDescriptor*> &cor1,
   
   for(unsigned int c1=0;c1<size1;c1++){
     for(unsigned int c2=c1+1;c2<size1;c2++){
-      p1dist->fel[c1][c2]=square(cor1[c1]->getX()-cor1[c2]->getX())+square(cor1[c1]->getY()-cor1[c2]->getY());
+      p1dist->fel[c1][c2]=float_square(cor1[c1]->getX()-cor1[c2]->getX())+float_square(cor1[c1]->getY()-cor1[c2]->getY());
       p1dist->fel[c2][c1]=p1dist->fel[c1][c2];
     }
   }
   for(unsigned int c1=0;c1<size2;c1++){
     for(unsigned int c2=c1+1;c2<size2;c2++){
-      p2dist->fel[c1][c2]=square(cor2[c1]->getX()-cor2[c2]->getX())+square(cor2[c1]->getY()-cor2[c2]->getY());
+      p2dist->fel[c1][c2]=float_square(cor2[c1]->getX()-cor2[c2]->getX())+float_square(cor2[c1]->getY()-cor2[c2]->getY());
       p2dist->fel[c2][c1]=p2dist->fel[c1][c2];
     }
   }
@@ -1446,7 +1474,7 @@ void matchDescriptorsNearest(vector<CornerDescriptor*> &cor1,
 
   for(unsigned int c1=0;c1<size1;c1++){
     cout << "\rdescriptor " << c1 << flush;
-    radius=square(5.0*cor1[c1]->getCornerScale());
+    radius=float_square(5.0*cor1[c1]->getCornerScale());
     for(unsigned int c=0;c<size1;c++){
       if(p1dist->fel[c1][c]<radius && c1!=c){
 	neigh1.push_back(c);
@@ -1454,7 +1482,7 @@ void matchDescriptorsNearest(vector<CornerDescriptor*> &cor1,
     }
     for(unsigned int c2=0;c2<size2;c2++){
       if(rank->fel[c1][c2]<50){
-	radius=square(5.0*cor2[c2]->getCornerScale());
+	radius=float_square(5.0*cor2[c2]->getCornerScale());
 	for(unsigned int c=0;c<size2;c++){ 
 	  if(p2dist->fel[c2][c]<radius && c2!=c){
 	    neigh2.push_back(c);

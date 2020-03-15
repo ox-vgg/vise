@@ -133,31 +133,40 @@ void vise::project::conf_load_default() {
   d_pconf["hamm_embedding_bits"] = "32";
   d_pconf["resize_dimension"] = "512x512";
 
-  d_data_dir = d_project_dir / "data";
-  d_image_dir = d_project_dir / "image";
-  d_image_src_dir = d_project_dir / "image_src";
+  d_data_dir = d_project_dir / "data/";
+  d_image_dir = d_project_dir / "image/";
+  d_image_src_dir = d_project_dir / "image_src/";
+  
+  // convert the trailing path-separator to platform specific character
+  d_data_dir.make_preferred();
+  d_image_dir.make_preferred();
+  d_image_src_dir.make_preferred();
+  
   boost::filesystem::create_directory(d_data_dir);
   boost::filesystem::create_directory(d_image_dir);
   boost::filesystem::create_directory(d_image_src_dir);
 
-  d_pconf["data_dir"] = d_data_dir.string() + boost::filesystem::path::preferred_separator;
-  d_pconf["image_dir"] = d_image_dir.string() + boost::filesystem::path::preferred_separator;
-  d_pconf["image_src_dir"] = d_image_src_dir.string() + boost::filesystem::path::preferred_separator;
+  d_pconf["data_dir"] = d_data_dir.string();
+  d_pconf["image_dir"] = d_image_dir.string();
+  d_pconf["image_src_dir"] = d_image_src_dir.string();
 }
 
 void vise::project::conf_to_json(std::ostringstream &json) {
   if(d_pconf.size()) {
     json << "{";
     std::map<std::string, std::string>::const_iterator itr = d_pconf.begin();
-    json << "\"" << itr->first << "\":\"" << itr->second << "\"";
+    //std::cout << itr->first << ":" << itr->second << std::endl;
+    json << "\"" << itr->first << "\":\"" << json_escape_str(itr->second) << "\"";
     ++itr;
     for(; itr != d_pconf.end(); ++itr) {
-      json << ",\"" << itr->first << "\":\"" << itr->second << "\"";
+      //std::cout << itr->first << ":" << itr->second << std::endl;
+      json << ",\"" << itr->first << "\":\"" << json_escape_str(itr->second) << "\"";
     }
     json << "}";
   } else {
     json << "{}";
   }
+  std::cout << "conf_to_json: " << json.str() << std::endl;
 }
 
 bool vise::project::conf_from_plaintext(std::string plaintext) {

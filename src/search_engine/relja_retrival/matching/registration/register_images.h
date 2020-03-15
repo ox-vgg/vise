@@ -21,7 +21,6 @@ No usage or redistribution is allowed without explicit permission.
 #include "spatial_retriever.h"
 #include "same_random.h"
 
-
 class registerImages {
     
     public:

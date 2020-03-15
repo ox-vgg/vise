@@ -132,13 +132,11 @@ class detRansac {
         inline static uint32_t
             getNStopping(double pFail, uint32_t nPutativeMatches, uint32_t bestNInliers){
                 if (bestNInliers==nPutativeMatches) return 0;
-                return std::min(
-                    100000.0,
-                    std::ceil(
-                        std::log(pFail) /
-                        std::log( 1.0 - static_cast<double>( std::max(static_cast<uint32_t>(4),bestNInliers) ) / nPutativeMatches )
-                        )
-                    );
+                double tmp = std::ceil(
+                    std::log(pFail) /
+                    std::log(1.0 - static_cast<double>(std::max(static_cast<uint32_t>(4), bestNInliers)) / nPutativeMatches)
+                );
+                return std::min(100000.0, tmp);
             }
         
         static void

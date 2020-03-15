@@ -102,18 +102,10 @@ void readRegsAndDescs( const char fileName[], uint32_t &numFeats, std::vector<el
 
 
 void reg_KM_HessAff::getRegs( const char fileName[], uint32_t &numRegs, std::vector<ellipse> &regions ) const {
-    
-    std::string tempRegsFn= boost::filesystem::unique_path("/tmp/rr_feat_%%%%-%%%%-%%%%-%%%%.txt").native();
-    
-    // convert to jpg if it isn't jpg already
-    std::string fileName_jpeg;
-    bool doDelJpeg= false;
-    if (!imageUtil::checkAndConvertToJpegTemp(fileName, fileName_jpeg, doDelJpeg)){
-        numRegs= 0;
-        regions.clear();
-        return;
-    }
-    
+    boost::filesystem::path tmpdir = boost::filesystem::temp_directory_path();
+    boost::filesystem::path tmpfn = tmpdir / boost::filesystem::unique_path("vise_region_%%%%%%%%%%%%%%%%.bin");
+    std::string tempRegsFn = tmpfn.string();
+   
     // detect
     
     // form command line:
@@ -121,7 +113,7 @@ void reg_KM_HessAff::getRegs( const char fileName[], uint32_t &numRegs, std::vec
     std::vector<std::string> args_;
     args_.push_back("detect_points_2.ln");
     args_.push_back("-i");
-    args_.push_back(fileName_jpeg);
+    args_.push_back(fileName);
     args_.push_back("-hesaff");
     args_.push_back("-o");
     args_.push_back(tempRegsFn);
@@ -136,36 +128,22 @@ void reg_KM_HessAff::getRegs( const char fileName[], uint32_t &numRegs, std::vec
     // execute
     KM_detect_points::lib_main(args.size(),&args[0]);
     
-    // image cleanup
-    if (doDelJpeg)
-        boost::filesystem::remove( fileName_jpeg );
-    
     // read
     readRegions( tempRegsFn.c_str(), numRegs, regions );
     
     // cleanup
     boost::filesystem::remove( tempRegsFn );
-    
 }
 
 
 
 void desc_KM_SIFT::getDescs( const char fileName[], std::vector<ellipse> &regions, uint32_t &numFeats, float *&descs ) const {
-    
-    
-    std::string tempRegsFn = boost::filesystem::unique_path("/tmp/rr_feat_%%%%-%%%%-%%%%-%%%%.txt").native();
-    std::string tempDescsFn= boost::filesystem::unique_path("/tmp/rr_feat_%%%%-%%%%-%%%%-%%%%.txt").native();
-    
-    // convert to jpg if it isn't jpg already
-    std::string fileName_jpeg;
-    bool doDelJpeg= false;
-    if (regions.size()==0 || !imageUtil::checkAndConvertToJpegTemp(fileName, fileName_jpeg, doDelJpeg)){
-        numFeats= 0;
-        regions.clear();
-        descs= new float[0];
-        return;
-    }
-    
+    boost::filesystem::path tmpdir = boost::filesystem::temp_directory_path();
+    boost::filesystem::path tmpregfn = tmpdir / boost::filesystem::unique_path("vise_featreg_%%%%%%%%%%%%%%%%.jpg");
+    boost::filesystem::path tmpdescfn = tmpdir / boost::filesystem::unique_path("vise_featdesc_%%%%%%%%%%%%%%%%.jpg");
+    std::string tempRegsFn = tmpregfn.string();
+    std::string tempDescsFn= tmpdescfn.string();
+        
     // write regions
     writeRegions( tempRegsFn.c_str(), regions );
     
@@ -176,7 +154,7 @@ void desc_KM_SIFT::getDescs( const char fileName[], std::vector<ellipse> &region
     std::vector<std::string> args_;
     args_.push_back("compute_descriptors_2.ln");
     args_.push_back("-i");
-    args_.push_back(fileName_jpeg);
+    args_.push_back(fileName);
     args_.push_back("-p1");
     args_.push_back(tempRegsFn);
     args_.push_back("-sift");
@@ -199,17 +177,12 @@ void desc_KM_SIFT::getDescs( const char fileName[], std::vector<ellipse> &region
     
     // cleanup
     boost::filesystem::remove( tempRegsFn );
-    
-    // image cleanup
-    if (doDelJpeg)
-        boost::filesystem::remove( fileName_jpeg );
-    
+        
     // read
     readRegsAndDescs( tempDescsFn.c_str(), numFeats, regions, descs );
     
     // cleanup
     boost::filesystem::remove( tempDescsFn );
-    
 }
 
 

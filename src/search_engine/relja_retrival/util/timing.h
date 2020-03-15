@@ -16,12 +16,12 @@ No usage or redistribution is allowed without explicit permission.
 #define _TIMING_H_
 
 #include <iostream>
-#include <sys/time.h>
 #include <string>
 #include <stdio.h>
 #include <cmath>
 #include <iomanip>
 #include <sstream>
+#include <algorithm>
 
 #include <ctime>
 #include <chrono>
@@ -31,24 +31,22 @@ No usage or redistribution is allowed without explicit permission.
 
 
 namespace timing {
-
-
-
+    
+    // updated for cross platform compatibility
+    // Abhishek Dutta <adutta@robots.ox.ac.uk>, 12 March 2020
     inline double now(){
+        double now_ms = (double) std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        return now_ms;
+        /*
         struct timeval t;
         gettimeofday(&t, NULL);
         return 1000 * t.tv_sec + t.tv_usec/1000.0;
+        */
     }
-
-
 
     inline double tic(){ return now(); }
 
-
-
     inline double toc( double prevTime ){ return now() - prevTime; }
-
-
 
     static inline std::string getTimeString(){
       auto now = std::chrono::system_clock::now();

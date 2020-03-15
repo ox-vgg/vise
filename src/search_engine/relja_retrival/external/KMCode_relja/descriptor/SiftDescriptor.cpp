@@ -1,6 +1,8 @@
 #include "siftDescriptor.h"
 #include "shapeDescriptor.h"
 
+#define QUIET 1
+
 /* David Lowe's code*/
 
 /* Increment the appropriate locations in the index to incorporate
@@ -233,7 +235,8 @@ void computeSiftDescriptors(DARY *image,  vector<CornerDescriptor *> &desc){
     delete ds;
     for(unsigned int c=0;c<desc.size();c++){
 	if(!desc[c]->isOK()){
-	    desc.erase((std::vector<CornerDescriptor*>::iterator)&desc[c]);
+	    //desc.erase((std::vector<CornerDescriptor*>::iterator)&desc[c]);
+        desc.erase(desc.begin() + c);
 	    c--;
 	}
     } 

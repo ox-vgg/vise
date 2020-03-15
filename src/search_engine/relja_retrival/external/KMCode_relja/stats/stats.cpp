@@ -344,7 +344,8 @@ void sort(vector<float> &vec){
       if(vec[i]<min){min=vec[i];imin=i;}
     } 
     vec_out.push_back(min);
-    vec.erase((std::vector<float>::iterator)&vec[imin]);
+    //vec.erase((std::vector<float>::iterator)&vec[imin]);
+    vec.erase(vec.begin() + imin);
   }while((int)vec.size()>0);
   vec=vec_out;
 }
@@ -361,7 +362,8 @@ float median(vector<float> &vec){
       if(vec[i]<min){min=vec[i];imin=i;}
     }
     vec_out.push_back(min);
-    vec.erase((std::vector<float>::iterator)&vec[imin]);
+    //vec.erase((std::vector<float>::iterator)&vec[imin]);
+    vec.erase(vec.begin() + imin);
   }while((int)vec.size()>(siz>>1));
   float out = (vec_out[vec_out.size()-1]+vec_out[vec_out.size()-2])/2.0;
   vec=vec_out; 

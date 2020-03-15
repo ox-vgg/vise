@@ -101,8 +101,9 @@ vanDeSande::vanDeSande(std::string descriptor, double harrisK, double laplaceThr
 
 
 void vanDeSande::getFeats( const char fileName[], uint32_t &numFeats, std::vector<ellipse> &regions, float *&descs ) const {
-    
-    std::string tempDescsFn= boost::filesystem::unique_path("/tmp/rr_feat_%%%%-%%%%-%%%%-%%%%.txt").native();
+    boost::filesystem::path tmpdir = boost::filesystem::temp_directory_path();
+    boost::filesystem::path tmpfn = tmpdir / boost::filesystem::unique_path("vise_relja_retrival_%%%%%%%%%%%%%%%%.jpg");
+    std::string tempDescsFn = tmpfn.string();
     
     // convert to jpg if it isn't jpg already
     std::string fileName_jpeg;

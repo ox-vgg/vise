@@ -1476,12 +1476,12 @@ void HorConv3(DARY *image,  DARY *result)
     }
 
      float smooth (int x, int y, DARY* image_in, float scale){       	
-	DARY* image = new DARY(2*size+1,2*size+1);
-	DARY* image_tmp = new DARY(2*size+1,2*size+1);
+	DARY* image = new DARY(2*::size+1,2*::size+1);
+	DARY* image_tmp = new DARY(2*::size+1,2*::size+1);
 
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-		image->fel[i+size][j+size]=image_in->fel[y+i][x+j];
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+		image->fel[i+::size][j+::size]=image_in->fel[y+i][x+j];
 	    }
 	
 
@@ -1491,19 +1491,19 @@ void HorConv3(DARY *image,  DARY *result)
 	horizontal (image,image_tmp,coefs);
         vertical (image_tmp,image,coefs);
        
-	float ret=image->fel[size][size];
+	float ret=image->fel[::size][::size];
 	delete []coefs;delete image_tmp;delete image;
 	
 	return ret;
     }
 
      float dX (int x, int y, DARY* image_in, float scale){		
-	DARY* image = new DARY(2*size+1,2*size+1);
-	DARY* image_tmp = new DARY(2*size+1,2*size+1);
+	DARY* image = new DARY(2*::size+1,2*::size+1);
+	DARY* image_tmp = new DARY(2*::size+1,2*::size+1);
 
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-		image->fel[i+size][j+size]=image_in->fel[y+i][x+j];
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+		image->fel[i+::size][j+::size]=image_in->fel[y+i][x+j];
 	    }
 	
  	float* coefs = new float[17];
@@ -1512,7 +1512,7 @@ void HorConv3(DARY *image,  DARY *result)
 	set_derive_coefficients (scale,coefs);	
         vertical (image_tmp,image,coefs);
 	
-	float ret=image->fel[size][size];
+	float ret=image->fel[::size][::size];
 	delete []coefs;delete image_tmp;delete image;
 	
 	return ret;
@@ -1593,12 +1593,12 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 
 
      float dY (int x, int y, DARY* image_in, float scale){
-	DARY* image = new DARY(2*size+1,2*size+1);
-	DARY* image_tmp = new DARY(2*size+1,2*size+1);
+	DARY* image = new DARY(2*::size+1,2*::size+1);
+	DARY* image_tmp = new DARY(2*::size+1,2*::size+1);
 
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-		image->fel[i+size][j+size]=image_in->fel[y+i][x+j];
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+		image->fel[i+::size][j+::size]=image_in->fel[y+i][x+j];
 	    }
 	
 	float* coefs = new float[17];
@@ -1607,19 +1607,19 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	set_derive_coefficients (scale,coefs);	
         horizontal (image_tmp,image,coefs);
 
-	float ret=image->fel[size][size];
+	float ret=image->fel[::size][::size];
 	delete []coefs;delete image_tmp;delete image;
 	
 	return ret;
     }
 
      float dXY (int x, int y, DARY* image_in, float scale){
-	DARY* image = new DARY(2*size+1,2*size+1);
-	DARY* image_tmp = new DARY(2*size+1,2*size+1);
+	DARY* image = new DARY(2*::size+1,2*::size+1);
+	DARY* image_tmp = new DARY(2*::size+1,2*::size+1);
 
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-		image->fel[i+size][j+size]=image_in->fel[y+i][x+j];
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+		image->fel[i+::size][j+::size]=image_in->fel[y+i][x+j];
 	    }
 	
 	float* coefs = new float[17];
@@ -1627,7 +1627,7 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	vertical (image,image_tmp,coefs);
         horizontal (image_tmp,image,coefs);
 
-	float ret=image->fel[size][size];
+	float ret=image->fel[::size][::size];
 	delete []coefs;delete image_tmp;delete image;
 	
 	return ret;
@@ -1635,12 +1635,12 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 
     }
       float dXX (int x, int y, DARY* image_in, float scale){
-	DARY* image = new DARY(2*size+1,2*size+1);
-	DARY* image_tmp = new DARY(2*size+1,2*size+1);
+	DARY* image = new DARY(2*::size+1,2*::size+1);
+	DARY* image_tmp = new DARY(2*::size+1,2*::size+1);
 
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-		image->fel[i+size][j+size]=image_in->fel[y+i][x+j];
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+		image->fel[i+::size][j+::size]=image_in->fel[y+i][x+j];
 	    }
 	
 	float* coefs = new float[17];
@@ -1649,19 +1649,19 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	set_second_derive_coefficients (scale,coefs);	
 	vertical (image_tmp,image,coefs);
 
-	float ret=image->fel[size][size];
+	float ret=image->fel[::size][::size];
 	delete []coefs;delete image_tmp;delete image;
 	
 	return ret;
     }
 
     float dYY (int x, int y, DARY* image_in, float scale){
-	DARY* image = new DARY(2*size+1,2*size+1);
-	DARY* image_tmp = new DARY(2*size+1,2*size+1);
+	DARY* image = new DARY(2*::size+1,2*::size+1);
+	DARY* image_tmp = new DARY(2*::size+1,2*::size+1);
 
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-		image->fel[i+size][j+size]=image_in->fel[y+i][x+j];
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+		image->fel[i+::size][j+::size]=image_in->fel[y+i][x+j];
 	    }
 	
 	float* coefs = new float[17];
@@ -1670,7 +1670,7 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	set_second_derive_coefficients (scale,coefs);	
 	horizontal (image_tmp,image,coefs);
 
-	float ret=image->fel[size][size];
+	float ret=image->fel[::size][::size];
 	delete []coefs;delete image_tmp;delete image;
 	
 	return ret;
@@ -1694,9 +1694,9 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
       void write(float** gauss, const char *filename){
 	  ofstream out(filename);
 	  if(!out){cout << "not OK\n";return;}
-	  for (int i=-size;i<=size;i++){
-	      for (int j=-size;j<=size;j++){
-		  out << gauss[i+size][j+size]<< " ";
+	  for (int i=-::size;i<=::size;i++){
+	      for (int j=-::size;j<=::size;j++){
+		  out << gauss[i+::size][j+::size]<< " ";
 	      }
 	      out << endl;
 	  }
@@ -1707,11 +1707,11 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 
 	if(scale==g_scale)return;
 	g_scale=scale;
-	size=(int)rint(GAUSS_CUTOFF*g_scale);
+	::size=(int)rint(GAUSS_CUTOFF*g_scale);
 	if(table_exp!=NULL){delete [] table_exp[0];delete [] table_exp;}
-	table_exp = new float*[(2*size+1)];
-	table_exp[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp[i]=table_exp[0]+i*(2*size+1);  
+	table_exp = new float*[(2*::size+1)];
+	table_exp[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp[i]=table_exp[0]+i*(2*::size+1);  
 	float square_scale = g_scale * g_scale;
 	float h_square_scale = (-2)*square_scale;
 	total = 0;
@@ -1722,29 +1722,29 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	for (int i=0;i<=size_loc;i++){
 	    g_loc[i]=exp(((i*i)/(h_square_scale)));	
 	}
-	for (int i=1;i<=(size_loc-size);i++){
-	    g_loc[size-i]+=g_loc[size+i];
+	for (int i=1;i<=(size_loc-::size);i++){
+	    g_loc[::size-i]+=g_loc[::size+i];
 	}
-	for (int i=0;i<=size;i++)
-	    for (int j=0;j<=size;j++){
-		table_exp[i+size][-j+size] = table_exp[-i+size][j+size] = 
-		    table_exp[i+size][j+size] = table_exp[-i+size][-j+size] =
+	for (int i=0;i<=::size;i++)
+	    for (int j=0;j<=::size;j++){
+		table_exp[i+::size][-j+::size] = table_exp[-i+::size][j+::size] = 
+		    table_exp[i+::size][j+::size] = table_exp[-i+::size][-j+::size] =
 		  g_loc[i]*g_loc[j];
 	    } 
-	/*	for (int i=0;i<=size;i++)
-		for (int j=0;j<=size;j++){
-		table_exp[i+size][-j+size] = table_exp[-i+size][j+size] = 
-		table_exp[i+size][j+size] = table_exp[-i+size][-j+size] = 
+	/*	for (int i=0;i<=::size;i++)
+		for (int j=0;j<=::size;j++){
+		table_exp[i+::size][-j+::size] = table_exp[-i+::size][j+::size] = 
+		table_exp[i+::size][j+::size] = table_exp[-i+::size][-j+::size] = 
 		exp(((i*i+j*j)/(h_square_scale)));   
 	  }
 	*/
-	/*for (int i=-size;i<=size;i++)
-	  for (int j=-size;j<=size;j++){
-	  table_exp[i+size][j+size] =
+	/*for (int i=-::size;i<=::size;i++)
+	  for (int j=-::size;j<=::size;j++){
+	  table_exp[i+::size][j+::size] =
 	  exp(((i*i+j*j)/(h_square_scale)));   		
 	  }*/
-	for (int i=-size;i<=size;i++)
-	  for (int j=-size;j<=size;j++)total+=table_exp[i+size][j+size];
+	for (int i=-::size;i<=::size;i++)
+	  for (int j=-::size;j<=::size;j++)total+=table_exp[i+::size][j+::size];
 	delete []g_loc;
 	//write(table_exp,"gauss_test.mat");
       	//cout <<"total "<< total<< endl;//getchar();
@@ -1757,28 +1757,28 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	x_scale=scale;
 	if(table_exp_x!=NULL){delete [] table_exp_x[0];delete [] table_exp_x;}
 
-	table_exp_x = new float*[(2*size+1)];
-	table_exp_x[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp_x[i]=table_exp_x[0]+i*(2*size+1);  
+	table_exp_x = new float*[(2*::size+1)];
+	table_exp_x[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp_x[i]=table_exp_x[0]+i*(2*::size+1);  
 	
 	float square_scale = x_scale * x_scale;
 
-	/*	for (int i=-size;i<=size;i++)
-		for (int j=-size;j<=size;j++)
- 		table_exp_x[j+size][i+size] = 
-		(-i/(square_scale))*table_exp[j+size][i+size];*/
-	for (int i=0;i<=size;i++)
-	  for (int j=0;j<=size;j++){
-	    table_exp_x[-j+size][i+size] = 
-	    table_exp_x[j+size][i+size] = 
-	      (-i/(square_scale))*table_exp[j+size][i+size];
-	    table_exp_x[-j+size][-i+size] = 
-	    table_exp_x[j+size][-i+size] = 
-	      -1*table_exp_x[j+size][i+size]; 
+	/*	for (int i=-::size;i<=::size;i++)
+		for (int j=-::size;j<=::size;j++)
+ 		table_exp_x[j+::size][i+::size] = 
+		(-i/(square_scale))*table_exp[j+::size][i+::size];*/
+	for (int i=0;i<=::size;i++)
+	  for (int j=0;j<=::size;j++){
+	    table_exp_x[-j+::size][i+::size] = 
+	    table_exp_x[j+::size][i+::size] = 
+	      (-i/(square_scale))*table_exp[j+::size][i+::size];
+	    table_exp_x[-j+::size][-i+::size] = 
+	    table_exp_x[j+::size][-i+::size] = 
+	      -1*table_exp_x[j+::size][i+::size]; 
 	  }
 	sum_x=0;
-	for (int i=0;i<=size;i++)
-		sum_x+=table_exp_x[size][i];
+	for (int i=0;i<=::size;i++)
+		sum_x+=table_exp_x[::size][i];
 	//write(table_exp_x,"gaussX_test.mat");
     }
 
@@ -1788,27 +1788,27 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	xx_scale=scale;
 	if(table_exp_xx!=NULL){delete [] table_exp_xx[0];delete [] table_exp_xx;}
 
-	table_exp_xx = new float*[(2*size+1)];
-	table_exp_xx[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp_xx[i]=table_exp_xx[0]+i*(2*size+1); 
+	table_exp_xx = new float*[(2*::size+1)];
+	table_exp_xx[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp_xx[i]=table_exp_xx[0]+i*(2*::size+1); 
 	
 	float square_scale = xx_scale * xx_scale;
 	float mo_square_scale=((-1/(square_scale)));
 	float square_square_scale=square_scale*square_scale;
 	
-	/*	for (int i=-size;i<=size;i++)
-		for (int j=-size;j<=size;j++)table_exp_xx[j+size][i+size] =  
+	/*	for (int i=-::size;i<=::size;i++)
+		for (int j=-::size;j<=::size;j++)table_exp_xx[j+::size][i+::size] =  
 		(mo_square_scale+(i*i/(square_square_scale)))* 
-		table_exp[j+size][i+size];
+		table_exp[j+::size][i+::size];
 	*/
-	for (int i=0;i<=size;i++)
-	  for (int j=0;j<=size;j++){
-	    table_exp_xx[-j+size][i+size] =  
-	    table_exp_xx[-j+size][-i+size] =  
-	    table_exp_xx[j+size][-i+size] =  
-	    table_exp_xx[j+size][i+size] =  
+	for (int i=0;i<=::size;i++)
+	  for (int j=0;j<=::size;j++){
+	    table_exp_xx[-j+::size][i+::size] =  
+	    table_exp_xx[-j+::size][-i+::size] =  
+	    table_exp_xx[j+::size][-i+::size] =  
+	    table_exp_xx[j+::size][i+::size] =  
 	      (mo_square_scale+(i*i/(square_square_scale)))* 
-	      table_exp[j+size][i+size];
+	      table_exp[j+::size][i+::size];
 	  }
 	//       	write(table_exp_xx,"gaussXX_test.mat");
       }
@@ -1820,25 +1820,25 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	
 	if(table_exp_xy!=NULL){delete [] table_exp_xy[0];delete [] table_exp_xy;}
 
-	table_exp_xy = new float*[(2*size+1)];
-	table_exp_xy[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp_xy[i]=table_exp_xy[0]+i*(2*size+1); 
+	table_exp_xy = new float*[(2*::size+1)];
+	table_exp_xy[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp_xy[i]=table_exp_xy[0]+i*(2*::size+1); 
 
 	float square_scale = xy_scale * xy_scale;
 	float square_square_scale=square_scale*square_scale;
 
-	/*	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++)table_exp_xy[j+size][i+size] =  
-					     (i*j/(square_square_scale))*table_exp[j+size][i+size];
+	/*	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++)table_exp_xy[j+::size][i+::size] =  
+					     (i*j/(square_square_scale))*table_exp[j+::size][i+::size];
 	*/
-	for (int i=0;i<=size;i++)
-	    for (int j=0;j<=size;j++){
-	      table_exp_xy[-j+size][-i+size] =  
-	      table_exp_xy[j+size][i+size] =  
-		(i*j/(square_square_scale))*table_exp[j+size][i+size];
-	      table_exp_xy[j+size][-i+size] =  
-	      table_exp_xy[-j+size][i+size] =  
-		-1*table_exp_xy[j+size][i+size]; 
+	for (int i=0;i<=::size;i++)
+	    for (int j=0;j<=::size;j++){
+	      table_exp_xy[-j+::size][-i+::size] =  
+	      table_exp_xy[j+::size][i+::size] =  
+		(i*j/(square_square_scale))*table_exp[j+::size][i+::size];
+	      table_exp_xy[j+::size][-i+::size] =  
+	      table_exp_xy[-j+::size][i+::size] =  
+		-1*table_exp_xy[j+::size][i+::size]; 
 	    }
 	//	write(table_exp_xy,"gaussXY_test.mat");
     }
@@ -1848,13 +1848,13 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	if(scale==lap_scale)return;
 	lap_scale=scale;
 	if(table_exp_lap!=NULL){delete [] table_exp_lap[0];delete [] table_exp_lap;}
-	table_exp_lap = new float*[(2*size+1)];
-	table_exp_lap[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp_lap[i]=table_exp_lap[0]+i*(2*size+1); 
+	table_exp_lap = new float*[(2*::size+1)];
+	table_exp_lap[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp_lap[i]=table_exp_lap[0]+i*(2*::size+1); 
 
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++)table_exp_lap[j+size][i+size] =  
-					     (table_exp_xx[i+size][j+size]+table_exp_xx[j+size][i+size]);
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++)table_exp_lap[j+::size][i+::size] =  
+					     (table_exp_xx[i+::size][j+::size]+table_exp_xx[j+::size][i+::size]);
 
 	//	write(table_exp_lap,"gaussLAP_test.mat");
     }
@@ -1865,27 +1865,27 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	xxx_scale=scale;
 
 	if(table_exp_xxx!=NULL){delete [] table_exp_xxx[0];delete [] table_exp_xxx;}
-	table_exp_xxx = new float*[(2*size+1)];
-	table_exp_xxx[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp_xxx[i]=table_exp_xxx[0]+i*(2*size+1); 
+	table_exp_xxx = new float*[(2*::size+1)];
+	table_exp_xxx[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp_xxx[i]=table_exp_xxx[0]+i*(2*::size+1); 
 	
 	float square_scale = xxx_scale * xxx_scale;
 	float square_square_scale=square_scale*square_scale;
 	
-	/*	for (int i=-size;i<=size;i++)
-		for (int j=-size;j<=size;j++)table_exp_xxx[j+size][i+size] =  
+	/*	for (int i=-::size;i<=::size;i++)
+		for (int j=-::size;j<=::size;j++)table_exp_xxx[j+::size][i+::size] =  
 		(i/square_square_scale)*(3-((i*i)/(square_scale)))*
-		table_exp[j+size][i+size];
+		table_exp[j+::size][i+::size];
 	*/
-	for (int i=0;i<=size;i++)
-	  for (int j=0;j<=size;j++){
-	    table_exp_xxx[-j+size][i+size] =  
-	    table_exp_xxx[j+size][i+size] =  
+	for (int i=0;i<=::size;i++)
+	  for (int j=0;j<=::size;j++){
+	    table_exp_xxx[-j+::size][i+::size] =  
+	    table_exp_xxx[j+::size][i+::size] =  
 	      (i/square_square_scale)*(3-((i*i)/(square_scale)))*
-	      table_exp[j+size][i+size];
-	    table_exp_xxx[j+size][-i+size] =  
-	    table_exp_xxx[-j+size][-i+size] =  
-	      -1*table_exp_xxx[j+size][i+size]; 
+	      table_exp[j+::size][i+::size];
+	    table_exp_xxx[j+::size][-i+::size] =  
+	    table_exp_xxx[-j+::size][-i+::size] =  
+	      -1*table_exp_xxx[j+::size][i+::size]; 
 	    
 	  }
 	//	write(table_exp_xxx,"gaussXXX_test.mat");
@@ -1896,27 +1896,27 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	xxy_scale=scale;
 
 	if(table_exp_xxy!=NULL){delete [] table_exp_xxy[0];delete [] table_exp_xxy;}
-	table_exp_xxy = new float*[(2*size+1)];
-	table_exp_xxy[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp_xxy[i]=table_exp_xxy[0]+i*(2*size+1); 
+	table_exp_xxy = new float*[(2*::size+1)];
+	table_exp_xxy[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp_xxy[i]=table_exp_xxy[0]+i*(2*::size+1); 
 	
 	float square_scale = xxy_scale * xxy_scale;
 	float square_square_scale=square_scale*square_scale;
 	
-	/*	for (int i=-size;i<=size;i++)
-		for (int j=-size;j<=size;j++)table_exp_xxy[j+size][i+size] = 
+	/*	for (int i=-::size;i<=::size;i++)
+		for (int j=-::size;j<=::size;j++)table_exp_xxy[j+::size][i+::size] = 
 		(j/square_square_scale)*(1-((i*i)/(square_scale)))*
-		table_exp[j+size][i+size];
+		table_exp[j+::size][i+::size];
 	*/
-	for (int i=0;i<=size;i++)
-	  for (int j=0;j<=size;j++){
-	    table_exp_xxy[j+size][-i+size] = 
-	    table_exp_xxy[j+size][i+size] = 
+	for (int i=0;i<=::size;i++)
+	  for (int j=0;j<=::size;j++){
+	    table_exp_xxy[j+::size][-i+::size] = 
+	    table_exp_xxy[j+::size][i+::size] = 
 	      (j/square_square_scale)*(1-((i*i)/(square_scale)))*
-	      table_exp[j+size][i+size];
-	    table_exp_xxy[-j+size][-i+size] = 
-	    table_exp_xxy[-j+size][i+size] = 
-	      -1*table_exp_xxy[j+size][i+size];
+	      table_exp[j+::size][i+::size];
+	    table_exp_xxy[-j+::size][-i+::size] = 
+	    table_exp_xxy[-j+::size][i+::size] = 
+	      -1*table_exp_xxy[j+::size][i+::size];
 	  }
 	//	write(table_exp_xxy,"gaussXXY_test.mat");
       }
@@ -1927,18 +1927,18 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	xxxx_scale=scale;
 
 	if(table_exp_xxxx!=NULL){delete [] table_exp_xxxx[0];delete [] table_exp_xxxx;}
-	table_exp_xxxx = new float*[(2*size+1)];
-	table_exp_xxxx[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp_xxxx[i]=table_exp_xxxx[0]+i*(2*size+1); 
+	table_exp_xxxx = new float*[(2*::size+1)];
+	table_exp_xxxx[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp_xxxx[i]=table_exp_xxxx[0]+i*(2*::size+1); 
 	
 	float square_scale = xxxx_scale * xxxx_scale;
 	float o_square_square_scale=(1/(square_scale*square_scale));
 	
-	for (int i=-size;i<=size;i++)
-	  for (int j=-size;j<=size;j++)table_exp_xxxx[j+size][i+size] = 
+	for (int i=-::size;i<=::size;i++)
+	  for (int j=-::size;j<=::size;j++)table_exp_xxxx[j+::size][i+::size] = 
 					 (o_square_square_scale*(3-(((i*i)/square_scale)*
 								    (6-((i*i)/square_scale)))))*
-					 table_exp[j+size][i+size];
+					 table_exp[j+::size][i+::size];
 	//		write(table_exp_xxxx,"gaussXXXX_test.mat");
       }
     
@@ -1948,17 +1948,17 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	xxxy_scale=scale;
 
 	if(table_exp_xxxy!=NULL){delete [] table_exp_xxxy[0];delete [] table_exp_xxxy;}
-	table_exp_xxxy = new float*[(2*size+1)];
-	table_exp_xxxy[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp_xxxy[i]=table_exp_xxxy[0]+i*(2*size+1); 
+	table_exp_xxxy = new float*[(2*::size+1)];
+	table_exp_xxxy[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp_xxxy[i]=table_exp_xxxy[0]+i*(2*::size+1); 
 	
 	float square_scale = xxxy_scale * xxxy_scale;
 	float square_square_square_scale=square_scale*square_scale*square_scale;
 	
-	for (int i=-size;i<=size;i++)
-	  for (int j=-size;j<=size;j++)table_exp_xxxy[j+size][i+size] = 
+	for (int i=-::size;i<=::size;i++)
+	  for (int j=-::size;j<=::size;j++)table_exp_xxxy[j+::size][i+::size] = 
                                      ((j*i)/square_square_square_scale)*(((i*i)/square_scale)-3)*
-                                     table_exp[j+size][i+size];
+                                     table_exp[j+::size][i+::size];
 	//		write(table_exp_xxxy,"gaussXXXY_test.mat");
       }
     void initGaussXXYY(float scale){
@@ -1967,9 +1967,9 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	xxyy_scale=scale;
 
 	if(table_exp_xxyy!=NULL){delete [] table_exp_xxyy[0];delete [] table_exp_xxyy;}
-	table_exp_xxyy = new float*[(2*size+1)];
-	table_exp_xxyy[0]=new float[(2*size+1)*(2*size+1)];
-	for(int i=1;i<(2*size+1);i++)table_exp_xxyy[i]=table_exp_xxyy[0]+i*(2*size+1); 
+	table_exp_xxyy = new float*[(2*::size+1)];
+	table_exp_xxyy[0]=new float[(2*::size+1)*(2*::size+1)];
+	for(int i=1;i<(2*::size+1);i++)table_exp_xxyy[i]=table_exp_xxyy[0]+i*(2*::size+1); 
 	
 	float square_scale = xxyy_scale * xxyy_scale;
 	float square_square_scale=square_scale*square_scale;
@@ -1977,12 +1977,12 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	float square_square_square_scale=square_scale*square_square_scale;
 	float square_square_square_square_scale=square_square_scale*square_square_scale;
 	
-	for (int i=-size;i<=size;i++)
-	  for (int j=-size;j<=size;j++)table_exp_xxyy[j+size][i+size] = 
+	for (int i=-::size;i<=::size;i++)
+	  for (int j=-::size;j<=::size;j++)table_exp_xxyy[j+::size][i+::size] = 
 					 (o_square_square_scale-((j*j)/square_square_square_scale)-
 					  ((i*i)/square_square_square_scale)+
 					  ((i*i*j*j)/square_square_square_square_scale))*
-					 table_exp[j+size][i+size];
+					 table_exp[j+::size][i+::size];
 	//	 write(table_exp_xxyy,"gaussXXYY_test.mat");
 	//	cout <<"done "<< endl;getchar();
     }
@@ -1990,11 +1990,11 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
     float convolution(int x, int y, DARY* image_in, float** gauss){
 	/* convolution with the mask in x,y */
 	float value = 0;
-	//cout << x << " " << y << " " << size << "  " << image_in->x()<< endl;
-	if(x<size || y<size || x+size>=(int)image_in->x() || y+size>=(int)image_in->y())return(value);
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-	      value += image_in->fel[y+j][x+i]*gauss[j+size][i+size];
+	//cout << x << " " << y << " " << ::size << "  " << image_in->x()<< endl;
+	if(x<::size || y<::size || x+::size>=(int)image_in->x() || y+::size>=(int)image_in->y())return(value);
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+	      value += image_in->fel[y+j][x+i]*gauss[j+::size][i+::size];
 	    }
 	return(value);	
     }
@@ -2003,10 +2003,10 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 
 	/* convolution with the mask in x,y */
 	float value = 0;	
-	if(x<size || y<size || x+size>=(int)image_in->x() || y+size>=(int)image_in->y())return(value);
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-		value += image_in->fel[y+j][x+i] * gauss[i+size][j+size];
+	if(x<::size || y<::size || x+::size>=(int)image_in->x() || y+::size>=(int)image_in->y())return(value);
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+		value += image_in->fel[y+j][x+i] * gauss[i+::size][j+::size];
 	    }
 	return(value);
 	
@@ -2019,7 +2019,7 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
     }
      float dXX_YYf(int x, int y, DARY* image_in, float scale){       
 	initGaussLap(scale);
-	//cout << scale << " " << size<< endl;
+	//cout << scale << " " << ::size<< endl;
 	return (convolution( x, y,image_in, table_exp_lap)/total);
     }
      float dXf(int x, int y, DARY* image_in, float scale){
@@ -2091,12 +2091,12 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
         initGaussLap(scale);
 	float **gauss1=table_exp_lap;
 	float max=0,min=1000;
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-		if(max<gauss1[i+size][j+size])
-		    max=gauss1[i+size][j+size];
-		if(min>gauss1[i+size][j+size])
-		    min=gauss1[i+size][j+size];
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+		if(max<gauss1[i+::size][j+::size])
+		    max=gauss1[i+::size][j+::size];
+		if(min>gauss1[i+::size][j+::size])
+		    min=gauss1[i+::size][j+::size];
 		//cout <<image_in->fel[y+i][x+j] << endl;
 	    }  
 	float sc=0;    
@@ -2104,11 +2104,11 @@ float smooth(int x, int y, DARY* image_in, float scalex, float scaley){
 	    sc=127.0/fabs(min);
 	else 
 	    sc=127.0/max;
-	if(x<size || y<size || x+size>=(int)image_in->x() || y+size>=(int)image_in->y())return;  
+	if(x<::size || y<::size || x+::size>=(int)image_in->x() || y+::size>=(int)image_in->y())return;  
 
-	for (int i=-size;i<=size;i++)
-	    for (int j=-size;j<=size;j++){
-		image_in->fel[y+i][x+j]=128+sc*gauss1[i+size][j+size];
+	for (int i=-::size;i<=::size;i++)
+	    for (int j=-::size;j<=::size;j++){
+		image_in->fel[y+i][x+j]=128+sc*gauss1[i+::size][j+::size];
 		//cout <<image_in->fel[y+i][x+j] << endl;
 	    }      
     }

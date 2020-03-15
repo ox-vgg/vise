@@ -17,13 +17,11 @@ No usage or redistribution is allowed without explicit permission.
 #include <algorithm>
 #include <stdexcept>
 #include <stdio.h>
+#ifndef _WIN32
 #include <unistd.h>
-
-
+#endif
 
 uint32_t const protoDbFile::endMark= 0x0FD0FD02;
-
-
 
 protoDbFile::protoDbFile( std::string fileName ){
     
@@ -35,7 +33,12 @@ protoDbFile::protoDbFile( std::string fileName ){
     uint32_t temp_;
     uint32_t headerSize;
     
-    fseeko64(f, -2*sizeof(uint32_t), SEEK_END);
+#ifdef _WIN32
+    _fseeki64(f, -2 * sizeof(uint32_t), SEEK_END);
+#else
+    fseeko64(f, -2 * sizeof(uint32_t), SEEK_END);
+#endif
+
     temp_= fread( &headerSize, 1, sizeof(uint32_t), f);
     
     uint32_t endMark;
@@ -43,7 +46,12 @@ protoDbFile::protoDbFile( std::string fileName ){
     if (protoDbFile::endMark!=endMark)
         throw std::runtime_error("protoDbFile::protoDbFile: File is corrupt");
     
-    fseeko64(f, -static_cast<int64_t>(2*sizeof(uint32_t)+headerSize), SEEK_END);
+#ifdef _WIN32
+    _fseeki64(f, -static_cast<int64_t>(2 * sizeof(uint32_t) + headerSize), SEEK_END);
+#else
+    fseeko64(f, -static_cast<int64_t>(2 * sizeof(uint32_t) + headerSize), SEEK_END);
+#endif
+    
     std::string headerStr(headerSize, '\0');
     temp_= fread( &(headerStr[0]), sizeof(char), headerSize, f );
     REMOVE_UNUSED_WARNING(temp_);
@@ -78,12 +86,22 @@ protoDbFile::getData( uint32_t ID, std::vector<std::string> &data ) const {
     
     while (currOffset < nextOffset) {
         // read data chunk
-        temp_= pread64(f_, &dataSize, sizeof(uint32_t), currOffset);
+#ifdef _WIN32
+        _fseeki64(f, currOffset, SEEK_SET);
+        temp_ = fread(&dataSize, sizeof(uint32_t), 1, f);
+#else
+        temp_ = pread64(f_, &dataSize, sizeof(uint32_t), currOffset);
+#endif
         currOffset+= sizeof(uint32_t);
         
         data.resize(data.size()+1);
         data.back().resize(dataSize, '\0');
-        temp_= pread64(f_, &(data.back()[0]), dataSize*sizeof(char), currOffset);
+#ifdef _WIN32
+        _fseeki64(f, currOffset, SEEK_SET);
+        temp_ = fread(&(data.back()[0]), sizeof(char), dataSize, f);
+#else
+        temp_ = pread64(f_, &(data.back()[0]), dataSize * sizeof(char), currOffset);
+#endif
         currOffset+= dataSize*sizeof(char);
     }
     ASSERT(currOffset==nextOffset);
@@ -121,8 +139,11 @@ protoDbFileBuilder::addData( uint32_t ID, std::string const &data ) {
         throw std::runtime_error("protoDbFileBuilder::addData: IDs need to be added in non-descending order");
     
     // add empty stuff and next offset
-    for (; static_cast<uint32_t>(header_.offset_size())<=ID; header_.add_offset( ftello64(f_) ) );
-    
+#ifdef _WIN32
+    for (; static_cast<uint32_t>(header_.offset_size()) <= ID; header_.add_offset(_ftelli64(f_)));
+#else
+    for (; static_cast<uint32_t>(header_.offset_size()) <= ID; header_.add_offset(ftello64(f_)));
+#endif
     uint32_t dataSize= data.length();
     
     fwrite( &dataSize, sizeof(uint32_t), 1, f_ );
@@ -139,7 +160,11 @@ protoDbFileBuilder::close(){
         return;
     
     // add final offset
-    header_.add_offset( ftello64(f_) );
+#ifdef _WIN32
+    header_.add_offset(_ftelli64(f_));
+#else
+    header_.add_offset(ftello64(f_));
+#endif
     
     // write header and end marker
     std::string headerStr;

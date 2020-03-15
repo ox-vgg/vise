@@ -149,7 +149,7 @@ threadQueue<Result>::start(
         return;
     }
     
-    uint32_t numThreads= numWorkerThreads+1;
+    uint32_t numThreads= numWorkerThreads;
     uint32_t jobID= 0;
     
     boost::mutex jobIDLock, resultsLock;
@@ -175,9 +175,10 @@ threadQueue<Result>::start(
         Result result;
         {
             boost::mutex::scoped_lock lock(resultsLock);
-            while (resultQueue.size()==0)
+            while (resultQueue.size()==0) {
                 resultsReady.wait(lock);
-            
+            }
+
             // get result
             thisJobID= resultQueue.back().first;
             result= resultQueue.back().second;

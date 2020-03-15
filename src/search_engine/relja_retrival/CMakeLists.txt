@@ -2,10 +2,14 @@ ADD_DEFINITIONS(-DRR_REGISTER)
 ADD_DEFINITIONS(-DRR_MAGICK)
 set( cREGISTER 1 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DEIGEN_NO_DEBUG -O2 -g3 -msse2 -mpopcnt")
+if (WIN32)
+	
+else(WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DEIGEN_NO_DEBUG -O2 -g3 -msse2 -mpopcnt")
+endif (WIN32)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-include_directories( api )
+#include_directories( api )
 include_directories( compression )
 include_directories( external )
 include_directories( external/KMCode_relja/exec/detect_points )
@@ -36,7 +40,7 @@ include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/evaluat
 include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/indexing )
 include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/retrieval )
 
-add_subdirectory( api )
+#add_subdirectory( api )
 add_subdirectory( compression )
 add_subdirectory( external )
 add_subdirectory( indexing )
@@ -47,7 +51,7 @@ add_subdirectory( retrieval )
 add_subdirectory( util )
 add_subdirectory( v2 )
 
-add_library(relja_retrival relja_retrival.cc)
+add_library(relja_retrival STATIC relja_retrival.cc)
 target_link_libraries(relja_retrival
   search_engine
   build_index
@@ -69,10 +73,11 @@ target_link_libraries(relja_retrival
   clst_centres
   hamming
   hamming_embedder
-  spatial_api
+#  spatial_api
   spatial_verif_v2
   tfidf_v2
   mq_filter_outliers
+  task_progress
   ${Boost_LIBRARIES}
   ${ImageMagick_LIBRARIES}
 )

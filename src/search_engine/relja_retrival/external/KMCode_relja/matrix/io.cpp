@@ -10,8 +10,8 @@
 /*                                                                          */
 /****************************************************************************/
 
-
-#include <backward/strstream>
+//#include <backward/strstream>
+#include <strstream>
 #include <string.h>
 #include <limits.h>
 #include "matrix.h"

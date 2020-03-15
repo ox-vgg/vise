@@ -16,12 +16,13 @@ No usage or redistribution is allowed without explicit permission.
 #define _UTIL_H_
 
 #include <boost/lexical_cast.hpp>
+#include <boost/filesystem.hpp>
 
 #include <vector>
 #include <algorithm>
 #include <stdio.h>
 #include <iostream>
-#include <unistd.h>
+//#include <unistd.h>
 #include <string>
 #include <math.h>
 #include <cstring>
@@ -123,46 +124,7 @@ namespace util {
             
         }
     
-    
-    
-    inline std::string
-        getTempFileWB( FILE *&f, std::string tmpDir= "", std::string prefix= "", std::string suffix= "", bool closeFile= false ){
-            
-            if (tmpDir.length()==0){
-                tmpDir= P_tmpdir;
-            }
-            
-            if (tmpDir[ tmpDir.length()-1 ]!='/')
-                tmpDir+= '/';
-            tmpDir+= prefix+"XXXXXX"+suffix;
-            const char *tmpNameTemplate= tmpDir.c_str();
-            char *tmpName= new char[ tmpDir.length()+1 ]; // +1 for null terminated
-            strcpy( tmpName, tmpNameTemplate );
-            
-            int fd= mkstemps( tmpName, suffix.length() );
-            std::string tmpName_str= tmpName;
-            delete []tmpName;
-            
-            if (closeFile){
-                f= NULL;
-                close(fd);
-            } else
-                f= fdopen(fd, "wb");
-            return tmpName_str;
-        }
-    
-    
-    
-    inline std::string
-        getTempFileName( std::string tmpDir= "", std::string prefix= "", std::string suffix= "" ){
-            
-            FILE *ftemp;
-            std::string fn= getTempFileWB(ftemp, tmpDir, prefix, suffix, true);
-            return fn;
-            
-        }
-    
-    
+    std::string getTempFileName(std::string tmpDir = "", std::string prefix = "", std::string suffix = "");
     
     inline std::string
         expandUser( std::string path ){
@@ -191,8 +153,13 @@ namespace util {
             
             FILE *f= fopen(fn.c_str(), "rb");
             ASSERT(f!=NULL);
+#ifdef _WIN32
+            _fseeki64(f, 0, SEEK_END);
+            uint64_t byteSize = _ftelli64(f);
+#else
             fseeko64(f, 0, SEEK_END);
-            uint64_t byteSize= ftello64(f);
+            uint64_t byteSize = ftello64(f);
+#endif
             fclose(f);
             
             return byteSize;
@@ -207,9 +174,15 @@ namespace util {
             
             // get file size
             FILE *f= fopen(fn.c_str(), "rb");
+#ifdef _WIN32
+            _fseeki64(f, 0, SEEK_END);
+            uint64_t byteSize = _ftelli64(f);
+            _fseeki64(f, 0, SEEK_SET);
+#else
             fseeko64(f, 0, SEEK_END);
-            uint64_t byteSize= ftello64(f);
+            uint64_t byteSize = ftello64(f);
             fseeko64(f, 0, SEEK_SET);
+#endif
             
             const uint32_t chunkSize= 128*1024*1024; // read 128 MB chunks
             char *buf= new char[chunkSize];

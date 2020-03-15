@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
   const boost::filesystem::path visehome = vise::vise_home();
   boost::filesystem::path vise_settings = visehome / "vise_settings.txt";
   std::map<std::string, std::string> conf;
+  std::cout << "VISE_HOME=" << visehome << std::flush << std::endl;
   if(!boost::filesystem::exists(vise_settings)) {
     // use default configuration for VISE
     boost::filesystem::path vise_store = visehome / "store";
@@ -43,10 +44,17 @@ int main(int argc, char **argv) {
   }
   // load VISE configuration
   vise::configuration_load(vise_settings.string(), conf);
-
   Magick::InitializeMagick(*argv);
 
+  // create temp. dir (if not exists)
+  boost::filesystem::path tmpdir = boost::filesystem::temp_directory_path();
+  tmpdir = tmpdir / "vise";
+  if (!boost::filesystem::exists(tmpdir)) {
+      boost::filesystem::create_directories(tmpdir);
+  }
+
   // start http server to serve contents in a web browser
+  std::cout << "Initializing http_server ..." << std::endl;
   vise::http_server server(conf);
   server.start();
   return 0;

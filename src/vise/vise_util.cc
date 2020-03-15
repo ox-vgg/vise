@@ -278,8 +278,32 @@ void vise::parse_urlencoded_form(const std::string &formdata_str,
   }
 }
 
-std::string vise::json_escape_str(const std::string &in) {
-  return std::regex_replace(in, std::regex("\""), "\\\"");
+std::string vise::json_escape_str(const std::string& in) {
+  // C:\Data\My "Project" Name\image.jpg
+  // C:\\Data\\My \"Project\" Name\\image.jpg
+    std::string result;
+    if (in.find('"') != std::string::npos ||
+        in.find('\\') != std::string::npos
+        ) {
+        result.reserve(2*in.size());
+		for (uint32_t i = 0; i < in.size(); ++i) {
+            switch (in[i]) {
+            case '\"':
+                result.append("\\\"");
+                break;
+            case '\\':
+                result.append("\\\\");
+                break;
+            default:
+                result.push_back(in[i]);
+            }
+		}
+        result.shrink_to_fit();
+    }
+    else {
+        result = in;
+    }
+    return result;
 }
 
 std::string vise::now_timestamp() {
@@ -293,7 +317,11 @@ uint32_t vise::getmillisecs() {
 }
 
 boost::filesystem::path vise::vise_home() {
+#ifdef _WIN32
+  boost::filesystem::path home(std::getenv("USERPROFILE"));
+#else
   boost::filesystem::path home(std::getenv("HOME"));
+#endif
   boost::filesystem::path vise_home_dir = home / "vgg";
   vise_home_dir = vise_home_dir / "vise";
   return vise_home_dir;

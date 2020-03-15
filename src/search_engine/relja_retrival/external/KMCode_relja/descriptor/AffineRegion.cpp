@@ -356,33 +356,44 @@ void displayCircle(DARY *im,int x, int y, float scalex){
 }
 int findAffineRegion(DARY *image, CornerDescriptor * cor);
 
-void findAffineRegion(DARY *image, vector<CornerDescriptor*> &cor){
-    int nb=0;uint size=cor.size();
-  for(int i=0;i<(int)cor.size();i++){    
-    if(//cor[i]->getCornerScale()>2 && 
-       cor[i]->getCornerScale()<25
-       //&& cor[i]->getX()>10 &&cor[i]->getX()<image->x()-10  
-       //&& cor[i]->getY()>10 &&cor[i]->getY()<image->y()-10 
-       )
-      {
-	cout <<nb << " of "<< size << " CORNER aff " << i <<" " << cor[i]->getX();
-	cout  << " " << cor[i]->getY();
-	cout << "  " << cor[i]->getCornerScale() << " type " << cor[i]->getType();
-	cout<<endl;
-	int l=findAffineRegion(image,cor[i]);
-	//computeAngle(image, cor[i]);int l=1;
-	nb++;
-	if(l!=0){
-	  cout <<nb << " of "<< size << " CORNER aff " << i <<" " << cor[i]->getX();
-	  cout  << " " << cor[i]->getY();
-	  cout << "  " << cor[i]->getCornerScale()  << "  " <<  cor[i]->getMi11();
-	  cout<<"   l "<<l<<endl;
-	}else { cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[i]);i--;}
-      } else {cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[i]);i--;}
-    //nb++;	
-  }
-  cout << "nb  circ corners "<< nb << endl;
+void findAffineRegion(DARY* image, vector<CornerDescriptor*>& cor) {
+    int nb = 0; uint size = cor.size();
+    for (int i = 0; i < (int)cor.size(); i++) {
+        if (//cor[i]->getCornerScale()>2 && 
+            cor[i]->getCornerScale() < 25
+            //&& cor[i]->getX()>10 &&cor[i]->getX()<image->x()-10  
+            //&& cor[i]->getY()>10 &&cor[i]->getY()<image->y()-10 
+            )
+        {
+            cout << nb << " of " << size << " CORNER aff " << i << " " << cor[i]->getX();
+            cout << " " << cor[i]->getY();
+            cout << "  " << cor[i]->getCornerScale() << " type " << cor[i]->getType();
+            cout << endl;
+            int l = findAffineRegion(image, cor[i]);
+            //computeAngle(image, cor[i]);int l=1;
+            nb++;
+            if (l != 0) {
+                cout << nb << " of " << size << " CORNER aff " << i << " " << cor[i]->getX();
+                cout << " " << cor[i]->getY();
+                cout << "  " << cor[i]->getCornerScale() << "  " << cor[i]->getMi11();
+                cout << "   l " << l << endl;
+            }
+            else {
+                //cor.erase((std::vector<CornerDescriptor*>::iterator) & cor[i]); 
+                cor.erase(cor.begin() + i);
+                i--; 
+            }
+        }
+        else { 
+            //cor.erase((std::vector<CornerDescriptor*>::iterator) & cor[i]); 
+            cor.erase(cor.begin() + i);
+            i--; 
+        }
+        //nb++;	
+    }
+    cout << "nb  circ corners " << nb << endl;
 }
+
 
 
 
@@ -1104,7 +1115,11 @@ void findScaleRegion(DARY *image, vector<CornerDescriptor*> &cor){
       cout  << " " << cor[i]->getY();
       cout << "  " << cor[i]->getCornerScale();
       cout<<"   l "<<l<<"     "<<flush;
-    }else { cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[i]);i--;}
+    }else { 
+        //cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[i]);
+        cor.erase(cor.begin() + i);
+        i--;
+    }
   }
   
 }
@@ -1754,7 +1769,11 @@ void hitEdge(DARY *img, DARY *edge, vector<CornerDescriptor*> &cor, vector<Segme
 	}
       }
     }
-    if(found){cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[c]);c--;}    
+    if(found){
+        //cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[c]);
+        cor.erase(cor.begin() + c);
+        c--;
+    }    
   }     
   cor.clear();
   for(int i=0;i<corout.size();i+=20){

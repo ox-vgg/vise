@@ -53,9 +53,14 @@ flatDescsFile::getDescs(uint32_t start, uint32_t end, float *&descs) const {
     if (dtypeCode_==0){
         
         uint8_t *descsRaw= new uint8_t[(end-start)*numDims_];
-        temp_= pread64(fd_, descsRaw,
-                       (end-start)*numDims_,
-                       static_cast<uint64_t>(start)*numDims_ + 5 );
+#ifdef _WIN32
+        _fseeki64(f_, static_cast<uint64_t>(start)* numDims_ + 5, SEEK_SET);
+        temp_ = fread(descsRaw, sizeof(uint8_t), (end - start) * numDims_, f_);
+#else
+        temp_ = pread64(fd_, descsRaw,
+            (end - start) * numDims_,
+            static_cast<uint64_t>(start)* numDims_ + 5);
+#endif
         
         uint8_t const *inIter= descsRaw;
         float *outIter= descs;
@@ -66,11 +71,14 @@ flatDescsFile::getDescs(uint32_t start, uint32_t end, float *&descs) const {
         delete []descsRaw;
         
     } else if (dtypeCode_==4) {
-        
-        temp_= pread64(fd_, descs,
-                       (end-start)*numDims_*sizeof(float),
-                       5 + start*numDims_*sizeof(float) );
-        
+#ifdef _WIN32
+        _fseeki64(f_, static_cast<uint64_t>(start) * numDims_ * sizeof(float) + 5, SEEK_SET);
+        temp_ = fread(descs, sizeof(uint8_t), (end - start) * numDims_ * sizeof(float), f_);
+#else
+        temp_ = pread64(fd_, descs,
+            (end - start) * numDims_ * sizeof(float),
+            5 + start * numDims_ * sizeof(float));
+#endif        
     } else ASSERT(0);
     
     if (doHellinger_){

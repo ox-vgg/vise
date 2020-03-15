@@ -418,7 +418,7 @@ float FindOriPeaks(float *hist, int bins)
 float FindOri(DARY * grad, DARY * ori, int row, int col)
 {
     int i, r, c, rows, cols, radius, bin;
-    int OriBins=36;
+    const int OriBins=36;
     float hist[OriBins], distsq, gval, weight, angle;
     float OriSigma=3.0;
     rows = grad->y();

@@ -15,7 +15,9 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set( BUILD_SHARED_LIBS "ON" )
+SET(BUILD_SHARED_LIBS OFF)
+
+#set( BUILD_SHARED_LIBS "ON" )
 set( VISE_SOURCE_ROOT_DIR ${CMAKE_SOURCE_DIR}/../ )
 
 set(CTEST_OUTPUT_ON_FAILURE 1)
@@ -25,15 +27,31 @@ set (VISE_NAME "VISE")
 set (VISE_FULLNAME "VGG Image Search Engine")
 set (VISE_VERSION_MAJOR "2")
 set (VISE_VERSION_MINOR "0")
-set (VISE_VERSION_PATCH "0")
+set (VISE_VERSION_PATCH "0-beta1")
 configure_file (
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h.in"
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
   )
 
+## Define location of dependencies for Windows build
+if (WIN32)
+    message("Compiling for Windows Platform")
+    SET (VLFEAT_LIB "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21\\bin\\win64\\vl.lib")
+    SET (VLFEAT_INCLUDE_DIR "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21")
+    SET (BOOST_ROOT "C:\\Users\\tlm\\dep\\vise\\boost_1_70_0")
+    SET (BOOST_DIR "C:\\Users\\tlm\\dep\\vise\\boost_1_70_0")
+    SET (Eigen3_DIR "C:\\Users\\tlm\\dep\\vise\\eigen-3.3.7\\cmake")
+    SET (Protobuf_SRC_ROOT_FOLDER "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1") 
+    SET (Protobuf_FIND_VERSION "2.6.1")
+    SET (Protobuf_PROTOC_EXECUTABLE "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\protoc.exe")
+    SET (Protobuf_LIBRARIES "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\libprotobuf.lib") 
+    SET (Protobuf_USE_STATIC_LIBS ON)
+    SET (Protobuf_DEBUG OFF)
+endif (WIN32)
+
 ## Boost
 set(Boost_DEBUG 0)
-find_package(Boost 1.70.0 COMPONENTS filesystem system thread unit_test_framework REQUIRED)
+find_package(Boost 1.70.0 COMPONENTS filesystem system thread unit_test_framework serialization REQUIRED)
 link_directories( ${Boost_LIBRARY_DIRS} )
 include_directories( ${Boost_INCLUDE_DIRS} )
 
@@ -54,12 +72,16 @@ endif()
 ## Protocol Buffer
 ## required by "search_engine/relja_retrival"
 include(FindProtobuf)
-find_package( Protobuf REQUIRED )
+find_package(Protobuf 2.6.1 REQUIRED )
 include_directories( ${PROTOBUF_INCLUDE_DIR} )
 
 ## Eigen
 ## requires EIGEN_DIR to be set to the location where Eigen3 is built using cmake
-find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+if (WIN32)
+	find_package(Eigen3 CONFIG REQUIRED)
+else(WIN32)
+    find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+endif (WIN32)
 include_directories( ${EIGEN3_INCLUDE_DIR} )
 
 ## vlfeat

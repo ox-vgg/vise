@@ -262,7 +262,14 @@ tfidfV2::externalQuery_computeData( std::string imageFn, query const &queryObj )
 
   // get visual words
 
-  uint KNN= (SA_obj_==NULL) ? 1 : 3;
+  //uint KNN= (SA_obj_==NULL) ? 1 : 3;
+  unsigned int KNN;
+  if (SA_obj_ == nullptr || SA_obj_ == NULL) {
+      KNN = 1;
+  }
+  else {
+      KNN = 3;
+  }
 
   rr::indexEntry queryRep0;
   google::protobuf::RepeatedField<uint32_t> *wordIDs0= queryRep0.mutable_id();
@@ -291,7 +298,7 @@ tfidfV2::externalQuery_computeData( std::string imageFn, query const &queryObj )
 
     quantDesc ww;
 
-    for (uint iNN=0; iNN < KNN; ++iNN) {
+    for (unsigned int iNN=0; iNN < KNN; ++iNN) {
       ww.rep.push_back( std::make_pair(cluster[iNN].index, cluster[iNN].distance) );
     }
     cluster.clear();

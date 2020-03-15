@@ -30,7 +30,8 @@ vise::relja_retrival::relja_retrival(std::map<std::string, std::string> const &p
   d_index_dset_fn  = data_dir / "index_dset.bin";
   d_index_iidx_fn  = data_dir / "index_iidx.bin";
   d_index_fidx_fn  = data_dir / "index_fidx.bin";
-  d_index_tmp_dir  = data_dir / "_tmp";
+  d_index_tmp_dir  = data_dir / "_tmp/";
+  d_index_tmp_dir.make_preferred(); // convert the trailing path-separator to platform specific character
   d_index_status_fn= data_dir / "index_status.txt";
   d_weight_fn      = data_dir / "weight.bin";
 
@@ -305,7 +306,6 @@ void vise::relja_retrival::create_index() {
 
   boost::filesystem::remove_all(d_index_tmp_dir);
   boost::filesystem::create_directory(d_index_tmp_dir);
-  std::string tmp_dir = d_index_tmp_dir.string() + boost::filesystem::path::preferred_separator;
 
   //d_task_progress_list.at("index").start() is invoked by buildIndex::build();
   buildIndex::build(d_filelist_fn.string(),
@@ -313,7 +313,7 @@ void vise::relja_retrival::create_index() {
                     d_index_dset_fn.string(),
                     d_index_iidx_fn.string(),
                     d_index_fidx_fn.string(),
-                    tmp_dir,
+                    d_index_tmp_dir.string(),
                     feat_getter_obj,
                     d_bowcluster_fn.string(),
                     embed_factory,

@@ -15,6 +15,10 @@ No usage or redistribution is allowed without explicit permission.
 #ifndef _HAMMING_EMBEDDER_H_
 #define _HAMMING_EMBEDDER_H_
 
+#ifdef _WIN32
+#include <intrin.h> // for __popcnt64
+#endif
+
 #include "char_streams.h"
 #include "embedder.h"
 #include "hamming_data.pb.h"
@@ -77,8 +81,17 @@ class hammingEmbedder : public embedder {
             hammingDist(uint64_t val, int *itResult){
                 charStream_->resetIter();
                 uint32_t const n= charStream_->getNum();
-                for (uint32_t i= 0; i<n; ++i, ++itResult)
-                    *itResult= __builtin_popcountll(val ^ charStream_->getNextUnsafe());
+                for (uint32_t i = 0; i < n; ++i, ++itResult) {
+                    // updated for cross-platform compilation
+                    // Abhishek Dutta <adutta@robots.ox.ac.uk>, 13 March 2020
+#ifdef _WIN32
+                    *itResult = __popcnt64(val ^ charStream_->getNextUnsafe());
+#else
+                    *itResult = __builtin_popcountll(val ^ charStream_->getNextUnsafe());
+#endif // _WIN32
+
+                    
+                }
             }
         
         inline charStream *

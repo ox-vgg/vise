@@ -306,7 +306,9 @@ void findAffineRegion_fast(DARY *image, vector<CornerDescriptor*> &cor){
     }else { 
       cout << "  rejected";
       delete cor[i];
-      cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[i]);i--;
+      //cor.erase((std::vector<CornerDescriptor*>::iterator)&cor[i]);
+      cor.erase(cor.begin() + i);
+      i--;
     }
     cout << flush;
   }	

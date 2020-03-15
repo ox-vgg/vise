@@ -11,7 +11,7 @@ University of Oxford
 The library belongs to Relja Arandjelovic and the University of Oxford.
 No usage or redistribution is allowed without explicit permission.
 */
-
+/*
 #if 0
 // for debug (older valgrind doesn't support popcount, etc
 
@@ -32,4 +32,13 @@ int bitcount(T n){
 
 #define bitcount64(x) __builtin_popcountll(x)
 
+#endif
+*/
+// to support cross compilation
+// Abhishek Dutta <adutta@robots.ox.ac.uk>, 13 March 2020
+#ifdef _WIN32
+#include <intrin.h>
+#define bitcount64(x) __popcnt64(x)
+#else
+#define bitcount64(x) __builtin_popcountll(x)
 #endif

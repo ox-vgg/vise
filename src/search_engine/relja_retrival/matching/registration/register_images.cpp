@@ -120,7 +120,9 @@ registerImages::registerFromGuess(
     bool firstGo= true, extractFinished1= false;
     uint32_t loopNum_= 0;
     
-    boost::filesystem::path fullSizeFn2_t= boost::filesystem::unique_path("/tmp/rr_register_%%%%-%%%%-%%%%-%%%%.jpg");
+    boost::filesystem::path tmpdir = boost::filesystem::temp_directory_path();
+    boost::filesystem::path tmpfn = tmpdir / boost::filesystem::unique_path("vise_rr_register_%%%%%%%%%%%%%%%%.jpg");
+    std::string fullSizeFn2_t = tmpfn.string();
     
     matchesType inlierInds;
     
@@ -197,7 +199,6 @@ registerImages::registerFromGuess(
             break;
         
         im2t.write( fullSizeFn2_t.c_str() );
-        
     }
     
     delete []descs1;

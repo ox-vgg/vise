@@ -250,6 +250,9 @@ Vector cross(const Vector& M1, const Vector& M2, ...)
   mat.setCol(M1, 1);
   mat.setCol(M2, 2);
 
+  // disable cross product between more than two vectors, not used in Linux so why would be required in Windows?
+  // Abhishek Dutta, <adutta@robots.ox.ac.uk>, 12 March 2020
+  /*
 #ifndef __GNUC__
   va_list vect;
 
@@ -258,7 +261,7 @@ Vector cross(const Vector& M1, const Vector& M2, ...)
     mat.setCol(va_arg(vect, Matrix), i);
   va_end(vect);
 #endif
-
+*/
   Vector res(mat.nbRows(), 1);
   for(i = 1; i <= mat.nbRows(); i++)
     res(i) = (((i + mat.nbCols() + 1) % 2) * 2 - 1)

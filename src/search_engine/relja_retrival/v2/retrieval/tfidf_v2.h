@@ -16,6 +16,7 @@
 #define _TFIDF_V2_H_
 
 #include <string>
+#include <iostream>
 
 #include "feat_getter.h"
 #include "macros.h"

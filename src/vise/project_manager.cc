@@ -469,7 +469,8 @@ bool project_manager::project_create(std::string pname) {
     boost::filesystem::path project_dir = vise_store / pname;
     boost::filesystem::create_directory(project_dir);
     return true;
-  } catch(std::exception &e) {
+  } catch(std::exception &ex) {
+    std::cout << "project_manager::project_create() : " << ex.what() << std::endl;
     return false;
   }
 }
@@ -490,10 +491,17 @@ bool project_manager::project_load(std::string pname) {
   }
 }
 
-void project_manager::project_delete(std::string pname) {
-  boost::filesystem::path project_dir = d_conf.at("vise_store");
-  project_dir = project_dir / pname;
-  boost::filesystem::remove_all(project_dir);
+bool project_manager::project_delete(std::string pname) {
+  try {
+    boost::filesystem::path project_dir = d_conf.at("vise_store");
+    project_dir = project_dir / pname;
+    boost::filesystem::remove_all(project_dir);
+    return true;
+  }
+  catch (std::exception & ex) {
+    std::cout << "project_manager::project_delete() : " << ex.what() << std::endl;
+    return false;
+  }
 }
 
 void project_manager::project_index_create(std::string pname,
@@ -935,6 +943,7 @@ void project_manager::project_configure(std::string pname,
   json << ",\"IMAGE_SRC_COUNT\":"
        << d_projects.at(pname)->image_src_count()
        << "}";
+  std::cout << "project_configure: " << json.str() << std::endl;
 
   // default response format is HTML
   std::ostringstream html;
@@ -1295,6 +1304,9 @@ void project_manager::project_file_add(std::string pname,
   std::string source_loc;
   vise::url_decode(param.at("source_loc"), source_loc);
   boost::filesystem::path src(source_loc);
+  std::cout << "src src=" << src << std::endl;
+  src.make_preferred();
+  std::cout << "new src=" << src << std::endl;
   if(!boost::filesystem::exists(src) ||
      !boost::filesystem::is_directory(src)) {
     response.set_text_payload("folder does not exist");
@@ -1308,6 +1320,7 @@ void project_manager::project_file_add(std::string pname,
   std::vector<std::string> discarded_fn_list;
   for(boost::filesystem::directory_iterator it(src); it!=end_itr; ++it) {
     if(boost::filesystem::is_regular_file(it->path())) {
+      std::cout << "checking " << it->path() << std::endl;
       if(it->path().extension() == ".jpg" ||
          it->path().extension() == ".JPG" ||
          it->path().extension() == ".jpeg" ||
@@ -1337,7 +1350,7 @@ void project_manager::project_file_add(std::string pname,
   json << "{\"PNAME\":\"" << pname << "\""
        << ",\"COMMAND\":\"_file_add\""
        << ",\"SOURCE_TYPE\":\"" << param.at("source_type") << "\""
-       << ",\"SOURCE_LOC\":\"" << src.string() << "\""
+       << ",\"SOURCE_LOC\":\"" << vise::json_escape_str(src.string()) << "\""
        << ",\"ADDED_FILENAME_LIST\":[";
   if(added_fn_list.size()) {
     json << "\"" << vise::json_escape_str(added_fn_list.at(0)) << "\"";

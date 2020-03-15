@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <math.h>
 
+#define _USE_MATH_DEFINES // for C++
+#include <cmath>
+
 //typedef ofstream outfstream;
 //typedef ifstream inputfstream;
 using namespace std;

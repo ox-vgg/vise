@@ -4,7 +4,9 @@
 #include "../../descriptor/descriptor.h"
 #include "../../ttime/ttime.h"
 
-float scale_mult = 3.0;
+#define QUIET 1 // to supress log messages
+
+extern float scale_mult = 3.0;
 
 namespace KM_compute_descriptors {
 int lib_main(int argc, char **argv){

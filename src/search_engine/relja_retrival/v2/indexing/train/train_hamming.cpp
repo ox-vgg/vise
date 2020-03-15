@@ -184,10 +184,15 @@ trainHammingWorker::operator() ( uint32_t jobID, trainHammingResult &result ) co
         float *descs;
         descFile_.getDescs(iDescStart, iDescEnd, descs);
         // clusters
+#ifdef _WIN32
+        _fseeki64(f_, static_cast<uint64_t>(iDescStart) * sizeof(uint32_t), SEEK_SET);
+        std::size_t read_count = fread(clusterIDs, sizeof(uint32_t), (iDescEnd - iDescStart), f_);
+        ASSERT(read_count > 0);
+#else
         ASSERT( pread64(fd_, clusterIDs,
                        (iDescEnd-iDescStart)*sizeof(uint32_t),
                        static_cast<uint64_t>(iDescStart)*sizeof(uint32_t)) > 0 );
-
+#endif
         uint32_t const count= iDescEnd-iDescStart;
         float *itDesc= descs;
         uint32_t *itClusterID= clusterIDs;
@@ -310,9 +315,15 @@ computeHamming(
             descFile.getDescs(iDescStart, iDescStart+blockSize, thisBlockDescs);
             float const *thisDescIt= thisBlockDescs;
             // clusters
-            ASSERT( pread64(fd, clusterIDs,
-                            blockSize*sizeof(uint32_t),
-                            static_cast<uint64_t>(iDescStart)*sizeof(uint32_t)) > 0 );
+#ifdef _WIN32
+            _fseeki64(f, static_cast<uint64_t>(iDescStart) * sizeof(uint32_t), SEEK_SET);
+            std::size_t read_count = fread(clusterIDs, sizeof(uint32_t), blockSize, f);
+            ASSERT(read_count > 0);
+#else
+            ASSERT(pread64(fd, clusterIDs,
+                blockSize * sizeof(uint32_t),
+                static_cast<uint64_t>(iDescStart) * sizeof(uint32_t)) > 0);
+#endif
             // subtract cluster centres
             uint32_t const *endClstID= clusterIDs + blockSize;
             for (uint32_t const *itClusterID= clusterIDs; itClusterID!=endClstID; ++itClusterID){

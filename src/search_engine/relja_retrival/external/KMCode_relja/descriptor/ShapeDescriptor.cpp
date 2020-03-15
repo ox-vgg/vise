@@ -330,7 +330,8 @@ void computeShapeDescriptors(DARY *image,  vector<CornerDescriptor *> &desc){
     }
     for(unsigned int c=0;c<desc.size();c++){
 	if(!desc[c]->isOK()){
-	    desc.erase((std::vector<CornerDescriptor*>::iterator)&desc[c]);
+	    //desc.erase((std::vector<CornerDescriptor*>::iterator)&desc[c]);
+        desc.erase(desc.begin() + c);
 	    c--;
 	}
     } 

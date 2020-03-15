@@ -24,10 +24,9 @@ read_jpeg_file(const char *file_name, int *width, int *height)
   struct jpeg_error_mgr jerr;
   
   FILE *infile;
-
-  if ((infile = fopen(file_name, "rb"))==NULL)
-    abort__("[read_jpeg_file] Can't open %s for reading", file_name);
-  
+  if ((infile = fopen(file_name, "rb")) == NULL) {
+      abort__("[read_jpeg_file] Can't open %s for reading", file_name);
+  }
   cinfo.err = jpeg_std_error(&jerr);
 
   jpeg_create_decompress(&cinfo);
@@ -241,18 +240,21 @@ void ImageContent::init3Float(uint y_size_in,uint x_size_in)
 /****************************************************************/
 void ImageContent::set(float val)
 {
-  if(buftype==FLOAT){
-    if(val==0.0){
-      bzero(fel[0],tsize*sizeof(float));
-    }else
-      for (uint col = 0; col < tsize; col++){
-	fel[0][col] = val;
-      }    
-  }
-  else if(buftype==UCHAR){
-    unsigned char value = (unsigned char)val;
-    memset(bel[0],(int)value,tsize*sizeof(unsigned char));
-  }
+	if (buftype == FLOAT) {
+		if (val == 0.0) {
+            memset(fel[0], (int)0, tsize * sizeof(float));
+			//bzero(fel[0], tsize * sizeof(float));
+		}
+        else {
+            for (uint col = 0; col < tsize; col++) {
+                fel[0][col] = val;
+            }
+        }
+	}
+	else if (buftype == UCHAR) {
+		unsigned char value = (unsigned char)val;
+		memset(bel[0], (int)value, tsize * sizeof(unsigned char));
+	}
 }
 
 /****************************************************************/

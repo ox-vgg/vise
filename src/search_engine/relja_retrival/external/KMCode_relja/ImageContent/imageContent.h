@@ -2,6 +2,12 @@
 #ifndef _imageContent_h_
 #define _imageContent_h_
 
+#define _USE_MATH_DEFINES // for C++
+#include <cmath>
+#ifdef _WIN32
+#include <memory.h>
+#endif
+
 #include <stdlib.h>
 #include <fstream>
 #include <string.h>
@@ -10,7 +16,6 @@
 #include <iostream>
 #include "png.h"
 using namespace std;
-
 
 #define COL 5
 #define GRAY 1

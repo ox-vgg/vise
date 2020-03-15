@@ -13,6 +13,9 @@ n - size of the vectors
 */
 // distMahalanovbis = (ux-uy)*(1/(Lx+Ly))*(ux-uy) 
 
+#define _USE_MATH_DEFINES // for C++
+#include <cmath>
+
 #include "../matrix/matrix.h"
 #include <math.h>
 

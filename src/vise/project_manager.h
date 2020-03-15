@@ -104,7 +104,7 @@ namespace vise {
     bool project_create(std::string pname);
     bool project_load(std::string pname);
     bool project_is_loaded(std::string pname) const;
-    void project_delete(std::string pname);
+    bool project_delete(std::string pname);
     void project_index_create(std::string pname,
                        http_response &response);
     void project_index_load(std::string pname,

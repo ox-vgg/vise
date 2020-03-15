@@ -155,7 +155,7 @@ retrieverV2::externalQuery_computeData( std::string imageFn, query const &queryO
 
   // get visual words
 
-  static const uint KNN= 3;
+  static const unsigned int KNN= 3;
 
   // prepare memory
   rr::indexEntry queryRep0;

@@ -2,6 +2,9 @@
 #ifndef _homography_
 #define _homography_
 
+#define _USE_MATH_DEFINES // for C++
+#include <cmath>
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +14,6 @@
 #include "../gauss_iir/gauss_iir.h"
 #include "../stats/stats.h"
 #include "../descriptor/descriptor.h"
-
 
 
 void displayEllipse(DARY *im, Matrix *M, int x, int y, int xc, int yc, float color);

@@ -15,7 +15,11 @@ No usage or redistribution is allowed without explicit permission.
 #include "slow_construction.h"
 
 #include <iostream>
+#ifdef _WIN32
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 
 #include <boost/lambda/bind.hpp>
 

@@ -21,6 +21,7 @@ No usage or redistribution is allowed without explicit permission.
 
 #include "embedder.h"
 #include "feat_getter.h"
+#include "util.h"
 #include "vise/task_progress.h"
 
 namespace buildIndex {

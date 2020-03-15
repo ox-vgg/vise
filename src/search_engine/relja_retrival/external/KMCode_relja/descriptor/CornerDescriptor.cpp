@@ -3,7 +3,6 @@
 
 extern float scale_mult;
 
-
 /**********************************************/
 void CornerDescriptor::copy(CornerDescriptor* ds){
   x=ds->getX(); 
@@ -361,7 +360,8 @@ void loadFredCorners( const char* points1, vector<CornerDescriptor*> &cor1){
       cor->readFred(input1,size);
       cor1.push_back(cor);      
     }while(!input1.eof());
-    cor1.erase((std::vector<CornerDescriptor*>::iterator) &cor1[(int)cor1.size()-1]);
+    //cor1.erase((std::vector<CornerDescriptor*>::iterator) &cor1[(int)cor1.size()-1]);
+    cor1.erase(cor1.begin() + (cor1.size() - 1));
     if(cor_nb1!=(int)cor1.size()){
       cout << "warning:"<< endl<<"in header: "<<cor_nb1 << ", in file: "<< cor1.size()<< endl; 
     }
@@ -395,7 +395,8 @@ void loadCorners( const char* points1, vector<CornerDescriptor*> &cor1, int form
       cor1.push_back(cor); //cout << "read " <<cor1.size()<<endl;     
     }
     delete cor1[(int)cor1.size()-1];
-    cor1.erase((std::vector<CornerDescriptor*>::iterator) &cor1[(int)cor1.size()-1]);
+    //cor1.erase((std::vector<CornerDescriptor*>::iterator) &cor1[(int)cor1.size()-1]);
+    cor1.erase(cor1.begin() + (cor1.size() - 1));
     if(cor_nb1!=(int)cor1.size()){
       cout << "warning:"<< endl<<"in header: "<<cor_nb1 << ", in file: "<< cor1.size()<< endl; 
     }

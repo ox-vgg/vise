@@ -54,7 +54,6 @@ namespace buildIndex {
                        std::string("trainDescsManager") + (trainNumDescs<0 ? "(images)" : "(descs)") ) ,
         d_progress(progress)
     {
-
       f_= fopen(trainDescsFn.c_str(), "wb");
       ASSERT(f_!=NULL);
       fwrite( &numDims, sizeof(numDims), 1, f_ );
@@ -175,19 +174,6 @@ namespace buildIndex {
     // get filename
     std::string imageFn= databasePath_ + imageFns_->at(docID);
 
-    // make sure the image exists and is readable
-    std::pair<uint32_t, uint32_t> wh= std::make_pair(0,0);
-    if (boost::filesystem::exists(imageFn) && boost::filesystem::is_regular_file(imageFn)){
-      wh= imageUtil::getWidthHeight(imageFn);
-    } else {
-      std::cerr<<"buildWorkerSemiSorted::operator(): "<<imageFn<<" doesn't exist\n";
-      return;
-    }
-    if (wh.first==0 && wh.second==0){
-      std::cerr<<"buildWorkerSemiSorted::operator(): "<<imageFn<<" is corrupt or 0x0\n";
-      return;
-    }
-
     uint32_t numFeats;
     std::vector<ellipse> regions;
     float *descs;
@@ -199,7 +185,6 @@ namespace buildIndex {
       delete []descs;
       return;
     }
-
     result.second= featGetter_->getRawDescs(descs, numFeats);
     delete []descs;
 
@@ -219,7 +204,8 @@ namespace buildIndex {
     MPI_GLOBAL_RANK;
 
     bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads= omp_get_max_threads();
+    //uint32_t numWorkerThreads= omp_get_max_threads();
+    uint32_t numWorkerThreads = 2;
 
     // read the list of training images and shuffle it
 
@@ -232,12 +218,11 @@ namespace buildIndex {
 
       imageFns.reserve(100000);
       std::string imageFn;
-      while( std::getline(fImagelist, imageFn) )
+      while (std::getline(fImagelist, imageFn)) {
         imageFns.push_back(imageFn);
-
+      }
       sameRandomUint32 sr(100000, 43);
       sr.shuffle<std::string>(imageFns.begin(), imageFns.end());
-
     }
 
 #ifdef RR_MPI

@@ -51,7 +51,9 @@ class SA_exp : public softAssigner {
         void
             getWeights( quantDesc &ww, float *feat= NULL ) const {
                 
-                uint iNN, KNN= ww.rep.size();
+                //uint iNN, KNN= ww.rep.size();
+                unsigned int iNN;
+                unsigned int KNN = ww.rep.size();
                 float total= 0, curr, distSq;
                 for (iNN= 0; iNN<KNN; ++iNN){
                     distSq= ww.rep[iNN].second;
