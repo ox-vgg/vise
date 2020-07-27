@@ -217,6 +217,22 @@ bool vise::file_save(const boost::filesystem::path fn,
   }
 }
 
+bool vise::file_save_binary(const boost::filesystem::path fn,
+    std::string& file_content)
+{
+    try {
+        std::ofstream f;
+        f.open(fn.string().c_str(), std::ofstream::binary);
+        f << file_content;
+        f.close();
+        return true;
+    }
+    catch (std::exception& e) {
+        std::cout << "failed to save file [" << fn.string() << "]" << std::endl;
+        return false;
+    }
+}
+
 void vise::print_map(std::string name,
                      std::map<std::string, std::string> const &m )
 {
@@ -318,11 +334,11 @@ uint32_t vise::getmillisecs() {
 
 boost::filesystem::path vise::vise_home() {
 #ifdef _WIN32
-  boost::filesystem::path home(std::getenv("USERPROFILE"));
+  boost::filesystem::path home(std::getenv("LOCALAPPDATA"));
+  boost::filesystem::path vise_home_dir = home / "vise";
 #else
   boost::filesystem::path home(std::getenv("HOME"));
+  boost::filesystem::path vise_home_dir = home / ".vise";
 #endif
-  boost::filesystem::path vise_home_dir = home / "vgg";
-  vise_home_dir = vise_home_dir / "vise";
   return vise_home_dir;
 }

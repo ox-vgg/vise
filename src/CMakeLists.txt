@@ -27,7 +27,7 @@ set (VISE_NAME "VISE")
 set (VISE_FULLNAME "VGG Image Search Engine")
 set (VISE_VERSION_MAJOR "2")
 set (VISE_VERSION_MINOR "0")
-set (VISE_VERSION_PATCH "0-beta1")
+set (VISE_VERSION_PATCH "0-beta2")
 configure_file (
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h.in"
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
@@ -35,7 +35,10 @@ configure_file (
 
 ## Define location of dependencies for Windows build
 if (WIN32)
-    message("Compiling for Windows Platform")
+    message("************************************************************")
+    message("************ Compiling for Windows Platform ****************")
+    message("************************************************************")
+    SET(WINDOWS_RESOURCE_FILENAME "${CMAKE_CURRENT_SOURCE_DIR}/res/windows/res.rc")
     SET (VLFEAT_LIB "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21\\bin\\win64\\vl.lib")
     SET (VLFEAT_INCLUDE_DIR "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21")
     SET (BOOST_ROOT "C:\\Users\\tlm\\dep\\vise\\boost_1_70_0")
@@ -47,6 +50,20 @@ if (WIN32)
     SET (Protobuf_LIBRARIES "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\libprotobuf.lib") 
     SET (Protobuf_USE_STATIC_LIBS ON)
     SET (Protobuf_DEBUG OFF)
+    
+    #SET(CMAKE_CXX_FLAGS "/MT /O2 /Ob2 /DNDEBUG /EHsc")
+    add_definitions("/MT /O2 /Ob2 /DNDEBUG /EHsc")
+    SET (VISE_DEPS_BASEDIR "C:\\Users\\tlm\\dep\\vise\\dep_dll") 
+    STRING(REPLACE "\\" "\\\\" VISE_DEPS_BASEDIR_2SLASH ${VISE_DEPS_BASEDIR})
+    STRING(REPLACE "\\" "\\\\" VISE_DEPS_BASEDIR_4SLASH ${VISE_DEPS_BASEDIR_2SLASH})
+
+    SET (VISE_MAGICK_DEPS_BASEDIR "C:\\Users\\tlm\\dep\\vise\\dep_dll_imagemagick_from_traherne") 
+    STRING(REPLACE "\\" "\\\\" VISE_MAGICK_DEPS_BASEDIR_2SLASH ${VISE_MAGICK_DEPS_BASEDIR})
+    STRING(REPLACE "\\" "\\\\" VISE_MAGICK_DEPS_BASEDIR_4SLASH ${VISE_MAGICK_DEPS_BASEDIR_2SLASH})
+
+    SET (VISE_DEMO_PROJECTS_DIR "C:\\Users\\tlm\\dep\\vise\\demo_projects") 
+    STRING(REPLACE "\\" "\\\\" VISE_DEMO_PROJECTS_DIR_2SLASH ${VISE_DEMO_PROJECTS_DIR})
+    STRING(REPLACE "\\" "\\\\" VISE_DEMO_PROJECTS_DIR_4SLASH ${VISE_DEMO_PROJECTS_DIR_2SLASH})
 endif (WIN32)
 
 ## Boost
@@ -130,3 +147,79 @@ include_directories( search_engine/relja_retrival/v2/retrieval )
 
 add_subdirectory( "search_engine" )
 add_subdirectory( "vise" )
+
+##
+## Packaging installer using cpack
+##
+## See
+## - https://github.com/mgalloy/cpack-cheatsheets/blob/master/cpack-variables.rst\
+if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
+  #INCLUDE(InstallRequiredSystemLibraries)
+  SET(CPACK_GENERATOR "NSIS")
+  SET(CPACK_PACKAGE_NAME "${VISE_NAME}")
+  SET(CPACK_PACKAGE_VENDOR "Visual Geometry Group (VGG)")
+  SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${VISE_FULLNAME} (${VISE_NAME}) is a standalone application for visual search of images.")
+  SET(CPACK_PACKAGE_VERSION "${VISE_VERSION_MAJOR}.${VISE_VERSION_MINOR}.${VISE_VERSION_PATCH}")
+  SET(CPACK_PACKAGE_VERSION_MAJOR ${VISE_VERSION_MAJOR})
+  SET(CPACK_PACKAGE_VERSION_MINOR ${VISE_VERSION_MINOR})
+  SET(CPACK_PACKAGE_VERSION_PATCH ${VISE_VERSION_PATCH})
+  SET(CPACK_PACKAGE_INSTALL_DIRECTORY "${VISE_NAME}")
+
+  SET(CPACK_PACKAGE_EXECUTABLES "${VISE_NAME}" "${VISE_FULLNAME}")
+  SET(CPACK_NSIS_DISPLAY_NAME "${VISE_NAME}")
+  SET(CPACK_SYSTEM_NAME "Win64")
+  
+  SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}\\\\res\\\\windows\\\\LICENSE_no_newline.txt")
+
+  # NSIS specific settings
+  SET(CPACK_NSIS_CONTACT "Abhishek Dutta <adutta@robots.ox.ac.uk>")
+  SET(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL "ON")
+  #SET(CPACK_NSIS_MUI_FINISHPAGE_RUN "$INSTDIR\\\\bin\\\\${VISE_NAME}.exe")
+
+  SET(CPACK_NSIS_PACKAGE_NAME "${VISE_NAME}")
+  SET(CPACK_NSIS_DISPLAY_NAME "${VISE_FULLNAME}")
+  #SET(CPACK_NSIS_MODIFY_PATH "ON")
+
+  SET(CPACK_NSIS_WELCOME_TITLE "Welcome to VGG Image Search Engine (VISE) Installer")
+  SET(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}\\\\res\\\\windows\\\\vise_icon_16x16.ico")
+  SET(CPACK_NSIS_MUI_HEADERIMAGE "${CMAKE_CURRENT_SOURCE_DIR}\\\\res\\\\windows\\\\vise_logo_blur.bmp")
+  SET(CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP "${CMAKE_CURRENT_SOURCE_DIR}\\\\res\\\\windows\\\\vise_logo_400x700.bmp")
+  
+  SET(CPACK_NSIS_HELP_LINK "http://www.robots.ox.ac.uk/~vgg/software/vise/")
+  SET(CPACK_NSIS_URL_INFO_ABOUT "http://www.robots.ox.ac.uk/~vgg/software/vise/")
+
+  #SET(CPACK_NSIS_MUI_FINISHPAGE_RUN "$INSTDIR\\\\bin\\\\${RELEASE_PACKAGE_NAME}.exe")
+
+  # copy required resources
+  INSTALL(DIRECTORY "${VISE_DEPS_BASEDIR_4SLASH}\\\\" DESTINATION "bin")
+  INSTALL(DIRECTORY "${VISE_MAGICK_DEPS_BASEDIR_4SLASH}\\\\" DESTINATION "bin")
+  
+  INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/www/" DESTINATION "www")
+  #INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/" DESTINATION "res")
+  INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/res/windows/vise_logo.bmp" DESTINATION "bin")
+  INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/res/windows/vise_icon_16x16.ico" DESTINATION "bin")
+  INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/res/windows/vise_icon_32x32.ico" DESTINATION "bin")
+  INSTALL(DIRECTORY "${VISE_DEMO_PROJECTS_DIR_4SLASH}\\\\" DESTINATION "demo_projects")
+  INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt" DESTINATION ".")
+  INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/README.txt" DESTINATION ".")
+  INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/CHANGELOG.txt" DESTINATION ".")
+  INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE_3rd_party.txt" DESTINATION ".")
+  
+  # install dependencies (not required as we copy all the required DLLs)
+  #list( APPEND  CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "  ExecWait \\\"$INSTDIR\\\\vcredist_x64.exe /install /quiet /norestart\\\"")
+  #list( APPEND  CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "  ExecWait \\\"$INSTDIR\\\\VC_redist.x64.exe /install /quiet /norestart\\\"")
+  #string (REPLACE ";" "\n" CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "${CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS}")
+
+  # move demo projects to VISE application data folder
+  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  SetShellVarContext current")
+  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  CreateDirectory \\\"$LOCALAPPDATA\\\\vise\\\\store\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  CopyFiles \\\"$INSTDIR\\\\demo_projects\\\\*\\\" \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\store\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  CopyFiles \\\"$INSTDIR\\\\www\\\\*\\\" \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\www\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  RMDir /r \\\"$INSTDIR\\\\demo_projects\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  RMDir /r \\\"$INSTDIR\\\\www\\\"")
+  #list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  DetailPrint $LOCALAPPDATA") # for debug
+  #list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  Sleep 50000") # for debug
+  string (REPLACE ";" "\n" CPACK_NSIS_EXTRA_INSTALL_COMMANDS "${CPACK_NSIS_EXTRA_INSTALL_COMMANDS}")
+
+  INCLUDE(CPack)
+endif()

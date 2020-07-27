@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 #include <functional>
+#include <map>
 
 namespace vise {
   class search_engine {
@@ -43,6 +44,8 @@ namespace vise {
     virtual uint32_t fid(std::string filename) const = 0;
     virtual std::string filename(uint32_t fid) const = 0;
 
+    virtual void conf(std::map<std::string, std::string> conf_data) = 0;
+    virtual std::map<std::string, std::string> conf() const = 0;
   private:
     const std::string d_se_name;
   };

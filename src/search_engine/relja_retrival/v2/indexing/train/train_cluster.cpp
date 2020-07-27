@@ -65,10 +65,14 @@ namespace buildIndex {
     }
 
     uint32_t element_size = DATA_TYPE_SIZE[data_type_code];
-
-    fseek(f, 0, SEEK_END);
-    uint32_t file_size = ftell(f);
-
+    int64_t file_size;
+#ifdef _WIN32
+    _fseeki64(f, 0, SEEK_END);
+    file_size = _ftelli64(f);
+#else
+    fseeko64(f, 0, SEEK_END);
+    file_size = ftello64(f);
+#endif
     uint32_t descriptor_data_length = (file_size - HEADER_BYTES) / (element_size);
     uint32_t descriptor_count = descriptor_data_length / descriptor_dimension;
 
@@ -85,7 +89,11 @@ namespace buildIndex {
 
     // read descriptors
     std::cout << "Reading SIFT descriptors ... ";
+#ifdef _WIN32
+    _fseeki64(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
+#else
     fseek(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
+#endif
     read_count = fread(descriptors_sift.data(), element_size, descriptor_data_length, f);
     std::cout << read_count << " elements read" << std::endl;
     fclose(f);

@@ -20,6 +20,7 @@ Updates:
 
 #include <stdint.h>
 #include <vector>
+#include <fstream>
 
 #include <boost/filesystem.hpp>
 
@@ -154,13 +155,14 @@ namespace buildIndex {
                       bool const RootSIFT,
                       std::string const trainDescsFn,
                       std::string const trainAssignsFn,
+                      std::ofstream& logf,
                       vise::task_progress *progress){
 
     MPI_GLOBAL_ALL;
 
     if (boost::filesystem::exists(trainAssignsFn)){
       if (rank==0)
-        std::cout<<"buildIndex::computeTrainAssigns: trainAssignsFn already exist ("<<trainAssignsFn<<")\n";
+          logf <<"buildIndex::computeTrainAssigns: trainAssignsFn already exist ("<<trainAssignsFn<<")\n";
       return;
     }
     ASSERT( boost::filesystem::exists(trainDescsFn) );
@@ -170,14 +172,14 @@ namespace buildIndex {
 
     // clusters
     if (rank==0)
-      std::cout<<"buildIndex::computeTrainAssigns: Loading cluster centres\n";
+      logf <<"buildIndex::computeTrainAssigns: Loading cluster centres\n";
     double t0= timing::tic();
     clstCentres clstCentres_obj( clstFn.c_str(), true );
     if (rank==0)
-      std::cout<<"buildIndex::computeTrainAssigns: Loading cluster centres - DONE ("<< timing::toc(t0) <<" ms)\n";
+      logf<<"buildIndex::computeTrainAssigns: Loading cluster centres - DONE ("<< timing::toc(t0) <<" ms)\n";
 
     if (rank==0)
-      std::cout<<"buildIndex::computeTrainAssigns: Constructing NN search object\n";
+      logf <<"buildIndex::computeTrainAssigns: Constructing NN search object\n";
     t0= timing::tic();
 
     // build kd-tree for nearest neighbour search
@@ -189,12 +191,12 @@ namespace buildIndex {
     vl_kdforest_build(kd_forest, clstCentres_obj.numClst, clstCentres_obj.clstC_flat);
 
     if (rank==0)
-      std::cout<<"buildIndex::computeTrainAssigns: Constructing NN search object - DONE ("<< timing::toc(t0) << " ms)\n";
+      logf <<"buildIndex::computeTrainAssigns: Constructing NN search object - DONE ("<< timing::toc(t0) << " ms)" << std::endl;
 
     flatDescsFile const descFile(trainDescsFn, RootSIFT);
     uint32_t const numTrainDescs= descFile.numDescs();
     if (rank==0)
-      std::cout<<"buildIndex::computeTrainAssigns: numTrainDescs= "<<numTrainDescs<<"\n";
+      logf <<"buildIndex::computeTrainAssigns: numTrainDescs= "<<numTrainDescs<< std::endl;
 
     uint32_t const chunkSize=
       std::min( static_cast<uint32_t>(10000),

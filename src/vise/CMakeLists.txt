@@ -31,14 +31,24 @@ target_link_libraries(connection project_manager)
 add_library(http_server STATIC http_server.cc)
 target_link_libraries(http_server vise_util project_manager http_request http_response connection ${Boost_LIBRARIES})
 
-add_executable(vise vise.cc)
-target_link_libraries(vise vise_util http_server ${ImageMagick_LIBRARIES})
+if (WIN32)
+	#add_executable(VISE WIN32 vise.cc)
+	#target_link_libraries(VISE vise_util http_server ${ImageMagick_LIBRARIES})
+
+	add_executable(VISE vise.cc)
+	target_link_libraries(VISE vise_util http_server ${ImageMagick_LIBRARIES})
+
+	install(TARGETS VISE DESTINATION bin)
+else(WIN32)
+	add_executable(vise vise.cc)
+	target_link_libraries(vise vise_util http_server ${ImageMagick_LIBRARIES})
+endif (WIN32)
 
 #add_executable(unit_tests unit_tests.cc)
 #target_link_libraries(unit_tests vise_util ${Boost_LIBRARIES})
 
-add_executable(project_manager_test project_manager_test.cc)
-target_link_libraries(project_manager_test project_manager http_request http_response project vise_util)
+#add_executable(project_manager_test project_manager_test.cc)
+#target_link_libraries(project_manager_test project_manager http_request http_response project vise_util)
 
 #add_test(NAME unit_tests COMMAND unit_tests WORKING_DIRECTORY ${VISE_SOURCE_ROOT_DIR})
 #add_test(NAME project_manager_test COMMAND project_manager_test WORKING_DIRECTORY ${VISE_SOURCE_ROOT_DIR})

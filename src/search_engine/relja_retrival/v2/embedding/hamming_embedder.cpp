@@ -158,10 +158,7 @@ hammingEmbedderFactory::hammingEmbedderFactory(std::string const trainHammFn, ui
     REMOVE_UNUSED_WARNING(temp_);
     
     fclose(f);
-    
-    std::cout << "hamm_.numbits()=" << hamm_.numbits() << ", numBits=" << numBits << std::endl;
     ASSERT(hamm_.numbits()==numBits);
-    
 }
 
 

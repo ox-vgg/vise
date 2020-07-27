@@ -18,6 +18,7 @@ No usage or redistribution is allowed without explicit permission.
 #include <stdint.h>
 #include <string>
 #include <omp.h>
+#include <fstream>
 
 #include "feat_getter.h"
 #include "vise/task_progress.h"
@@ -29,6 +30,7 @@ namespace buildIndex {
                           std::string const trainDescsFn,
                           int32_t const trainNumDescs,
                           featGetter const &featGetter_obj,
+                          std::ofstream& logf,
                           vise::task_progress *progress = nullptr);
 }
 

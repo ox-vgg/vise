@@ -1,0 +1,30 @@
+## [2.0.0] - not released
+ * removed dependency on Python (added dependency on vlfeat for clustering)
+ * upgraded user interface which is now based solely on HTML/CSS/Javascript and is managed by client's web browser
+ * clustering of visual features done using vlfeat's kdtree implementation
+ * upgraded code to support compilation in Linux (gcc) and Windows (Visual C++)
+ * ...
+ 
+## [1.0.3] - September 28, 2017
+ * international characters (utf-8) are now allowed in image filenames (issue 15)
+ * uppercase image filename extensions (PNG, JPG) are now allowed (issue 17)
+
+## [1.0.2] - September 07, 2017
+ * docker container for Linux, MacOS and Windows
+
+## [1.0.1] - July 05, 2017
+ * fixed issues with load, start, stop and uninstall scripts
+ * debugging log saved to $HOME/vgg/vise/log/training.log
+ * user images are resized *only* if > 1024px
+ * added Refresh button to indexing page to deal with unresponsive pages (temporary fix)
+
+## [1.0.0] - June 15, 2017
+ * a web based user interface to index new images
+
+## [0.0.2] - March 16, 2017
+ * updated source code and cmake files to allow compilation in Mac OS
+ * mostly used by @Giles Bergel (Seebibyte project ambassador) to demonstrate potential users
+
+## [0.0.1] - September 25, 2017
+ * the original relja_retrival codebase
+ * developed by Relja Arandjelovic during his DPhil / Postdoc at the Visual Geometry Group, Department of Engineering Science, University of Oxford.

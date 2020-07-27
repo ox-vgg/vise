@@ -40,12 +40,16 @@ var user_selected_files;
 var upload_success_filename_list = [];
 var upload_error_filename_list = [];
 var upload_progress = document.createElement('progress');
+var upload_progress_message = document.createElement('span');
+
 var file_add_status = document.createElement('div');
 file_add_status.setAttribute('id', 'file_add_status');
 file_add_status.classList.add('hide');
 
 document.body.appendChild(toolbar);
 document.body.appendChild(content);
+
+var create_search_engine_button; // button is disabled until files are added
 
 // check existence of everything we need
 if( !_vise_self_check_is_ok()) {
@@ -80,10 +84,11 @@ function _vise_show_configure_ui() {
   var form = document.createElement('form');
   form.setAttribute('method', 'POST');
   form.setAttribute('action', '/' + _vise_data.PNAME + '/_index_create');
-  var start = document.createElement('input');
-  start.setAttribute('type', 'submit');
-  start.setAttribute('value', 'Create Visual Search Engine');
-  form.appendChild(start);
+  create_search_engine_button = document.createElement('input');
+  create_search_engine_button.setAttribute('type', 'submit');
+  create_search_engine_button.setAttribute('value', 'Create Visual Search Engine');
+  create_search_engine_button.setAttribute('disabled', '');
+  form.appendChild(create_search_engine_button);
   tool_container.appendChild(form);
 
   _vise_init_configure_toolbar();
@@ -104,7 +109,11 @@ function _vise_project_file_count_update() {
   xhr.addEventListener('load', function() {
     switch(xhr.statusText) {
     case 'OK':
-      pageinfo.innerHTML = 'Project contains ' + xhr.responseText + ' files.';
+	var file_count = parseInt(xhr.responseText);
+      pageinfo.innerHTML = 'Project contains ' + file_count + ' files.';
+	  if(file_count > 0) {
+		create_search_engine_button.removeAttribute('disabled');
+	  }
       break;
     default:
       _vise_project_file_count_on_error();
@@ -136,7 +145,9 @@ function _vise_init_configure_files() {
   local.appendChild(label1);
   local.appendChild(local_file_selector); // local_file_selector already initialized as global var.
   upload_progress.setAttribute('class', 'hide');
+  upload_progress_message.setAttribute('class', 'hide');
   local.appendChild(upload_progress);
+  local.appendChild(upload_progress_message);
 
   var folder = document.createElement('div');
   var label2 = document.createElement('span');
@@ -144,6 +155,7 @@ function _vise_init_configure_files() {
   var input2 = document.createElement('input');
   input2.setAttribute('type', 'text');
   input2.setAttribute('placeholder', 'e.g. C:\\Documents\\data\\images');
+  input2.setAttribute('title', 'The process of adding a very large number of files (e.g. 50,000 files) may not succeed as it will take a very long time. For such cases, you can split your files into subfolders (e.g. 10 subfolders each containing 5,000 files) and add each subfolder in turn.');
   input2.setAttribute('id', 'import_folder_input');
   var add = document.createElement('button');
   add.innerHTML = 'Add';
@@ -270,26 +282,26 @@ function _vise_configure_get_var_desc(variable_name) {
   case 'bow_cluster_count':
     desc = [
       'BoW Cluster Count',
-      'number of words in visual vocabulary (i.e. number of clusters in descriptor space).'
+      'number of words in visual vocabulary (i.e. number of clusters in descriptor space). For very small datasets (e.g. 100 or 300 images), then set this to 1000. For medium sized datasets (e.g. 10,000 images), set this value to ~10,000. For very large datasets (e.g. 1,000,000 images), set this to 100,000.'
     ];
     break;
   case 'bow_descriptor_count':
     desc = [
       'BoW Descriptor Count',
-      'number of descriptors to use for clustering to generate visual vocabulary (set -1 to use all available descriptors)'
+      'number of descriptors to use for clustering to generate visual vocabulary (set -1 to use all available descriptors). If you have very large number of images (e.g. 1,000,000), then set this value to 1000000.'
     ];
     break;
   case 'cluster_num_iteration':
     desc = [
       'BoW Cluster Iterations',
-      'number of iterations of kmeans based clustering'
+      'number of iterations of kmeans based clustering. For small datasets, set this to 5. For very large datasets, set this to 30 (will take longer to complete).'
     ];
     break;
 
   case 'hamm_embedding_bits':
     desc = [
       'Hamming Embeddings Bits',
-      'number of bits to use for hamming embedding. (use 32 bits for extremely large datasets, and 64 bits for smaller datasets)'
+      'number of bits to use for hamming embedding. If memory and storage requirements are a concern for you, set this to 32 (may result in less accurate search results) otherwise set this to 64 for high accuracy (may require large storage and RAM).'
     ];
     break;
 
@@ -331,7 +343,7 @@ function _vise_configure_get_var_desc(variable_name) {
   case 'resize_dimension':
     desc = [
       'Resize Images to (in pixels)',
-      'Resize original images to provided width x height dimension before indexing.'
+      'Resize original images such that their width and height does not exceed the specified dimension. To prevent image resize, set the value to -1'
     ];
     break;
 
@@ -350,6 +362,9 @@ function _vise_configure_upload_selected_files(e) {
   upload_progress.setAttribute('value', '0');
   upload_progress.classList.remove('hide');
   file_add_status.classList.add('hide');
+  
+  upload_progress_message.innerHTML = ''
+  upload_progress_message.classList.add('hide');
 
   var parallel_upload_count = 4;
   var start_index = 0;
@@ -376,6 +391,10 @@ function _vise_configure_continue_file_upload(start_index, parallel_upload_count
           file_add_status.innerHTML += '[' + i + '] ' + upload_error_filename_list[i] + '<br/>';
         }
       }
+	  upload_progress.classList.add('hide');
+
+	  upload_progress_message.innerHTML = 'Finished uploading ' + upload_success_filename_list.length + ' files.'
+	  upload_progress_message.classList.remove('hide');
     }
   }, function(err_file_list) {
     console.log('upload promise error');
@@ -423,7 +442,7 @@ function _vise_configure_import_files_from_folder() {
   var import_folder = document.getElementById('import_folder_input').value;
 
   file_add_status.classList.remove('hide');
-  file_add_status.innerHTML = 'Adding files from folder ' + import_folder + '... (please wait)<br/>';
+  file_add_status.innerHTML = 'Adding files from folder ' + import_folder + '... <br/>Please wait ... (adding 1,000 files usually takes around 20 seconds)<br/>';
 
   var xhr = new XMLHttpRequest();
   xhr.addEventListener('load', function() {
@@ -437,6 +456,7 @@ function _vise_configure_import_files_from_folder() {
           file_add_status.innerHTML += '[' + i + '] ' + response.DISCARDED_FILENAME_LIST[i] + '<br/>';
         }
       }
+
       break;
     default:
       file_add_status.innerHTML += xhr.statusText + ' : ' + xhr.responseText + '<br/>';

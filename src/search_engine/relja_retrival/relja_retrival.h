@@ -98,6 +98,9 @@ namespace vise {
     uint32_t fid_count() const override;
     uint32_t fid(std::string filename) const override;
     std::string filename(uint32_t fid) const override;
+
+    void conf(std::map<std::string, std::string> conf_data) override;
+    std::map<std::string, std::string> conf() const override;
   private:
     void index_run_all_stages(std::function<void(void)> callback);
     void preprocess_image(std::string srcfn,
@@ -116,7 +119,7 @@ namespace vise {
 
     void findBBox2( double xl, double xu, double yl, double yu, homography const &H, double &xl2, double &xu2, double &yl2, double &yu2, uint32_t w2, uint32_t h2 ) const;
 
-    const std::map<std::string, std::string> d_pconf;
+    std::map<std::string, std::string> d_pconf;
     boost::filesystem::path d_filelist_fn;
     boost::filesystem::path d_filestat_fn;
     boost::filesystem::path d_traindesc_fn;

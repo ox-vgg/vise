@@ -199,20 +199,21 @@ namespace buildIndex {
                     std::string const trainDescsFn,
                     int32_t const trainNumDescs,
                     featGetter const &featGetter_obj,
+                    std::ofstream& logf,
                     vise::task_progress *progress){
 
     MPI_GLOBAL_RANK;
 
     bool useThreads= detectUseThreads();
-    //uint32_t numWorkerThreads= omp_get_max_threads();
-    uint32_t numWorkerThreads = 2;
+    uint32_t numWorkerThreads= omp_get_max_threads();
+    //uint32_t numWorkerThreads = 2;
 
     // read the list of training images and shuffle it
 
     std::vector<std::string> imageFns;
 
     if (rank==0){
-      std::cout << "trainImagelistFn=" << trainImagelistFn << std::endl;
+      logf << "trainImagelistFn=" << trainImagelistFn << std::endl;
       std::ifstream fImagelist(trainImagelistFn.c_str());
       ASSERT(fImagelist.is_open());
 
@@ -249,7 +250,7 @@ namespace buildIndex {
     trainDescsWorker worker(imageFns, trainDatabasePath, featGetter_obj);
 
     if (useThreads) {
-      std::cout << "OpenMP: number of threads = " << numWorkerThreads << std::endl;
+      logf << "OpenMP: number of threads = " << numWorkerThreads << std::endl;
       threadQueue<trainDescsResult>::start( nJobs, worker, *manager, numWorkerThreads );
     }
     else {

@@ -35,8 +35,8 @@ body { font-family:sans; background-color:white; margin:0; padding:0 0.5em; font
 #content #error_message { display:block; text-align:left; min-height:50vh; }
 #content #error_message .message {font-size:normal; }
 #content #create_project_panel { display:block; padding:2em 0; text-align:center; }
-#content #create_project_panel input[type="text"] { width:16em; }
-#content #create_project_panel button { margin-left:0.5em; }
+#content #create_project_panel input[type="text"] { width:16em; font-size:inherit; }
+#content #create_project_panel button { margin-left:0.5em; font-size:inherit; }
 #content #existing_projects_panel { display:block; padding:1em; min-height:40vh; }
 #content #existing_projects_panel a { color:inherit; text-decoration:none; display:inline-block; margin:0 1em; }
 #content #existing_projects_panel a .project { position:relative; text-align:center; }
@@ -50,13 +50,14 @@ body { font-family:sans; background-color:white; margin:0; padding:0 0.5em; font
 #content #settings_container table { margin-left:1em; border:1px solid #cccccc; border-collapse:collapse; font-size:0.8em; }
 #content #settings_container table tr {}
 #content #settings_container table td {border:1px solid #f2f2f2; padding:1em; }
-#content #settings_container table td input[type="text"] { }
+#content #settings_container table td input { font-size:inherit; }
+#content #settings_container table td button { font-size:inherit; }
 #content #settings_container #config_save_status { margin-left:1em; }
 #content #admintool_container {}
 #content #admintool_container .warning { font-size:0.8em; color:#ff5555; }
 #content #admintool_container #project_del_container { border:1px solid #cccccc; padding:1em; margin:1em;}
 #content #admintool_container #project_del_container label { margin-right:1em; }
-#content #admintool_container #project_del_container input[type="submit"] { display:block; margin-top:1em; }
+#content #admintool_container #project_del_container input[type="submit"] { font-size:inherit; display:block; margin-top:1em; }
 
 /* About VISE */
 #content #about_container { text-align:center; }

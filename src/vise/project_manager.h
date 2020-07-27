@@ -70,6 +70,8 @@ namespace vise {
                              http_response &response);
     void vise_project_delete(std::map<std::string, std::string> const &param,
                              http_response &response);
+    void vise_project_unload(std::map<std::string, std::string> const& param,
+                             http_response& response);
     void vise_error_page(const std::string message,
                          const std::string response_format,
                          http_response &response) const;
@@ -104,7 +106,6 @@ namespace vise {
     bool project_create(std::string pname);
     bool project_load(std::string pname);
     bool project_is_loaded(std::string pname) const;
-    bool project_delete(std::string pname);
     void project_index_create(std::string pname,
                        http_response &response);
     void project_index_load(std::string pname,

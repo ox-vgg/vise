@@ -40,8 +40,10 @@ vise::relja_retrival::relja_retrival(std::map<std::string, std::string> const &p
   d_is_indexing_done = false;
 
   d_index_log_fn   = data_dir / "index.log";
-  d_log.open(d_index_log_fn.string());
-  d_log << "logging started on " << vise::now_timestamp() << std::endl;
+  d_log.open(d_index_log_fn.string(), std::fstream::app);
+  d_log << "===================[ "
+        << "logging started on " << vise::now_timestamp()
+        << " ]==================="<< std::endl;
 
   d_task_progress_list.clear();
 }
@@ -107,20 +109,31 @@ void vise::relja_retrival::preprocess_image(std::string srcfn,
   try {
     std::ostringstream resize_stat;
     std::ostringstream geom_spec;
+
+    bool resize_image = true;
     if(d_pconf.count("resize_dimension")) {
-      geom_spec << d_pconf.at("resize_dimension");
+      if (d_pconf.at("resize_dimension") == "-1") {
+          resize_image = false;
+      } else {
+        geom_spec << d_pconf.at("resize_dimension");
+      }
     } else {
-      geom_spec << "512x512";
+      geom_spec << "800x800";
     }
     geom_spec << "+0+0>";
 
-    Magick::Geometry dst_img_size(geom_spec.str());
     Magick::Image src(srcfn);
+    src.quiet(true); // to supress warnings
     resize_stat << src.rows() << "," << src.columns();
     src.magick("JPEG");
     src.colorSpace(Magick::RGBColorspace);
-    src.resize(dst_img_size);
+    if (resize_image) {
+      Magick::Geometry dst_img_size(geom_spec.str());
+      src.resize(dst_img_size);
+    }
+
     src.write(dstfn);
+    src.quiet(false);
     resize_stat << "," << src.rows() << "," << src.columns();
     result = true;
     message = resize_stat.str();
@@ -132,8 +145,8 @@ void vise::relja_retrival::preprocess_image(std::string srcfn,
 uint32_t vise::relja_retrival::image_src_count() const {
   uint32_t count = 0;
   const boost::filesystem::path image_src_dir(d_pconf.at("image_src_dir"));
-  boost::filesystem::directory_iterator end_itr;
-  for (boost::filesystem::directory_iterator it(image_src_dir); it!=end_itr; ++it) {
+  boost::filesystem::recursive_directory_iterator end_itr;
+  for (boost::filesystem::recursive_directory_iterator it(image_src_dir); it!=end_itr; ++it) {
     if (boost::filesystem::is_regular_file(it->path())) {
       count++;
     }
@@ -142,6 +155,8 @@ uint32_t vise::relja_retrival::image_src_count() const {
 }
 
 void vise::relja_retrival::create_file_list() {
+  std::cout << "preprocess: resize_dimension=" << d_pconf.at("resize_dimension") << std::endl;
+
   d_task_progress_list.at("preprocess").start(0, image_src_count());
 
   const boost::filesystem::path image_src_dir(d_pconf.at("image_src_dir"));
@@ -150,29 +165,54 @@ void vise::relja_retrival::create_file_list() {
         << "preprocess:   source: " << image_src_dir << std::endl
         << "preprocess:   target: " << image_dir << std::endl;
 
+  d_log << "preprocess: resize_dimension=" << d_pconf.at("resize_dimension") << std::endl;
+
   uint32_t success_count = 0;
   uint32_t fail_count = 0;
   std::ofstream filelist(d_filelist_fn.string());
   std::ofstream filestat(d_filestat_fn.string());
-  boost::filesystem::directory_iterator end_itr;
+  boost::filesystem::recursive_directory_iterator end_itr;
   uint32_t count = 0;
-  for (boost::filesystem::directory_iterator it(image_src_dir); it!=end_itr; ++it) {
+  for (boost::filesystem::recursive_directory_iterator it(image_src_dir); it!=end_itr; ++it) {
     if (boost::filesystem::is_regular_file(it->path())) {
       boost::filesystem::path fn = boost::filesystem::relative(it->path(), image_src_dir).string();
-      boost::filesystem::path dst = image_dir / fn.stem();
-      std::string dst_str = dst.string() + ".jpg";
-      bool result;
-      std::string message;
-      preprocess_image(it->path().string(), dst_str, result, message);
-      if(result) {
+      boost::filesystem::path dst_dir = image_dir / boost::filesystem::relative(it->path(), image_src_dir).parent_path();
+      if (!boost::filesystem::exists(dst_dir)) {
+          boost::filesystem::create_directories(dst_dir);
+      }
+
+      bool preprocess_result = true;
+      std::string preprocess_message("");
+      std::string dst_str;
+      if (d_pconf.at("resize_dimension") == "-1") {
+        // simply copy images (no preprocessing required)
+        boost::system::error_code ec;
+        boost::filesystem::path dst = dst_dir / it->path().filename();
+        dst_str = dst.string();
+        boost::filesystem::copy_file(it->path(), dst, boost::filesystem::copy_option::overwrite_if_exists, ec);
+        if(ec) {
+            preprocess_result = false;
+            preprocess_message = ec.message();
+        }
+      } else {
+        boost::filesystem::path dst = dst_dir / it->path().stem();
+        dst_str = dst.string() + ".jpg";
+        preprocess_image(it->path().string(), dst_str, preprocess_result, preprocess_message);
+      }
+      if(preprocess_result) {
         boost::filesystem::path dst_path(dst_str);
         std::string dst_relpath(boost::filesystem::relative(dst_path, image_dir).string());
+#ifdef _WIN32
+        // convert relative paths to Unix format so that it is compatible with HTTP requests
+        // e.g. GET /pname/subdir1/image1.jpg
+        std::replace(dst_relpath.begin(), dst_relpath.end(), '\\', '/');
+#endif
         filelist << dst_relpath << std::endl;
-        filestat << dst_relpath << "," << message << std::endl;
+        filestat << dst_relpath << "," << preprocess_message << std::endl;
         success_count++;
       } else {
         d_log << "preprocess: discarded " << fn.string()
-              << " [reason: " << message << "]" << std::endl;
+              << " [reason: " << preprocess_message << "]" << std::endl;
         fail_count++;
       }
       count++;
@@ -200,6 +240,9 @@ void vise::relja_retrival::extract_train_descriptors() {
     feat_getter_param << "-scale3";
   }
 
+  d_log << "traindesc: feat_getter_param : " 
+        << feat_getter_param.str() << std::endl;
+
   featGetter_standard const feat_getter_obj(feat_getter_param.str().c_str());
 
   int32_t bow_descriptor_count = -1;
@@ -210,15 +253,22 @@ void vise::relja_retrival::extract_train_descriptors() {
   } else {
     d_task_progress_list.at("traindesc").start(0, bow_descriptor_count);
   }
+  d_log << "traindesc: bow_descriptor_count : "
+        << bow_descriptor_count << std::endl;
 
   buildIndex::computeTrainDescs(d_filelist_fn.string(),
                                 d_pconf.at("image_dir"),
                                 d_traindesc_fn.string(),
                                 bow_descriptor_count,
                                 feat_getter_obj,
+                                d_log,
                                 &d_task_progress_list.at("traindesc"));
   d_task_progress_list.at("traindesc").finish_success();
 
+  d_log << "traindesc: completed in "
+        << d_task_progress_list.at("traindesc").d_elapsed_ms
+        << "ms" << std::endl;
+  d_log << std::flush;
 }
 
 void vise::relja_retrival::cluster_train_descriptors() {
@@ -235,14 +285,28 @@ void vise::relja_retrival::cluster_train_descriptors() {
   std::istringstream ss2(d_pconf.at("cluster_num_iteration"));
   ss2 >> cluster_num_iteration;
 
+  d_log << "cluster: use_root_sift=" << use_root_sift
+        << ", bow_cluster_count=" << bow_cluster_count
+        << ", cluster_num_iteration=" << cluster_num_iteration
+        << std::endl;
+  
   d_task_progress_list.at("cluster").start(0, cluster_num_iteration);
+  /*
   buildIndex::compute_train_cluster(d_traindesc_fn.string(),
                                     use_root_sift,
                                     d_bowcluster_fn.string(),
                                     bow_cluster_count,
                                     cluster_num_iteration,
                                     &d_task_progress_list.at("cluster"));
+  */
+  boost::filesystem::path generic_visual_vocabulary_clst("C:\\Users\\tlm\\dep\\vise\\vise_asset\\generic_visual_vocabulary\\clst.e3bin");
+  boost::filesystem::copy_file(generic_visual_vocabulary_clst, d_bowcluster_fn);
   d_task_progress_list.at("cluster").finish_success();
+
+  d_log << "cluster: completed in "
+        << d_task_progress_list.at("cluster").d_elapsed_ms
+        << "ms" << std::endl;
+  d_log << std::flush;
 }
 
 void vise::relja_retrival::assign_train_descriptors() {
@@ -257,8 +321,14 @@ void vise::relja_retrival::assign_train_descriptors() {
                                   use_root_sift,
                                   d_traindesc_fn.string(),
                                   d_trainassign_fn.string(),
+                                  d_log,
                                   &d_task_progress_list.at("assign"));
   d_task_progress_list.at("assign").finish_success();
+
+  d_log << "assign: completed in "
+        << d_task_progress_list.at("assign").d_elapsed_ms
+        << "ms" << std::endl;
+  d_log << std::flush;
 }
 
 void vise::relja_retrival::hamm_train_descriptors() {
@@ -281,6 +351,11 @@ void vise::relja_retrival::hamm_train_descriptors() {
                              hamm_embedding_bits,
                              &d_task_progress_list.at("hamm"));
   d_task_progress_list.at("hamm").finish_success();
+
+  d_log << "hamm: completed in "
+        << d_task_progress_list.at("hamm").d_elapsed_ms
+        << "ms" << std::endl;
+  d_log << std::flush;
 }
 
 void vise::relja_retrival::create_index() {
@@ -320,12 +395,18 @@ void vise::relja_retrival::create_index() {
                     &d_task_progress_list.at("index"));
   delete embed_factory; // @todo: for safety, use shared_ptr
   d_task_progress_list.at("index").finish_success();
+
+  d_log << "index: completed in "
+        << d_task_progress_list.at("index").d_elapsed_ms
+        << "ms" << std::endl;
+  d_log << std::flush;
 }
 
 void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callback) {
   d_is_indexing_ongoing = true;
   d_is_indexing_done = false;
   try {
+    callback(); // to update the state to INDEX_ONGOING
     std::ofstream index_status_f(d_index_status_fn.string());
     index_status_f << "start" << std::flush;
 
@@ -344,7 +425,7 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
       create_file_list();
       index_status_f << ",filelist" << std::flush;
     }
-
+    
     if (!boost::filesystem::exists(d_traindesc_fn)) {
       extract_train_descriptors();
       index_status_f << ",traindesc" << std::flush;
@@ -379,17 +460,20 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     d_is_indexing_done = true;
     index_status_f << ",end";
     index_status_f.close();
+
+    // delete d_traindesc_fn as it is no longer needed, @todo: review this action in future
+    boost::filesystem::remove(d_traindesc_fn);
+
     callback();
   } catch(std::exception &e) {
     d_is_indexing_ongoing = false;
     d_is_indexing_done = false;
+    d_log << "Exception: " << e.what() << std::endl;
     callback();
   }
 }
 
 bool vise::relja_retrival::index_is_done() const {
-  std::cout << "d_is_indexing_done=" << d_is_indexing_done
-            << ", d_is_indexing_ongoing=" << d_is_indexing_ongoing << std::endl;
   if(d_is_indexing_done) {
     return true;
   }
@@ -404,11 +488,23 @@ bool vise::relja_retrival::index_is_done() const {
     return false;
   }
 
-  if(status_tokens.at(0) == "start" &&
-     status_tokens.at(status_tokens.size()-1) == "end" &&
-     status_tokens.size() != 2) {
-    return true;
-  } else {
+  // status tokens in a complete index is as follows:
+  // start, filelist, traindesc, cluster, assign, hamm, index, end
+  if( status_tokens.size() != 8 ) {
+    return false;
+  }
+
+  if( status_tokens.at(0) == "start" &&
+	  status_tokens.at(1) == "filelist" &&
+	  status_tokens.at(2) == "traindesc" &&
+	  status_tokens.at(3) == "cluster" &&
+	  status_tokens.at(4) == "assign" &&
+	  status_tokens.at(5) == "hamm" &&
+	  status_tokens.at(6) == "index" &&
+	  status_tokens.at(7) == "end" ) {
+	  return true;
+  }
+  else {
     return false;
   }
 }
@@ -448,10 +544,7 @@ bool vise::relja_retrival::index_is_incomplete() const {
     return false;
   }
 
-  if(! (status_tokens[0] == "start")) {
-    return true;
-  }
-  if(! (status_tokens[status_tokens.size()-1] != "end")) {
+  if(status_tokens[status_tokens.size()-1] != "end") {
     return true;
   }
 
@@ -484,6 +577,7 @@ void vise::relja_retrival::index_load(bool &success,
   if (d_is_search_engine_loaded) {
     success = true;
     message = "index is already loaded";
+    return;
   }
 
   try {
@@ -552,7 +646,6 @@ void vise::relja_retrival::index_load(bool &success,
     uint32_t hamm_embedding_bits = 0;
     std::istringstream ss(d_pconf.at("hamm_embedding_bits"));
     ss >> hamm_embedding_bits;
-    std::cout << "hamm_embedding_bits=" << hamm_embedding_bits << std::endl;
 
     if (hamm_embedding_bits == 0) {
       if (use_root_sift) {
@@ -696,6 +789,7 @@ void vise::relja_retrival::index_unload(bool &success,
     d_is_search_engine_loaded = false;
     success = true;
     message = "index unloaded";
+    std::cout << "search_engine unloaded" << std::endl;
   } catch(std::exception &e) {
     success = false;
     message = "failed to unload index";
@@ -704,16 +798,14 @@ void vise::relja_retrival::index_unload(bool &success,
 
 void vise::relja_retrival::index_search(vise::search_query const &q,
                                         std::vector<vise::search_result> &r) const {
-  std::cout << "relja_retrival::index_search(): searching "
-            << d_dataset->getNumDoc() << " images ..."
-            << std::endl;
-
   query qobj(q.d_file_id, true, "");
   if(q.is_region_query) {
+    /*
     std::cout << "query: fid=" << q.d_file_id << ", "
               << "; region(x,y,width,height)="
               << q.d_x << "," << q.d_y << ","
               << q.d_width << "," << q.d_height << std::endl;
+    */
     qobj = query(q.d_file_id, true, "", q.d_x, q.d_x + q.d_width, q.d_y, q.d_y + q.d_height);
   } else {
     std::cout << "query: fid=" << q.d_file_id << " (full image query)" << std::endl;
@@ -803,8 +895,8 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
 
   featGetter *featGetterObj= new featGetter_standard( "hesaff-rootsift" );
 
-  Magick::Image im1; im1.read( fn1.string() );
-  Magick::Image im2; im2.read( fn2.string() );
+  Magick::Image im1; im1.read(fn1.string());
+  Magick::Image im2; im2.read(fn2.string());
   Magick::Image im2t;
   homography Hi;
   Hi.H[0] = H[0];
@@ -817,8 +909,8 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
   Hi.H[7] = H[7];
   Hi.H[8] = H[8];
   uint32_t numFeats1, numFeats2, bestNInliers;
-  float *descs1;
-  float *descs2;
+  float* descs1;
+  float* descs2;
   std::vector<ellipse> regions1, regions2;
 
   double xl = x;
@@ -828,91 +920,91 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
 
   // compute RootSIFT: image 1
   //thread1 = new boost::thread( featWorker( featGetterObj, fn1.string(), xl, xu, yl, yu, numFeats1, regions1, descs1 ) );
-  featGetterObj->getFeats( fn1.string().c_str(),
-                           static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
-                           static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
-                           numFeats1, regions1, descs1 );
-
-  bool firstGo= true;
-  uint32_t loopNum_= 0;
+  featGetterObj->getFeats(fn1.string().c_str(),
+	  static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
+	  static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
+	  numFeats1, regions1, descs1);
+  bool firstGo = true;
+  uint32_t loopNum_ = 0;
 
   boost::filesystem::path tmp_im2_fn = boost::filesystem::temp_directory_path();
-  tmp_im2_fn = tmp_im2_fn / boost::filesystem::unique_path("vise_register_%%%%-%%%%-%%%%-%%%%.jpg");
-
-  boost::filesystem::path debug_fn = boost::filesystem::temp_directory_path() / "vise_debug";
-
+  tmp_im2_fn = tmp_im2_fn / boost::filesystem::unique_path("register_%%%%-%%%%-%%%%-%%%%.jpg");
+  std::cout << "relja_retrival::register_image " << tmp_im2_fn << std::endl;
   matchesType inlierInds;
   while (1) {
-    if (!firstGo){
-      // compute RootSIFT: image 2
-      featGetterObj->getFeats( tmp_im2_fn.string().c_str(),
-                               static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
-                               static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
-                               numFeats2, regions2, descs2 );
-      //thread2= new boost::thread( featWorker( featGetterObj, fullSizeFn2_t.c_str(), xl, xu, yl, yu, numFeats2, regions2, descs2 ) );
+	  if (!firstGo) {
+		  // compute RootSIFT: image 2
+		  featGetterObj->getFeats(tmp_im2_fn.string().c_str(),
+			  static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
+			  static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
+			  numFeats2, regions2, descs2);
+		  //thread2= new boost::thread( featWorker( featGetterObj, fullSizeFn2_t.c_str(), xl, xu, yl, yu, numFeats2, regions2, descs2 ) );
 
-      // run RANSAC
-      homography Hnew;
-      detRansac::matchDesc(*(d_spatial_retriever->getSameRandom()),
-                           bestNInliers,
-                           descs1, regions1,
-                           descs2, regions2,
-                           featGetterObj->numDims(),
-                           loopNum_>1?1.0:5.0, 0.0, 1000.0, static_cast<uint32_t>(4),
-                           true, 0.81f, 100.0f,
-                           &Hnew, &inlierInds
-                           );
+		  // run RANSAC
+		  homography Hnew;
+		  detRansac::matchDesc(*(d_spatial_retriever->getSameRandom()),
+			  bestNInliers,
+			  descs1, regions1,
+			  descs2, regions2,
+			  featGetterObj->numDims(),
+			  loopNum_ > 1 ? 1.0 : 5.0, 0.0, 1000.0, static_cast<uint32_t>(4),
+			  true, 0.81f, 100.0f,
+			  &Hnew, &inlierInds
+			  );
 
-      if( bestNInliers > 9 ) {
-        // good alignment obtained, no need to go any further
-        break;
-      }
+		  if (bestNInliers > 29) {
+			  // good alignment obtained, no need to go any further
+			  break;
+		  }
 
-      // apply new H to current H (i.e. H= H * Hnew)
-      {
-        double Happlied[9];
-        for (int i= 0; i<3; ++i) {
-          for (int j=0; j<3; ++j) {
-            Happlied[i*3+j]= Hi.H[i*3  ] * Hnew.H[  j] +
-              Hi.H[i*3+1] * Hnew.H[3+j] +
-              Hi.H[i*3+2] * Hnew.H[6+j];
-          }
-        }
-        Hi.set(Happlied);
-      }
+		  // apply new H to current H (i.e. H= H * Hnew)
+		  {
+			  double Happlied[9];
+			  for (int i = 0; i < 3; ++i) {
+				  for (int j = 0; j < 3; ++j) {
+					  Happlied[i * 3 + j] = Hi.H[i * 3] * Hnew.H[j] +
+						  Hi.H[i * 3 + 1] * Hnew.H[3 + j] +
+						  Hi.H[i * 3 + 2] * Hnew.H[6 + j];
+				  }
+			  }
+			  Hi.set(Happlied);
+		  }
 
-    }
+	  }
 
-    Hi.normLast();
+	  Hi.normLast();
 
-    // im2 -> im1 transformation
-    double Hinv[9];
-    Hi.getInverse(Hinv);
-    homography::normLast(Hinv);
+	  // im2 -> im1 transformation
+	  double Hinv[9];
+	  Hi.getInverse(Hinv);
+	  homography::normLast(Hinv);
 
-    // warp image 2 into image 1
-    im2t = im2;
-    // source: https://gitlab.com/vgg/imcomp/-/blob/master/src/imreg_sift/imreg_sift.cc#L850
-    Magick::DrawableAffine hinv_affine(Hinv[0], Hinv[4], Hinv[3], Hinv[1], 0, 0);
-    std::ostringstream offset;
-    offset << im2.columns() << "x" << im2.rows() << "-" << ((int) Hinv[2]) << "-" << ((int) Hinv[5]);
-    im2t.artifact("distort:viewport", offset.str());
-    im2t.affineTransform(hinv_affine);
-    im2t.write( tmp_im2_fn.string().c_str() );
-    // AffineProjection(sx, rx, ry, sy, tx, ty) <=> H=[sx, ry, tx; sy, rx, ty; 0 0 1]
-    //double MagickAffine[6]={Hinv[0],Hinv[3],Hinv[1],Hinv[4],Hinv[2],Hinv[5]};
-    //im2t.virtualPixelMethod(Magick::BlackVirtualPixelMethod);
-    //im2t.distort(Magick::AffineProjectionDistortion, 6, MagickAffine, false);
+	  firstGo = false;
 
-    firstGo= false;
+	  ++loopNum_;
+	  if (loopNum_ > 5) {
+		  break;
+	  }
 
-    ++loopNum_;
-    if (loopNum_>1)
-      break;
+	  // warp image 2 into image 1
+	  im2t = im2;
+	  // source: https://gitlab.com/vgg/imcomp/-/blob/master/src/imreg_sift/imreg_sift.cc#L850
+	  Magick::DrawableAffine hinv_affine(Hinv[0], Hinv[4], Hinv[3], Hinv[1], 0, 0);
+	  std::ostringstream offset;
+	  offset << im2.columns() << "x" << im2.rows() << "-" << ((int)Hinv[2]) << "-" << ((int)Hinv[5]);
+	  im2t.artifact("distort:viewport", offset.str());
+	  im2t.affineTransform(hinv_affine);
+	  im2t.quiet(true);
+	  im2t.write(tmp_im2_fn.string().c_str());
+	  im2t.quiet(false);
+	  // AffineProjection(sx, rx, ry, sy, tx, ty) <=> H=[sx, ry, tx; sy, rx, ty; 0 0 1]
+	  //double MagickAffine[6]={Hinv[0],Hinv[3],Hinv[1],Hinv[4],Hinv[2],Hinv[5]};
+	  //im2t.virtualPixelMethod(Magick::BlackVirtualPixelMethod);
+	  //im2t.distort(Magick::AffineProjectionDistortion, 6, MagickAffine, false);
   }
-  delete []descs1;
-  delete []descs2;
-  boost::filesystem::remove(tmp_im2_fn);
+  delete[]descs1;
+  delete[]descs2;
+  //boost::filesystem::remove(tmp_im2_fn);
   delete featGetterObj;
 
   // draw resulting images
@@ -946,4 +1038,12 @@ std::string vise::relja_retrival::filename(uint32_t fid) const {
   } else {
     return "";
   }
+}
+
+void vise::relja_retrival::conf(std::map<std::string, std::string> conf_data) {
+    d_pconf = conf_data;
+}
+
+std::map<std::string, std::string> vise::relja_retrival::conf() const {
+    return d_pconf;
 }

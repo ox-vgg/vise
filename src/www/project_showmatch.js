@@ -47,6 +47,15 @@ var show_correspondence = true;
 var rand_selected_match_pts_index = [];
 var stroke_width = 3;
 
+var is_manual_toggle_mode = false;
+var is_toggle_active = true;
+var mouse_move_count = 0;
+var toggle_canvas_timer;
+
+// update the search result when browser is resized
+// this is required as the image size changes and hence the bounding box needs update
+window.addEventListener('resize', _vise_init_show_match_ui);
+
 // check existence of everything we need
 if( !_vise_self_check_is_ok()) {
   console.log('self check failed');
@@ -112,8 +121,8 @@ function _vise_querymatch_panel_show() {
   qlabel.innerHTML = 'Query: ' + _vise_data.QUERY['filename'];
   qlabel.setAttribute('href', '/' + _vise_data.PNAME + '/file?file_id=' + _vise_data.QUERY['file_id']);
   qimgcontainer.appendChild(qimg);
-  qimgcontainer.appendChild(qlabel);
   query.appendChild(qimgcontainer);
+  query.appendChild(qlabel);
 
   var match = document.createElement('div');
   match.setAttribute('class', 'match');
@@ -126,8 +135,8 @@ function _vise_querymatch_panel_show() {
   mlabel.innerHTML = 'Match: ' + _vise_data.MATCH['filename'];
   mlabel.setAttribute('href', '/' + _vise_data.PNAME + '/file?file_id=' + _vise_data.MATCH['file_id']);
   mimgcontainer.appendChild(mimg);
-  mimgcontainer.appendChild(mlabel);
   match.appendChild(mimgcontainer);
+  match.appendChild(mlabel);
 
   querymatch_panel.appendChild(query);
   querymatch_panel.appendChild(match);
@@ -248,7 +257,30 @@ function _vise_togglepanel_show() {
   var tspeedlabel = document.createElement('label');
   tspeedlabel.setAttribute('for', 'toggle_speed');
   tspeedlabel.setAttribute('id', 'toggle_speed_label');
-  tspeedlabel.innerHTML = 'Delay&nbsp;';
+  tspeedlabel.innerHTML = '&nbsp;Delay&nbsp;';
+  
+  var toggle_label = document.createElement('label');
+  toggle_label.setAttribute('for', 'toggle_checkbox');
+  toggle_label.innerHTML = 'Toggle';
+  var toggle_checkbox = document.createElement('input');
+  toggle_checkbox.setAttribute('type', 'checkbox');
+  toggle_checkbox.setAttribute('name', 'toggle_checkbox');
+  toggle_checkbox.checked = true;
+  toggle_checkbox.addEventListener('change', function(e) {
+	  if(this.checked) {
+		//enable toggle
+		is_toggle_active = true;
+		is_manual_toggle_mode = false;
+		mouse_move_count = 0;
+        _vise_toggle_canvas_toggle();
+	  } else {
+		//disable toggle
+		is_toggle_active = false;
+		is_manual_toggle_mode = true;
+	  }
+  });
+  tcaption.appendChild(toggle_label);
+  tcaption.appendChild(toggle_checkbox);
   tcaption.appendChild(tspeedlabel);
   tcaption.appendChild(tspeed);
   toggle.appendChild(toggle_canvas);
@@ -298,8 +330,32 @@ function _vise_togglepanel_show() {
     toggle_canvas.addEventListener('mouseup', function(e) {
       _vise_toggle_canvas_show_query();
     });
-    setTimeout(_vise_toggle_canvas_toggle,
-               parseInt(document.getElementById('toggle_speed').value));
+    toggle_canvas.addEventListener('mouseover', function(e) {
+      is_manual_toggle_mode = true;
+      mouse_move_count = 0;
+    });
+    toggle_canvas.addEventListener('mouseout', function(e) {
+	  if(is_toggle_active) {
+        is_manual_toggle_mode = false;
+        mouse_move_count = 0;
+        _vise_toggle_canvas_toggle();
+	  }
+    });
+    toggle_canvas.addEventListener('mousemove', function(e) {
+      if(is_manual_toggle_mode) {
+        if(mouse_move_count > 10) {
+          _vise_toggle_canvas_toggle();
+          mouse_move_count = 0;
+        } else {
+          mouse_move_count = mouse_move_count + 1;
+        }
+      }
+    });
+	if(toggle_canvas_timer) {
+		clearTimeout(toggle_canvas_timer);
+	}
+    toggle_canvas_timer = setTimeout(_vise_toggle_canvas_toggle,
+                                     parseInt(document.getElementById('toggle_speed').value));
   });
   xhr.addEventListener('timeout', function(e) {
     console.log('timeout waiting for response from server');
@@ -324,8 +380,11 @@ function _vise_toggle_canvas_toggle() {
   } else {
     _vise_toggle_canvas_show_query();
   }
-  setTimeout(_vise_toggle_canvas_toggle,
-             parseInt(document.getElementById('toggle_speed').value));
+
+  if(!is_manual_toggle_mode) {
+    setTimeout(_vise_toggle_canvas_toggle,
+               parseInt(document.getElementById('toggle_speed').value));
+  }
 }
 
 function _vise_toggle_canvas_show_query() {
@@ -472,7 +531,8 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   feat_match_canvas.width = vw;
 
   var ctx = feat_match_canvas.getContext('2d', { alpha: false });
-  ctx.clearRect(0, 0, vw, vh);
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, vw, vh);
   ctx.drawImage(query_img,
                 0, 0, qw, qh,
                 qoffsetx, qoffsety, qsdim[0], qsdim[1]);

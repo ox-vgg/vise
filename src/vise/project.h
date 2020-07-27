@@ -59,6 +59,7 @@ namespace vise {
     void conf_to_json(std::ostringstream &json);
     bool conf_from_plaintext(std::string plaintext);
     std::string pconf(std::string key);
+    void conf_init_default_dir();
 
   private:
     std::string d_pname;
@@ -66,6 +67,7 @@ namespace vise {
     boost::filesystem::path d_data_dir;
     boost::filesystem::path d_image_dir;
     boost::filesystem::path d_image_src_dir;
+    boost::filesystem::path d_tmp_dir;
 
     const std::map<std::string, std::string> d_conf;  // VISE application configuration
     std::map<std::string, std::string> d_pconf;       // project configuration

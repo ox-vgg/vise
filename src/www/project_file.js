@@ -27,6 +27,10 @@ document.body.appendChild(content);
 
 var query_img;
 
+// update the search result when browser is resized
+// this is required as the image size changes and hence the bounding box needs update
+window.addEventListener('resize', _vise_show_query_ui);
+
 // check existence of everything we need
 if( !_vise_self_check_is_ok()) {
   console.log('self check failed');

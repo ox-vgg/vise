@@ -24,6 +24,9 @@ content.appendChild(filelist_panel);
 
 document.body.appendChild(toolbar);
 document.body.appendChild(content);
+
+const FILE_PER_PAGE = 50;
+
 // check existence of everything we need
 if( !_vise_self_check_is_ok()) {
   console.log('self check failed');
@@ -60,49 +63,44 @@ function _vise_show_filelist_ui() {
 
 function _vise_init_filelist_toolbar() {
   pageinfo.innerHTML = '';
-  var MAX_PAGENO = Math.floor(_vise_data.FLIST_SIZE/_vise_data.FLIST_PER_PAGE) + 1;
-  var CUR_PAGENO = _vise_data.FLIST_START/_vise_data.FLIST_PER_PAGE;
 
   var sep = document.createElement('span');
   sep.innerHTML = '&nbsp;|&nbsp;';
 
   var label1 = document.createElement('span');
-  label1.innerHTML = '&nbsp;Showing page';
-  var pgno = document.createElement('input');
-  pgno.setAttribute('type', 'text');
-  pgno.setAttribute('style', 'width:2em;');
-  pgno.setAttribute('value', (CUR_PAGENO + 1));
-  pgno.setAttribute('data-file_per_page', _vise_data.FLIST_PER_PAGE);
-  pgno.setAttribute('data-max_page', MAX_PAGENO);
-  pgno.setAttribute('data-pname', _vise_data.PNAME);
-  pgno.setAttribute('data-filecount', _vise_data.FLIST_SIZE);
-  pgno.setAttribute('title', 'Enter the page number to jump to that page');
-  pgno.addEventListener('change', function(e) {
-    var pname = e.target.dataset['pname'];
-    var max_page = parseInt(e.target.dataset['max_page']);
-    var file_per_page = parseInt(e.target.dataset['file_per_page']);
-    var new_pgno = parseInt(e.target.value) - 1;
-    var filecount = parseInt(e.target.dataset['filecount']);
-    if(new_pgno >= 0 && new_pgno < max_page) {
-      var new_start = file_per_page*new_pgno;
-      var new_end = Math.min(filecount, new_start + file_per_page);
-      window.location.href = '/' + pname + '/filelist?start=' + new_start + '&end=' + new_end + '&per_page=' + file_per_page;
-    } else {
-      e.target.value = '';
+  label1.innerHTML = '&nbsp;Showing';
+  var start_input = document.createElement('input');
+  start_input.setAttribute('type', 'text');
+  start_input.setAttribute('style', 'width:2em;');
+  start_input.setAttribute('value', _vise_data.FLIST_START);
+  start_input.setAttribute('title', 'Enter the page number to jump to that page');
+  start_input.addEventListener('change', function(e) {
+    var new_start = parseInt(this.value);
+	if(isNaN(new_start)) {
+	  this.value = _vise_data['FLIST_START'];
+	  return;
+	}
+	new_start = new_start;
+	if(new_start < 0 || new_start >= _vise_data['FLIST_SIZE']) {
+	  this.value = _vise_data.FLIST_START;
+	  return;
+	} else {
+      var new_end = Math.min(_vise_data['FLIST_SIZE'], new_start + FILE_PER_PAGE);
+      window.location.href = '/' + _vise_data['PNAME'] + '/filelist?start=' + new_start + '&end=' + new_end;
     }
   });
 
   var label2 = document.createElement('span');
-  label2.innerHTML = 'of ' + MAX_PAGENO + ' pages&nbsp;';
+  label2.innerHTML = 'to ' + _vise_data['FLIST_END'] + '&nbsp;';
   pageinfo.appendChild(label1);
-  pageinfo.appendChild(pgno);
+  pageinfo.appendChild(start_input);
   pageinfo.appendChild(label2);
   pageinfo.appendChild(sep.cloneNode(true));
 
-  var prev_start = Math.max(0, _vise_data.FLIST_START - _vise_data.FLIST_PER_PAGE);
-  var prev_end = _vise_data.FLIST_START;
+  var prev_start = Math.max(0, _vise_data.FLIST_START - FILE_PER_PAGE);
+  var prev_end = _vise_data['FLIST_START'];
   var prev;
-  if(_vise_data.FLIST_START === 0) {
+  if(_vise_data['FLIST_START'] === 0) {
     prev = document.createElement('span');
   } else {
     prev = document.createElement('a');
@@ -112,17 +110,15 @@ function _vise_init_filelist_toolbar() {
   pageinfo.appendChild(prev);
   pageinfo.appendChild(sep.cloneNode(true));
 
-  var next_start = _vise_data.FLIST_END;
-  var next_end = Math.min(_vise_data.FLIST_SIZE, _vise_data.FLIST_END + _vise_data.FLIST_PER_PAGE);
+  var next_start = _vise_data['FLIST_END'];
+  var next_end = Math.min(_vise_data['FLIST_SIZE'], _vise_data['FLIST_END'] + FILE_PER_PAGE);
   var next;
-  if(_vise_data.FLIST_END === _vise_data.FLIST_SIZE) {
+  if(_vise_data.FLIST_END === _vise_data['FLIST_SIZE']) {
     next = document.createElement('span');
   } else {
     next = document.createElement('a');
-    if(next_end === _vise_data.FLIST_SIZE) {
+    if(next_end === _vise_data['FLIST_SIZE']) {
       // last page
-      next.setAttribute('href', 'filelist?start=' + next_start + '&end=' + next_end + '&per_page=' + _vise_data.FLIST_PER_PAGE);
-    } else {
       next.setAttribute('href', 'filelist?start=' + next_start + '&end=' + next_end);
     }
   }

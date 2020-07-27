@@ -35,7 +35,8 @@ if( !_vise_self_check_is_ok()) {
   vise_logo.setAttributeNS(null, 'class', 'vise_logo');
 
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/home');
+  home_link.setAttribute('href', 'https://www.robots.ox.ac.uk/~vgg/software/vise/');
+  home_link.setAttribute('target', '__blank');
   home_link.appendChild(vise_logo);
 
   pname.innerHTML = '';
@@ -91,7 +92,7 @@ function _vise_home_show_project_create_panel() {
   var pname = document.createElement('input');
   pname.setAttribute('type', 'text');
   pname.setAttribute('name', 'pname');
-  pname.setAttribute('placeholder', 'e.g. 15th Century Books');
+  pname.setAttribute('placeholder', 'e.g. 15th-Century-Books');
   form.appendChild(pname);
 
   var test = document.createElement('input');

@@ -13,6 +13,7 @@ vise::project::project(std::string pname,
     if(d_pconf.count("data_dir") == 0 ||
        d_pconf.count("image_dir") == 0 ||
        d_pconf.count("image_src_dir") == 0 ||
+       d_pconf.count("tmp_dir") == 0 ||
        d_pconf.count("search_engine") == 0) {
       std::clog << "project(): malformed config file" << std::endl;
       return;
@@ -107,15 +108,26 @@ bool vise::project::conf_reload() {
   bool success = false;
   boost::filesystem::path pconf_fn = d_data_dir / "conf.txt";
   if(boost::filesystem::exists(pconf_fn)) {
-    std::cout << "reading config: " << pconf_fn << std::endl;
     success = vise::configuration_load(pconf_fn.string(), d_pconf);
     if(success) {
-      d_data_dir = boost::filesystem::path(d_pconf.at("data_dir"));
-      d_image_dir = boost::filesystem::path(d_pconf.at("image_dir"));
-      d_image_src_dir = boost::filesystem::path(d_pconf.at("image_src_dir"));
+        // substitute default values if paths are not specified
+        // useful for demo projects
+        if (d_pconf.count("data_dir") == 0 &&
+            d_pconf.count("image_dir") == 0 &&
+            d_pconf.count("image_src_dir") == 0 &&
+            d_pconf.count("tmp_dir") == 0
+            ) {
+            conf_init_default_dir();
+        }
+        else {
+            d_data_dir = boost::filesystem::path(d_pconf.at("data_dir"));
+            d_image_dir = boost::filesystem::path(d_pconf.at("image_dir"));
+            d_image_src_dir = boost::filesystem::path(d_pconf.at("image_src_dir"));
+            d_tmp_dir = boost::filesystem::path(d_pconf.at("tmp_dir"));
+        }
     }
   } else {
-    std::cout << "writing config: " << pconf_fn << std::endl;
+    std::cout << "loading default config: " << pconf_fn << std::endl;
     conf_load_default();
     success = vise::configuration_save(d_pconf, pconf_fn.string());
   }
@@ -128,27 +140,33 @@ void vise::project::conf_load_default() {
   d_pconf["use_root_sift"] = "true";
   d_pconf["sift_scale_3"] = "true";
   d_pconf["bow_descriptor_count"] = "-1";
-  d_pconf["cluster_num_iteration"] = "3";
-  d_pconf["bow_cluster_count"] = "1000";
-  d_pconf["hamm_embedding_bits"] = "32";
-  d_pconf["resize_dimension"] = "512x512";
+  d_pconf["cluster_num_iteration"] = "30";
+  d_pconf["bow_cluster_count"] = "100000";
+  d_pconf["hamm_embedding_bits"] = "64";
+  d_pconf["resize_dimension"] = "-1";
 
+  conf_init_default_dir();
+  boost::filesystem::create_directory(d_data_dir);
+  boost::filesystem::create_directory(d_image_dir);
+  boost::filesystem::create_directory(d_image_src_dir);
+}
+
+void vise::project::conf_init_default_dir() {
   d_data_dir = d_project_dir / "data/";
   d_image_dir = d_project_dir / "image/";
   d_image_src_dir = d_project_dir / "image_src/";
-  
+  d_tmp_dir = d_project_dir / "tmp/";
+
   // convert the trailing path-separator to platform specific character
   d_data_dir.make_preferred();
   d_image_dir.make_preferred();
   d_image_src_dir.make_preferred();
-  
-  boost::filesystem::create_directory(d_data_dir);
-  boost::filesystem::create_directory(d_image_dir);
-  boost::filesystem::create_directory(d_image_src_dir);
+  d_tmp_dir.make_preferred();
 
   d_pconf["data_dir"] = d_data_dir.string();
   d_pconf["image_dir"] = d_image_dir.string();
   d_pconf["image_src_dir"] = d_image_src_dir.string();
+  d_pconf["tmp_dir"] = d_tmp_dir.string();
 }
 
 void vise::project::conf_to_json(std::ostringstream &json) {
@@ -166,7 +184,6 @@ void vise::project::conf_to_json(std::ostringstream &json) {
   } else {
     json << "{}";
   }
-  std::cout << "conf_to_json: " << json.str() << std::endl;
 }
 
 bool vise::project::conf_from_plaintext(std::string plaintext) {
@@ -216,6 +233,7 @@ void vise::project::index_create(bool &success, std::string &message) {
     conf_reload();
     search_engine_init(d_pconf.at("search_engine"), success, message);
     if (success) {
+      d_search_engine->conf(d_pconf); // required as the settings may have changed
       d_search_engine->index_create(success,
                                     message,
                                     std::bind( &vise::project::state_update, this));
@@ -241,6 +259,7 @@ void vise::project::index_load(bool &success, std::string &message) {
 void vise::project::index_unload(bool &success, std::string &message) {
   std::lock_guard<std::mutex> lock(d_index_load_mutex);
   if (d_search_engine) {
+    std::cout << "d_search_engine->index_unload() ..." << std::endl;
     d_search_engine->index_unload(success, message);
   } else {
     success = false;
@@ -341,8 +360,8 @@ std::string vise::project::filename(uint32_t fid) const {
 
 uint32_t vise::project::image_src_count() const {
   uint32_t count = 0;
-  boost::filesystem::directory_iterator end_itr;
-  for (boost::filesystem::directory_iterator it(d_image_src_dir); it!=end_itr; ++it) {
+  boost::filesystem::recursive_directory_iterator end_itr;
+  for (boost::filesystem::recursive_directory_iterator it(d_image_src_dir); it!=end_itr; ++it) {
     if (boost::filesystem::is_regular_file(it->path())) {
       count++;
     }

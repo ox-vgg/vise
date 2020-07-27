@@ -9,21 +9,6 @@ project_manager::project_manager(std::map<std::string, std::string> const &conf)
             << std::endl;
   vise::configuration_show(d_conf);
   d_projects.clear();
-
-  /*
-  // DEBUG
-  std::string debug_pname("15ci");
-  //std::string debug_pname("ox200test");
-  std::cout << "project_manager(): DEBUG**********************, loading "
-            << debug_pname
-            << std::endl;
-  bool success = project_load(debug_pname);
-  if(success) {
-    std::clog << "DEBUG: loaded project " << debug_pname << std::endl;
-  } else {
-    std::cerr << "DEBUG: failed to project " << debug_pname << std::endl;
-  }
-  */
 }
 
 project_manager::~project_manager() {
@@ -35,13 +20,13 @@ project_manager::~project_manager() {
 void project_manager::process_http_request(http_request const &request,
                                            http_response &response)
 {
-  std::ostringstream ss;
-  ss << "project_manager: " << request.d_method << " " << request.d_uri;
+  //std::ostringstream ss;
+  //ss << "project_manager: " << request.d_method << " " << request.d_uri;
 
   std::vector<std::string> uri;
   std::map<std::string, std::string> param;
   vise::decompose_uri(request.d_uri, uri, param);
-  std::cout << ss.str() << std::endl;
+  //std::cout << ss.str() << std::endl;
 
   //request.parse_urlencoded_form_data();
   //vise::print_vector("uri", uri);
@@ -119,7 +104,9 @@ void project_manager::handle_get(http_request const &request,
     // request for a project resource
     std::string pname = uri[1];
     if (!project_exists(pname)) {
-      response.set_status(404);
+      std::ostringstream ss;
+      ss << "<h1>Error</h1><p>Project [" << pname << "] does not exist! Visit <a href=\"/home\">Home</a> page to view a list of available projects.</p>";
+      response.set_html_payload(ss.str());
       return;
     }
 
@@ -268,11 +255,16 @@ void project_manager::handle_post(http_request const &request,
         return;
       }
       if(uri[1] == "_project_delete") {
-        std::cout << "payload: " << request.d_payload.str() << std::endl;
         std::map<std::string, std::string> formdata;
         vise::parse_urlencoded_form(request.d_payload.str(), formdata);
         vise_project_delete(formdata, response);
         return;
+      }
+      if (uri[1] == "_project_unload") {
+          std::map<std::string, std::string> formdata;
+          vise::parse_urlencoded_form(request.d_payload.str(), formdata);
+          vise_project_unload(formdata, response);
+          return;
       }
       if(uri[1] == "_settings_update") {
         std::string settings_formdata = request.d_payload.str();
@@ -346,7 +338,7 @@ void project_manager::handle_put(http_request const &request,
     boost::filesystem::path fn(d_projects.at(pname)->pconf("image_src_dir"));
     fn = fn / asset;
     std::string payload = request.d_payload.str();
-    bool ok = vise::file_save(fn, payload);
+    bool ok = vise::file_save_binary(fn, payload);
     if(ok) {
       response.set_status(200);
       response.set_payload("");
@@ -377,22 +369,6 @@ void project_manager::handle_delete(http_request const &request,
   }
   if (uri[0] != "") {
     response.set_status(404);
-    return;
-  }
-
-  if (uri.size() == 2) {
-    // delete a project
-    try {
-      std::string pname(uri[1]);
-      if (project_exists(pname)) {
-        project_delete(pname);
-        response.set_status(200);
-      } else {
-        response.set_status(412);
-      }
-    } catch(std::exception &e) {
-      response.set_status(400);
-    }
     return;
   }
 
@@ -487,19 +463,6 @@ bool project_manager::project_load(std::string pname) {
     return true;
   } catch(std::exception &e) {
     std::cout << "project_manager::project_load(): " << e.what() << std::endl;
-    return false;
-  }
-}
-
-bool project_manager::project_delete(std::string pname) {
-  try {
-    boost::filesystem::path project_dir = d_conf.at("vise_store");
-    project_dir = project_dir / pname;
-    boost::filesystem::remove_all(project_dir);
-    return true;
-  }
-  catch (std::exception & ex) {
-    std::cout << "project_manager::project_delete() : " << ex.what() << std::endl;
     return false;
   }
 }
@@ -603,7 +566,6 @@ void project_manager::project_index_search(std::string pname,
     return;
   }
 
-  std::cout << "project_index_search(): " << std::endl;
   uint32_t file_id = std::atoi(param.at("file_id").c_str());
 
   vise::search_query query(param);
@@ -717,17 +679,16 @@ void project_manager::project_show_match(std::string pname,
 void project_manager::project_register_image(std::string pname,
                                              std::map<std::string, std::string> const &param,
                                              http_response &response) const {
-
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
     response.set_payload("project not loaded yet");
     return;
   }
 
-  if( !d_projects.at(pname)->index_is_loaded() ) {
-    response.set_status(412);
-    response.set_payload("project index not loaded");
-    return;
+  if (!d_projects.at(pname)->index_is_loaded()) {
+      response.set_status(412);
+      response.set_payload("project index not loaded");
+      return;
   }
 
   if (param.count("file1_id") == 0 ||
@@ -738,16 +699,16 @@ void project_manager::project_register_image(std::string pname,
       param.count("file2_id") == 0 ||
       param.count("H0") == 0
       ) {
-    response.set_status(412);
-    response.set_payload("register requests must contain: file1_id, file2_id, x, y, width, height [ and optionally H0 ]");
-    return;
+      response.set_status(412);
+      response.set_payload("register requests must contain: file1_id, file2_id, x, y, width, height [ and optionally H0 ]");
+      return;
   }
 
   std::string H0_str = param.at("H0");
-  if(H0_str.front() != '[' && H0_str.back() != ']') {
-    response.set_status(412);
-    response.set_payload("H0 must be a JSON array like H0 = [0.92, 0, 21.92, ..., ]");
-    return;
+  if (H0_str.front() != '[' && H0_str.back() != ']') {
+      response.set_status(412);
+      response.set_payload("H0 must be a JSON array like H0 = [0.92, 0, 21.92, ..., ]");
+      return;
   }
 
   uint32_t file1_id = std::atoi(param.at("file1_id").c_str());
@@ -763,65 +724,73 @@ void project_manager::project_register_image(std::string pname,
   char comma;
   // parse the comma separated values
   ss >> H0[0] >> comma >> H0[1] >> comma >> H0[2] >> comma
-     >> H0[3] >> comma >> H0[4] >> comma >> H0[5] >> comma
-     >> H0[6] >> comma >> H0[7] >> comma >> H0[8];
+      >> H0[3] >> comma >> H0[4] >> comma >> H0[5] >> comma
+      >> H0[6] >> comma >> H0[7] >> comma >> H0[8];
   std::array<double, 9> H = H0;
 
   // @todo
   // image registration module should be detached from relja_retrival search engine
   d_projects.at(pname)->register_image(file1_id, file2_id, x, y, width, height, H);
-  std::ostringstream debug_response;
-  debug_response << "{\"H\":["
-                 << H[0] << "," << H[1] << "," << H[2] << ","
-                 << H[3] << "," << H[4] << "," << H[5] << ","
-                 << H[6] << "," << H[7] << "," << H[8] << "]}";
+  std::ostringstream json;
+  json << "{\"H\":["
+      << H[0] << "," << H[1] << "," << H[2] << ","
+      << H[3] << "," << H[4] << "," << H[5] << ","
+      << H[6] << "," << H[7] << "," << H[8] << "]}";
   response.set_status(200);
-  response.set_payload(debug_response.str());
+  response.set_payload(json.str());
   response.set_field("Content-Type", "application/json");
   return;
 }
 
 void project_manager::project_home(std::string pname,
-                                   http_response &response) const {
-  std::cout << pname << ": state=" << d_projects.at(pname)->state_name() << std::endl;
-  std::ostringstream ss;
+    http_response& response) const {
+    std::ostringstream ss;
 
-  switch(d_projects.at(pname)->state()) {
-  case vise::project_state::SET_CONFIG:
+    switch (d_projects.at(pname)->state()) {
+    case vise::project_state::SET_CONFIG:
     {
-      std::ostringstream redirect_url;
-      redirect_url << "/" << pname << "/configure";
-      response.redirect_to(redirect_url.str());
-      break;
+        std::ostringstream redirect_url;
+        redirect_url << "/" << pname << "/configure";
+        response.redirect_to(redirect_url.str());
+        break;
     }
-  case vise::project_state::INDEX_ONGOING:
+    case vise::project_state::INDEX_ONGOING:
     {
-      std::ostringstream redirect_url;
-      redirect_url << "/" << pname << "/index_status";
-      response.redirect_to(redirect_url.str());
-      break;
+        std::ostringstream redirect_url;
+        redirect_url << "/" << pname << "/index_status";
+        response.redirect_to(redirect_url.str());
+        break;
     }
-  case vise::project_state::BROKEN_INDEX:
-    ss << "Index seems to be broken" << std::endl;
-    response.set_html_payload(ss.str());
-    break;
-  case vise::project_state::SEARCH_READY:
+    case vise::project_state::BROKEN_INDEX:
+        ss << "<h1>Incomplete Visual Index</h1><p>Visual index files for project [" << pname << "] are broken and therefore cannot be loaded. This can happen if the indexing process gets terminated prematurely.</p>";
+        ss << "<p><form method=\"post\" action=\"/" << pname << "/_index_create\"><input type=\"submit\" value=\"Resume Process to Fix Broken Index\"></form>. If you do not need this project any more, you can delete it from VISE settins panel in the home page.</p>";
+        response.set_html_payload(ss.str());
+        break;
+    case vise::project_state::SEARCH_READY:
     {
-      std::ostringstream redirect_url;
-      redirect_url << "/" << pname << "/filelist";
-      response.redirect_to(redirect_url.str());
-      break;
+        std::ostringstream redirect_url;
+        redirect_url << "/" << pname << "/filelist";
+        response.redirect_to(redirect_url.str());
+        break;
     }
-  default:
-    ss << "unknown project state: "
-       << d_projects.at(pname)->state_name() << std::endl;
-    response.set_html_payload(ss.str());
-  }
+    default:
+        ss << "unknown project state: "
+            << d_projects.at(pname)->state_name() << std::endl;
+        response.set_html_payload(ss.str());
+    }
 }
 
 void project_manager::project_filelist(std::string pname,
-                                       std::map<std::string, std::string> const &param,
-                                       http_response &response) const {
+    std::map<std::string, std::string> const& param,
+    http_response& response) const {
+  // check if project is loaded
+  if(!d_projects.at(pname)->index_is_loaded()) {
+    std::ostringstream ss;
+    ss << "Indexing has not been loaded yet. Some large indexes may take a bit longer (e.g. 10 seconds) to load. ";
+    ss << "<br/>Please referesh this page using your browsers \"Reload\" or \"Refresh\" button.";
+    response.set_html_payload(ss.str()); 
+  }
+
   uint32_t start = 0;
   uint32_t end;
   if(param.count("start") == 1) {
@@ -839,15 +808,9 @@ void project_manager::project_filelist(std::string pname,
     end = fminl(start + 50, d_projects.at(pname)->fid_count());
   }
 
-  uint32_t per_page = end - start;
-  if(param.count("per_page") == 1) {
-    per_page = std::atoi(param.at("per_page").c_str());
-  }
-
   std::ostringstream json;
   json << "{\"PNAME\":\"" << pname << "\""
        << ",\"FLIST_SIZE\":" << d_projects.at(pname)->fid_count()
-       << ",\"FLIST_PER_PAGE\":" << per_page
        << ",\"FLIST_START\":" << start
        << ",\"FLIST_END\":" << end;
   if(start != end) {
@@ -943,7 +906,6 @@ void project_manager::project_configure(std::string pname,
   json << ",\"IMAGE_SRC_COUNT\":"
        << d_projects.at(pname)->image_src_count()
        << "}";
-  std::cout << "project_configure: " << json.str() << std::endl;
 
   // default response format is HTML
   std::ostringstream html;
@@ -1040,6 +1002,7 @@ void project_manager::vise_home(std::map<std::string, std::string> const &param,
 
 void project_manager::project_pname_list(std::vector<std::string> &pname_list) const {
   pname_list.clear();
+
   boost::filesystem::path vise_store(d_conf.at("vise_store"));
   boost::filesystem::directory_iterator end_itr;
   for (boost::filesystem::directory_iterator it(vise_store); it!=end_itr; ++it) {
@@ -1110,31 +1073,76 @@ void project_manager::vise_project_create(std::map<std::string, std::string> con
 
 void project_manager::vise_project_delete(std::map<std::string, std::string> const &param,
                                           http_response &response) {
+    try {
+        std::map<std::string, std::string>::const_iterator itr;
+        for (itr = param.begin(); itr != param.end(); ++itr) {
+            if (itr->second != "1") {
+                continue;
+            }
+            std::string pname;
+            vise::url_decode(itr->first, pname);
+            if (!project_exists(pname)) {
+                continue;
+            }
 
-  std::map<std::string, std::string>::const_iterator itr;
-  for(itr=param.begin(); itr!=param.end(); ++itr) {
-    if(itr->second != "1") {
-      continue;
+            if (d_projects.count(pname)) {
+                bool success;
+                std::string message;
+                d_projects[pname]->index_unload(success, message);
+                if (!success) {
+                    std::cout << "index_unload() failed for project " << pname << std::endl;
+                    std::cout << message << std::endl;
+                }
+                d_projects[pname].reset(nullptr);
+                std::map<std::string, std::unique_ptr<vise::project> >::iterator pitr = d_projects.find(pname);
+                d_projects.erase(pitr);
+            }
+
+            boost::filesystem::path project_dir = boost::filesystem::path(d_conf.at("vise_store")) / pname;
+            uint32_t del_count = boost::filesystem::remove_all(project_dir);
+            std::cout << "deleted project " << pname << " ("
+                << del_count << " files)" << std::endl;
+        }
+
+        std::ostringstream redirect_url;
+        redirect_url << "/settings";
+        response.redirect_to(redirect_url.str());
     }
-    std::string pname;
-    vise::url_decode(itr->first, pname);
-    if(!project_exists(pname)) {
-      continue;
+    catch (std::exception& ex) {
+        std::cout << "vise_project_delete(): exception: " << ex.what() << std::endl;
+    }
+}
+
+void project_manager::vise_project_unload(std::map<std::string, std::string> const& param,
+    http_response& response) {
+    std::map<std::string, std::string>::const_iterator itr;
+    for (itr = param.begin(); itr != param.end(); ++itr) {
+        if (itr->second != "1") {
+            continue;
+        }
+        std::string pname;
+        vise::url_decode(itr->first, pname);
+        if (!project_exists(pname)) {
+            continue;
+        }
+        try {
+            if (d_projects.count(pname)) {
+                bool success;
+                std::string message;
+                d_projects[pname]->index_unload(success, message);
+                d_projects[pname].reset(nullptr);
+                std::map<std::string, std::unique_ptr<vise::project> >::iterator itr = d_projects.find(pname);
+                d_projects.erase(itr);
+            }
+        }
+        catch (std::exception & ex) {
+            std::cout << "exception: " << ex.what() << std::endl;
+        }
     }
 
-    if(d_projects.count(pname)) {
-      d_projects[pname].reset(nullptr);
-    }
-
-    boost::filesystem::path project_dir = boost::filesystem::path(d_conf.at("vise_store")) / pname;
-    uint32_t del_count = boost::filesystem::remove_all(project_dir);
-    std::cout << "deleted project " << pname << " ("
-              << del_count << " files)" << std::endl;
-  }
-
-  std::ostringstream redirect_url;
-  redirect_url << "/settings";
-  response.redirect_to(redirect_url.str());
+    std::ostringstream redirect_url;
+    redirect_url << "/settings";
+    response.redirect_to(redirect_url.str());
 }
 
 void project_manager::vise_settings(std::map<std::string, std::string> const &param,
@@ -1146,10 +1154,10 @@ void project_manager::vise_settings(std::map<std::string, std::string> const &pa
        << ",\"SETTINGS\":{";
 
   std::map<std::string, std::string>::const_iterator itr = d_conf.begin();
-  json << "\"" << itr->first << "\":\"" << itr->second << "\"";
+  json << "\"" << itr->first << "\":\"" << vise::json_escape_str(itr->second) << "\"";
   ++itr;
   for(; itr != d_conf.end(); ++itr) {
-    json << ",\"" << itr->first << "\":\"" << itr->second << "\"";
+    json << ",\"" << itr->first << "\":\"" << vise::json_escape_str(itr->second) << "\"";
   }
   json << "},\"PROJECT_LIST\":{";
   std::vector<std::string> pname_list;
@@ -1160,7 +1168,16 @@ void project_manager::vise_settings(std::map<std::string, std::string> const &pa
       json << ",\"" << pname_list.at(i) << "\":{}";
     }
   }
-  json << "}}";
+  json << "},\"LOADED_PROJECT_LIST\":[";
+  if (d_projects.size()) {
+      std::map<std::string, std::unique_ptr<vise::project> >::const_iterator itr = d_projects.begin();
+      json << "\"" << itr->first << "\"";
+      ++itr;
+      for (; itr != d_projects.end(); ++itr) {
+          json << ",\"" << itr->first << "\"";
+      }
+  }
+  json << "]}";
 
   if(param.count("response_format") == 1 &&
      param.at("response_format") == "json" ) {
@@ -1174,6 +1191,7 @@ void project_manager::vise_settings(std::map<std::string, std::string> const &pa
          << "<script>\n"
          << "// JS code generated automatically by src/vise/project_manager.cc::vise_settings()\n"
          << "var _vise_data = " << json.str() << ";\n"
+         << "console.log(_vise_data);\n"
          << "</script>\n"
          << "<script src=\"/vise_common.js\"></script>\n"
          << "<script src=\"/vise_settings.js\"></script>\n"
@@ -1304,9 +1322,7 @@ void project_manager::project_file_add(std::string pname,
   std::string source_loc;
   vise::url_decode(param.at("source_loc"), source_loc);
   boost::filesystem::path src(source_loc);
-  std::cout << "src src=" << src << std::endl;
   src.make_preferred();
-  std::cout << "new src=" << src << std::endl;
   if(!boost::filesystem::exists(src) ||
      !boost::filesystem::is_directory(src)) {
     response.set_text_payload("folder does not exist");
@@ -1315,12 +1331,11 @@ void project_manager::project_file_add(std::string pname,
   }
 
   boost::filesystem::path dst_prefix(d_projects.at(pname)->pconf("image_src_dir"));
-  boost::filesystem::directory_iterator end_itr;
+  boost::filesystem::recursive_directory_iterator end_itr;
   std::vector<std::string> added_fn_list;
   std::vector<std::string> discarded_fn_list;
-  for(boost::filesystem::directory_iterator it(src); it!=end_itr; ++it) {
+  for(boost::filesystem::recursive_directory_iterator it(src); it!=end_itr; ++it) {
     if(boost::filesystem::is_regular_file(it->path())) {
-      std::cout << "checking " << it->path() << std::endl;
       if(it->path().extension() == ".jpg" ||
          it->path().extension() == ".JPG" ||
          it->path().extension() == ".jpeg" ||
@@ -1333,15 +1348,19 @@ void project_manager::project_file_add(std::string pname,
          it->path().extension() == ".tiff"
          ) {
         boost::filesystem::path dst(dst_prefix);
-        dst = dst / it->path().filename();
+        dst = dst / boost::filesystem::relative(it->path(), src);
+        boost::filesystem::path dst_dir = dst.parent_path();
+        if (!boost::filesystem::exists(dst_dir)) {
+            boost::filesystem::create_directories(dst_dir);
+        }
         if(!boost::filesystem::exists(dst)) {
           boost::filesystem::copy_file(it->path(), dst);
-          added_fn_list.push_back(it->path().filename().string());
+          added_fn_list.push_back(boost::filesystem::relative(dst, dst_prefix).string());
         } else {
-          discarded_fn_list.push_back(it->path().filename().string());
+          discarded_fn_list.push_back(it->path().string());
         }
       } else {
-        discarded_fn_list.push_back(it->path().filename().string());
+        discarded_fn_list.push_back(it->path().string());
       }
     }
   }

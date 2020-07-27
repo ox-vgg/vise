@@ -21,9 +21,9 @@ content.setAttribute('id', 'content');
 var query_panel = document.createElement('div');
 query_panel.setAttribute('class', 'query_panel');
 content.appendChild(query_panel);
-var resultlist_panel = document.createElement('div');
-resultlist_panel.setAttribute('class', 'filelist_panel');
-content.appendChild(resultlist_panel);
+var results_panel = document.createElement('div');
+results_panel.setAttribute('class', 'results_panel');
+content.appendChild(results_panel);
 
 document.body.appendChild(toolbar);
 document.body.appendChild(content);
@@ -34,8 +34,13 @@ var current_score_threshold = 0;
 var current_norm_score_threshold = 0.07;
 var next_norm_score_threshold = 0.05;
 
-var resultlist = document.createElement('div');
-resultlist.setAttribute('class', 'resultlist');
+var results = document.createElement('div');
+results.setAttribute('class', 'resultgrid');
+//results.setAttribute('class', 'resultlist');
+
+// update the search result when browser is resized
+// this is required as the image size changes and hence the bounding box needs update
+window.addEventListener('resize', _vise_init_search_result_ui);
 
 // check existence of everything we need
 if( !_vise_self_check_is_ok()) {
@@ -90,6 +95,8 @@ function _vise_show_search_query_content() {
   qimgcontainer.appendChild(qimg);
   query.appendChild(qimgcontainer);
   query.appendChild(qlabel);
+  
+  query_panel.innerHTML = '';
   query_panel.appendChild(query);
 }
 
@@ -119,7 +126,7 @@ function _vise_on_img_load_show_query_rshape(e) {
 }
 
 function _vise_show_search_result_content() {
-  resultlist.innerHTML = '';
+  results.innerHTML = '';
 
   // @todo: only show some of the results and hide the low score results
   // allow users to reveal the low scoring results
@@ -147,7 +154,7 @@ function _vise_show_search_result_content() {
       break;
     }
     var a = _vise_search_result_html_element(i);
-    resultlist.appendChild(a);
+    results.appendChild(a);
   }
 
   var next_norm_score = _vise_data.RESULT[showing_result_to]['score'] / _vise_data.RESULT[0]['score'];
@@ -161,24 +168,23 @@ function _vise_show_search_result_content() {
     more.innerHTML = '<span class="text_button" onclick="_vise_show_more_search_results()">Show more</span>';
     showmore.appendChild(info);
     showmore.appendChild(more);
-    resultlist.appendChild(showmore);
+    results.appendChild(showmore);
   } else {
     if(showing_result_to === showing_result_from) {
       var nomatches = document.createElement('div');
       nomatches.setAttribute('id', 'nomatches');
       nomatches.innerHTML = 'No matches found';
-      resultlist.appendChild(nomatches);
+      results.appendChild(nomatches);
     }
   }
 
-  resultlist_panel.innerHTML = '';
-  resultlist_panel.appendChild(resultlist);
+  results_panel.innerHTML = '';
+  results_panel.appendChild(results);
+  
+  _vise_search_set_view_style();
 }
 
 function _vise_search_result_html_element(result_index) {
-  var a = document.createElement('a');
-  a.setAttribute('data-rindex', result_index)
-  a.setAttribute('title', _vise_data.RESULT[result_index]['filename'] + ', score=' + _vise_data.RESULT[result_index]['score'].toFixed(1));
   var matchview_uri = [];
   matchview_uri.push('/' + _vise_data.PNAME + '/showmatch?file_id=' + _vise_data.QUERY['file_id']);
   matchview_uri.push('match_file_id=' + _vise_data.RESULT[result_index]['file_id']);
@@ -186,6 +192,10 @@ function _vise_search_result_html_element(result_index) {
   matchview_uri.push('y=' + _vise_data.QUERY['y']);
   matchview_uri.push('width=' + _vise_data.QUERY['width']);
   matchview_uri.push('height=' + _vise_data.QUERY['height']);
+
+  var a = document.createElement('a');
+  a.setAttribute('data-rindex', result_index)
+  a.setAttribute('title', _vise_data.RESULT[result_index]['filename'] + ', score=' + _vise_data.RESULT[result_index]['score'].toFixed(1));
   a.setAttribute('href', matchview_uri.join('&'));
 
   var img = document.createElement('img');
@@ -193,19 +203,59 @@ function _vise_search_result_html_element(result_index) {
   img.setAttribute('data-rindex', result_index);
   img.addEventListener('load', _vise_on_img_load_show_result_rshape);
   a.appendChild(img);
-  return a;
+
+  if(results.classList.contains('resultgrid')) {
+    return a;
+  }
+  if(results.classList.contains('resultlist')) {
+    var div = document.createElement('div');
+    div.setAttribute('class', 'item');
+    a.setAttribute('title', 'Click to show details of match');
+    div.appendChild(a);
+
+    var table = document.createElement('table');
+    var tr0 = document.createElement('tr');
+    var td01 = document.createElement('td');
+    td01.innerHTML = 'Rank';
+    var td02 = document.createElement('td');
+    td02.innerHTML = result_index;
+    tr0.appendChild(td01);
+    tr0.appendChild(td02);
+    table.appendChild(tr0);
+
+    var tr1 = document.createElement('tr');
+    var td11 = document.createElement('td');
+    td11.innerHTML = 'Filename';
+    var td12 = document.createElement('td');
+    td12.innerHTML = '<a href="/' + _vise_data.PNAME + '/file?file_id=' + _vise_data.RESULT[result_index]['file_id'] + '">' + _vise_data.RESULT[result_index]['filename'] + '</a>';
+    tr1.appendChild(td11);
+    tr1.appendChild(td12);
+    table.appendChild(tr1);
+
+    var tr2 = document.createElement('tr');
+    var td21 = document.createElement('td');
+    td21.innerHTML = 'Score';
+    var td22 = document.createElement('td');
+    td22.innerHTML = _vise_data.RESULT[result_index]['score'];
+    tr2.appendChild(td21);
+    tr2.appendChild(td22);
+    table.appendChild(tr2);
+    div.appendChild(table);
+
+    return div;
+  }
 }
 
 function _vise_show_more_search_results() {
   var showmore = document.getElementById('showmore');
-  resultlist.removeChild(showmore);
+  results.removeChild(showmore);
 
   showing_result_from = showing_result_to;
   for( var i=showing_result_to; i<_vise_data.RESULT.length; ++i) {
     var norm_score = _vise_data.RESULT[i]['score'] / _vise_data.RESULT[0]['score'];
     if(norm_score > next_norm_score_threshold) {
       var a = _vise_search_result_html_element(i);
-      resultlist.appendChild(a);
+      results.appendChild(a);
     } else {
       break;
     }
@@ -239,7 +289,44 @@ function _vise_on_img_load_show_result_rshape(e) {
   e.target.parentNode.appendChild(svg);
 
   // set image label
-  var label = document.createElement('div');
-  label.innerHTML = rindex;
-  e.target.parentNode.appendChild(label);
+  if(results.classList.contains('resultgrid')) {
+    var label = document.createElement('div');
+    label.setAttribute('class', 'result_index');
+    label.innerHTML = rindex;
+    e.target.parentNode.appendChild(label);
+  }
+}
+
+
+function _vise_search_result_toggle_layout() {
+  if(results.classList.contains('resultgrid')) {
+	results.setAttribute('class', 'resultlist');
+  } else {
+	results.setAttribute('class', 'resultgrid');
+  }
+  _vise_show_search_result_content();
+}
+
+function _vise_search_result_toggle_layout() {
+  if(results.classList.contains('resultgrid')) {
+    results.classList.remove('resultgrid');
+    results.classList.add('resultlist');
+  } else {
+    results.classList.remove('resultlist');
+    results.classList.add('resultgrid');
+  }
+  _vise_show_search_result_content();
+}
+
+function _vise_search_set_view_style() {
+  var result_layout_selector = document.createElement('div');
+  result_layout_selector.setAttribute('class', 'text_button');
+  result_layout_selector.setAttribute('onclick', '_vise_search_result_toggle_layout()');
+  if(results.classList.contains('resultgrid')) {
+	result_layout_selector.innerHTML = 'List View';
+  } else {
+	result_layout_selector.innerHTML = 'Grid View';
+  }
+  pageinfo.innerHTML = '';
+  pageinfo.appendChild(result_layout_selector);
 }

@@ -17,6 +17,7 @@ No usage or redistribution is allowed without explicit permission.
 
 #include <string>
 #include <omp.h>
+#include <fstream>
 #include "vise/task_progress.h"
 
 namespace buildIndex {
@@ -26,6 +27,7 @@ namespace buildIndex {
                       bool const RootSIFT,
                       std::string const trainDescsFn,
                       std::string const trainAssignsFn,
+                      std::ofstream& logf,
                       vise::task_progress *progress = nullptr);
 }
 
