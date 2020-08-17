@@ -147,9 +147,7 @@ function _vise_fetch_index_progress() {
       _vise_data = JSON.parse(this.responseText);
       if(_vise_data.INDEX_STATUS.index_is_done === 1 &&
          _vise_data.INDEX_STATUS.index_is_ongoing === 0 ) {
-		setTimeout(function() {
-			window.location.replace('/' + _vise_data.PNAME + '/');
-		}, 2000);
+			  window.location.replace('/' + _vise_data.PNAME + '/filelist');
       } else {
         _vise_update_index_progress();
         setTimeout(_vise_fetch_index_progress, STATUS_UPDATE_INTERVAL);

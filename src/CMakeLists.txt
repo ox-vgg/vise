@@ -33,42 +33,41 @@ configure_file (
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
   )
 
-## Define location of dependencies for Windows build
 if (WIN32)
-    message("************************************************************")
-    message("************ Compiling for Windows Platform ****************")
-    message("************************************************************")
-    SET(WINDOWS_RESOURCE_FILENAME "${CMAKE_CURRENT_SOURCE_DIR}/res/windows/res.rc")
-    SET (VLFEAT_LIB "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21\\bin\\win64\\vl.lib")
-    SET (VLFEAT_INCLUDE_DIR "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21")
+  message("************************************************************")
+  message("************ Compiling for Windows Platform ****************")
+  message("************************************************************")
+  SET(WINDOWS_RESOURCE_FILENAME "${CMAKE_CURRENT_SOURCE_DIR}/res/windows/res.rc")
+  SET (VLFEAT_LIB "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21\\bin\\win64\\vl.lib")
+  SET (VLFEAT_INCLUDE_DIR "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21")
     SET (BOOST_ROOT "C:\\Users\\tlm\\dep\\vise\\boost_1_70_0")
     SET (BOOST_DIR "C:\\Users\\tlm\\dep\\vise\\boost_1_70_0")
     SET (Eigen3_DIR "C:\\Users\\tlm\\dep\\vise\\eigen-3.3.7\\cmake")
-    SET (Protobuf_SRC_ROOT_FOLDER "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1") 
+    SET (Protobuf_SRC_ROOT_FOLDER "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1")
     SET (Protobuf_FIND_VERSION "2.6.1")
     SET (Protobuf_PROTOC_EXECUTABLE "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\protoc.exe")
-    SET (Protobuf_LIBRARIES "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\libprotobuf.lib") 
+    SET (Protobuf_LIBRARIES "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\libprotobuf.lib")
     SET (Protobuf_USE_STATIC_LIBS ON)
     SET (Protobuf_DEBUG OFF)
-    
+
     #SET(CMAKE_CXX_FLAGS "/MT /O2 /Ob2 /DNDEBUG /EHsc")
     add_definitions("/MT /O2 /Ob2 /DNDEBUG /EHsc")
-    SET (VISE_DEPS_BASEDIR "C:\\Users\\tlm\\dep\\vise\\dep_dll") 
+    SET (VISE_DEPS_BASEDIR "C:\\Users\\tlm\\dep\\vise\\dep_dll")
     STRING(REPLACE "\\" "\\\\" VISE_DEPS_BASEDIR_2SLASH ${VISE_DEPS_BASEDIR})
     STRING(REPLACE "\\" "\\\\" VISE_DEPS_BASEDIR_4SLASH ${VISE_DEPS_BASEDIR_2SLASH})
 
-    SET (VISE_MAGICK_DEPS_BASEDIR "C:\\Users\\tlm\\dep\\vise\\dep_dll_imagemagick_from_traherne") 
+    SET (VISE_MAGICK_DEPS_BASEDIR "C:\\Users\\tlm\\dep\\vise\\dep_dll_imagemagick_from_traherne")
     STRING(REPLACE "\\" "\\\\" VISE_MAGICK_DEPS_BASEDIR_2SLASH ${VISE_MAGICK_DEPS_BASEDIR})
     STRING(REPLACE "\\" "\\\\" VISE_MAGICK_DEPS_BASEDIR_4SLASH ${VISE_MAGICK_DEPS_BASEDIR_2SLASH})
 
-    SET (VISE_DEMO_PROJECTS_DIR "C:\\Users\\tlm\\dep\\vise\\demo_projects") 
+    SET (VISE_DEMO_PROJECTS_DIR "C:\\Users\\tlm\\dep\\vise\\demo_projects")
     STRING(REPLACE "\\" "\\\\" VISE_DEMO_PROJECTS_DIR_2SLASH ${VISE_DEMO_PROJECTS_DIR})
     STRING(REPLACE "\\" "\\\\" VISE_DEMO_PROJECTS_DIR_4SLASH ${VISE_DEMO_PROJECTS_DIR_2SLASH})
 endif (WIN32)
 
 ## Boost
 set(Boost_DEBUG 0)
-find_package(Boost 1.70.0 COMPONENTS filesystem system thread unit_test_framework serialization REQUIRED)
+find_package(Boost 1.70.0 COMPONENTS filesystem system thread REQUIRED)
 link_directories( ${Boost_LIBRARY_DIRS} )
 include_directories( ${Boost_INCLUDE_DIRS} )
 
@@ -96,8 +95,8 @@ include_directories( ${PROTOBUF_INCLUDE_DIR} )
 ## requires EIGEN_DIR to be set to the location where Eigen3 is built using cmake
 if (WIN32)
 	find_package(Eigen3 CONFIG REQUIRED)
-else(WIN32)
-    find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+else (WIN32)
+  find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 endif (WIN32)
 include_directories( ${EIGEN3_INCLUDE_DIR} )
 
@@ -168,7 +167,7 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
   SET(CPACK_PACKAGE_EXECUTABLES "${VISE_NAME}" "${VISE_FULLNAME}")
   SET(CPACK_NSIS_DISPLAY_NAME "${VISE_NAME}")
   SET(CPACK_SYSTEM_NAME "Win64")
-  
+
   SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}\\\\res\\\\windows\\\\LICENSE_no_newline.txt")
 
   # NSIS specific settings
@@ -184,7 +183,7 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
   SET(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}\\\\res\\\\windows\\\\vise_icon_16x16.ico")
   SET(CPACK_NSIS_MUI_HEADERIMAGE "${CMAKE_CURRENT_SOURCE_DIR}\\\\res\\\\windows\\\\vise_logo_blur.bmp")
   SET(CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP "${CMAKE_CURRENT_SOURCE_DIR}\\\\res\\\\windows\\\\vise_logo_400x700.bmp")
-  
+
   SET(CPACK_NSIS_HELP_LINK "http://www.robots.ox.ac.uk/~vgg/software/vise/")
   SET(CPACK_NSIS_URL_INFO_ABOUT "http://www.robots.ox.ac.uk/~vgg/software/vise/")
 
@@ -193,7 +192,7 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
   # copy required resources
   INSTALL(DIRECTORY "${VISE_DEPS_BASEDIR_4SLASH}\\\\" DESTINATION "bin")
   INSTALL(DIRECTORY "${VISE_MAGICK_DEPS_BASEDIR_4SLASH}\\\\" DESTINATION "bin")
-  
+
   INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/www/" DESTINATION "www")
   #INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/" DESTINATION "res")
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/res/windows/vise_logo.bmp" DESTINATION "bin")
@@ -204,7 +203,7 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/README.txt" DESTINATION ".")
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/CHANGELOG.txt" DESTINATION ".")
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE_3rd_party.txt" DESTINATION ".")
-  
+
   # install dependencies (not required as we copy all the required DLLs)
   #list( APPEND  CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "  ExecWait \\\"$INSTDIR\\\\vcredist_x64.exe /install /quiet /norestart\\\"")
   #list( APPEND  CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "  ExecWait \\\"$INSTDIR\\\\VC_redist.x64.exe /install /quiet /norestart\\\"")

@@ -97,11 +97,18 @@ footer { display:block; text-align:center; margin-top:2em; padding:0.5em 0; font
 
 /* /{PNAME}/configure: project configuration */
 #content #settings_container {}
-#content #settings_container table { margin-left:1em; border:1px solid #cccccc; border-collapse:collapse; font-size:small; }
+#content #settings_container div { margin:1em; }
+#content #settings_container input[type="radio"] { vertical-align:0.2em; margin-right:0.5em; }
+#content #settings_container table { margin-left:2em; border:1px solid #808080; border-collapse:collapse; font-size:small; }
 #content #settings_container table tr {}
-#content #settings_container table td {border:1px solid #f2f2f2; padding:1em; }
-#content #settings_container table td input[type="text"] { }
+#content #settings_container table td { padding:1em; }
+#content #settings_container table td input[type="text"] { font-size:small; width:36em; }
+#content #settings_container table td input[type="radio"] { vertical-align:sub; margin-right:0.3em; }
+#content #settings_container table td p { display:block; margin:0; }
 #content #settings_container #config_save_status { margin-left:1em; }
+#content #settings_container .settings_details { font-size:0.8em; }
+#content #settings_container .settings_details summary { font-style:italic; }
+
 #content #files_container {}
 #content #files_container div { margin:1em; }
 #content #files_container input { font-size:1em; width:20em; margin:0 0.5em; }

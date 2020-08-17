@@ -200,6 +200,19 @@ function _vise_settings_get_var_desc(variable_name) {
     ];
     break;
 
+  case 'generic_visual_vocabulary':
+    desc = [
+      'Generic Visual Vocabulary',
+      'Location of generic visual vocabulary.'
+    ];
+    break;
+
+  case 'asset_store':
+    desc = [
+      'VISE Asset Store',
+      'VISE assets (e.g. data files, etc.) are stored in this folder.'
+    ];
+    break;
   default:
     desc = [variable_name, ''];
   }
@@ -239,9 +252,9 @@ function _vise_show_admintool() {
   project_del_container.appendChild(form);
 
   var note = document.createElement('p');
-  note.innerHTML = 'Note: Windows locks the VISE project folders when the VISE application is running and therefore currently it is not possible to delete projects using this interface in Windows. For now, we advise you to manually delete the corresponding folder. For example, to delete a project named "ABC", open File Explorer in Windows and delete the following folder: <code>C:\\Users\\USERNAME\\vgg\\vise\\store\\ABC</code>'; 
+  note.innerHTML = 'Note: Windows locks the VISE project folders when the VISE application is running and therefore currently it is not possible to delete projects using this interface in Windows. For now, we advise you to manually delete the corresponding folder. For example, to delete a project named "ABC", open File Explorer in Windows and delete the following folder: <code>C:\\Users\\USERNAME\\vgg\\vise\\store\\ABC</code>';
   project_del_container.appendChild(note);
-  
+
   admintool_container.appendChild(title);
   admintool_container.appendChild(warning);
   admintool_container.appendChild(project_del_container);

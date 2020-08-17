@@ -78,6 +78,7 @@ target_link_libraries(relja_retrival
   tfidf_v2
   mq_filter_outliers
   task_progress
+  register_images
   ${Boost_LIBRARIES}
   ${ImageMagick_LIBRARIES}
 )

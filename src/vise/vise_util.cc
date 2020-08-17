@@ -31,6 +31,8 @@ bool vise::configuration_load(std::string filename,
     conf[key] = value;
   }
   file.close();
+  std::cout << "vise_util::configuration_load(): loaded from " << filename << std::endl;
+
   return true;
 }
 
@@ -48,6 +50,7 @@ bool vise::configuration_save(std::map<std::string, std::string> &conf,
     file << itr->first << "=" << itr->second << std::endl;
   }
   file.close();
+  std::cout << "vise_util::configuration_save(): saved to " << filename << std::endl;
   return true;
 }
 

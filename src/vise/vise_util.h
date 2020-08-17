@@ -20,9 +20,11 @@
 
 #include <boost/filesystem.hpp>
 
+/*
 #ifndef ASSERT
 #define ASSERT(expression) if (!(expression)) { std::cerr << "Precondition failed: " #expression " in "  << __FUNCTION__ << " (" __FILE__ ":" << __LINE__ << ")\n"; exit(1); }
 #endif
+*/
 
 namespace vise {
   // VISE configuration

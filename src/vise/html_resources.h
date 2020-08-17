@@ -25,6 +25,24 @@ namespace vise {
   <!-- This HTML header was automatically generated using "src/vise/html_resources.h" file -->
 )HTML_STR";
 
+  const char* const VISE_WAIT_PAGE_HEAD = R"HTML_STR(<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>VISE</title>
+    <meta name="author" content="VGG Image Search Engine (VISE)">
+    <meta name="description" content="Home page of VGG Image Search Engine (VISE). More details are available at the following website: http://www.robots.ox.ac.uk/~vgg/software/vise/">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" type="text/css" href="/vise.css">
+    <meta http-equiv="refresh" content="3">
+  </head>
+  <!-- This HTML header was automatically generated using "src/vise/html_resources.h" file -->
+)HTML_STR";
+
     const char* const PROJECT_HTML_HEAD = R"HTML_STR(<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -35,7 +53,7 @@ namespace vise {
     <title></title>
     <meta name="author" content="VGG Image Search Engine (VISE)">
     <meta name="description" content="A project created using VGG Image Search Engine (VISE). More details are available at the following website: http://www.robots.ox.ac.uk/~vgg/software/vise/">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" type="text/css" href="/project.css">
   </head>

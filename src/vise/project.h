@@ -20,17 +20,20 @@
 #include <boost/filesystem.hpp>
 
 namespace vise {
-  enum class project_state { UNKNOWN, SET_CONFIG, INDEX_ONGOING, BROKEN_INDEX, SEARCH_READY };
+  enum class project_state { UNKNOWN, INIT_FAILED, SET_CONFIG, INDEX_ONGOING, BROKEN_INDEX, SEARCH_READY };
 
   class project {
   public:
     project(std::string pname,
-            std::map<std::string, std::string> const &conf);
+            std::string pconf_fn);
+    project(std::string pname,
+            std::map<std::string, std::string> const &vise_conf);
     project(project const &p);
     ~project();
-    void index_create(bool &success, std::string &message);
+    void index_create(bool &success, std::string &message, bool block_until_done=false);
     void index_load(bool &success, std::string &message);
     void index_unload(bool &success, std::string &message);
+    bool index_load_is_ongoing() const;
     bool index_is_loaded();
     bool index_is_done();
     bool index_is_incomplete();
@@ -56,10 +59,19 @@ namespace vise {
 
     uint32_t image_src_count() const;
 
+    void conf_init_default();
+    bool conf_reload();
     void conf_to_json(std::ostringstream &json);
     bool conf_from_plaintext(std::string plaintext);
+    bool conf_validate_data_dir(bool create_dir_if_missing=false);
     std::string pconf(std::string key);
-    void conf_init_default_dir();
+    bool use_preset_conf(std::string preset_conf_id);
+    bool use_preset_conf_1();
+    void use_preset_conf_2();
+    void use_preset_conf_auto();
+    void use_preset_conf_manual();
+    void remove_existing_visual_vocabulary();
+    void preset_conf_to_json(std::ostringstream &json);
 
   private:
     std::string d_pname;
@@ -69,11 +81,13 @@ namespace vise {
     boost::filesystem::path d_image_src_dir;
     boost::filesystem::path d_tmp_dir;
 
+    bool d_is_index_load_ongoing;
+
+    boost::filesystem::path d_pconf_fn;
     const std::map<std::string, std::string> d_conf;  // VISE application configuration
     std::map<std::string, std::string> d_pconf;       // project configuration
     std::unique_ptr<vise::search_engine> d_search_engine;
 
-    std::thread d_index_thread;
     std::mutex d_index_mutex;
     std::mutex d_index_load_mutex;
 
@@ -85,8 +99,10 @@ namespace vise {
     void search_engine_init(std::string search_engine_name,
                             bool &success,
                             std::string &message);
-    bool conf_reload();
+
+    static const std::vector<std::string> d_preset_name_list;
     void conf_load_default();
+    void init_preset_conf();
   };
 }
 #endif

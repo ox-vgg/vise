@@ -21,7 +21,8 @@ namespace vise {
     virtual ~search_engine();
     virtual void index_create(bool &success,
                               std::string &message,
-                              std::function<void(void)> callback) = 0;
+                              std::function<void(void)> callback,
+                              bool block_until_done=false) = 0;
     virtual void index_load(bool &success, std::string &message) = 0;
     virtual void index_unload(bool &success, std::string &message) = 0;
     virtual bool index_is_loaded() const = 0;

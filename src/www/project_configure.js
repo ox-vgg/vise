@@ -25,11 +25,15 @@ var files_container = document.createElement('div');
 files_container.setAttribute('id', 'files_container');
 var settings_container = document.createElement('div');
 settings_container.setAttribute('id', 'settings_container');
+var settings_mode_selector = document.createElement('div');
+
 var settings_table = document.createElement('table');
+var settings_details = document.createElement('div');
+settings_details.setAttribute('class', 'settings_details');
 
 content.appendChild(files_container);
-content.appendChild(tool_container);
 content.appendChild(settings_container);
+content.appendChild(tool_container);
 
 var local_file_selector = document.createElement('input');
 local_file_selector.setAttribute('type', 'file');
@@ -87,7 +91,9 @@ function _vise_show_configure_ui() {
   create_search_engine_button = document.createElement('input');
   create_search_engine_button.setAttribute('type', 'submit');
   create_search_engine_button.setAttribute('value', 'Create Visual Search Engine');
-  create_search_engine_button.setAttribute('disabled', '');
+  if(_vise_data.IMAGE_SRC_COUNT === 0) {
+    create_search_engine_button.setAttribute('disabled', '');
+  }
   form.appendChild(create_search_engine_button);
   tool_container.appendChild(form);
 
@@ -109,11 +115,11 @@ function _vise_project_file_count_update() {
   xhr.addEventListener('load', function() {
     switch(xhr.statusText) {
     case 'OK':
-	var file_count = parseInt(xhr.responseText);
+	    var file_count = parseInt(xhr.responseText);
       pageinfo.innerHTML = 'Project contains ' + file_count + ' files.';
-	  if(file_count > 0) {
-		create_search_engine_button.removeAttribute('disabled');
-	  }
+	    if(file_count > 0) {
+		    create_search_engine_button.removeAttribute('disabled');
+	    }
       break;
     default:
       _vise_project_file_count_on_error();
@@ -129,8 +135,14 @@ function _vise_project_file_count_update() {
 
 function _vise_init_configure_settings() {
   settings_container.innerHTML = '';
-  _vise_configure_show_use_default(true);
+  var title = document.createElement('h3');
+  title.innerHTML = "Project Settings";
+  settings_container.appendChild(title);
+
+  settings_container.appendChild(settings_mode_selector);
   settings_container.appendChild(settings_table);
+
+  _vise_configure_init_settings_mode_selector();
 }
 
 function _vise_init_configure_files() {
@@ -154,6 +166,7 @@ function _vise_init_configure_files() {
   label2.innerHTML = 'or, directly import from this folder';
   var input2 = document.createElement('input');
   input2.setAttribute('type', 'text');
+  input2.setAttribute('maxlength', '512');
   input2.setAttribute('placeholder', 'e.g. C:\\Documents\\data\\images');
   input2.setAttribute('title', 'The process of adding a very large number of files (e.g. 50,000 files) may not succeed as it will take a very long time. For such cases, you can split your files into subfolders (e.g. 10 subfolders each containing 5,000 files) and add each subfolder in turn.');
   input2.setAttribute('id', 'import_folder_input');
@@ -170,40 +183,82 @@ function _vise_init_configure_files() {
   files_container.appendChild(file_add_status);
 }
 
-function _vise_configure_show_use_default(is_checked) {
-  settings_table.innerHTML = '';
-  var tr = document.createElement('tr');
-  var col1 = document.createElement('td');
-  col1.innerHTML = 'Use default settings';
-  var col2 = document.createElement('td');
-  var checkbox = document.createElement('input');
-  checkbox.setAttribute('type', 'checkbox');
-  if(is_checked) {
-    checkbox.setAttribute('checked', '');
-  }
-  checkbox.addEventListener('change', function(e) {
-    if(this.checked) {
-      _vise_configure_show_use_default(true);
-    } else {
-      _vise_configure_show_all_settings();
+function _vise_configure_init_settings_mode_selector() {
+  settings_mode_selector.innerHTML = '';
+  for(var i in _vise_data.PCONF_PRESET_LIST) {
+    var preset_id = _vise_data.PCONF_PRESET_LIST[i];
+    var row = document.createElement('p');
+    var preset_radio = document.createElement('input');
+    preset_radio.setAttribute('type', 'radio');
+    preset_radio.setAttribute('name', 'settings');
+    preset_radio.setAttribute('value', preset_id);
+    preset_radio.setAttribute('id', preset_id);
+    if(preset_id === _vise_data.PRESET_CONF_ID) {
+      preset_radio.setAttribute('checked', '');
+      _vise_configure_init_settings_details(preset_id);
     }
-  });
-  col2.appendChild(checkbox);
-
-  tr.appendChild(col1);
-  tr.appendChild(col2);
-  settings_table.appendChild(tr);
+    preset_radio.addEventListener('change', function(e) {
+      settings_table.innerHTML = '';
+      var preset_conf_id = this.getAttribute('value');
+      _vise_configure_use_preset(preset_conf_id);
+    });
+    var preset_label = document.createElement('label');
+    preset_label.setAttribute('for', preset_id);
+    preset_label.innerHTML = _vise_configure_preset_id_to_title(preset_id);
+    row.appendChild(preset_radio);
+    row.appendChild(preset_label);
+    settings_mode_selector.appendChild(row);
+  }
+  settings_mode_selector.appendChild(settings_details);
 }
 
-function _vise_configure_show_all_settings() {
-  _vise_configure_show_use_default(false);
+function _vise_configure_preset_id_to_title(preset_id) {
+  switch(preset_id) {
+  case 'preset_conf_1':
+    return 'Preset 1: Fast indexing but less accurate visual search';
+    break;
+  case 'preset_conf_2':
+    return 'Preset 2: More accurate visual search but indexing process takes longer to complete';
+    break;
+  case 'preset_conf_auto':
+    return 'Auto: Automatic selection of configuration parameters';
+    break;
+  case 'preset_conf_manual':
+    return 'Manually set all options (only for advanced users)';
+    break;
+  default:
+    return 'Unknown';
+  }
+}
 
-  var no_edit_key_list = ['cover_image_filename', 'data_dir', 'search_engine'];
+function _vise_configure_init_settings_details(preset_id) {
+  switch(preset_id) {
+  case 'preset_conf_1':
+    settings_details.innerHTML = '<details><summary>More details about this setting</summary><ul><li>A precomputed generic visual vocaulary is used and therefore visual search engine gets created quickly.</li><li>The project uses less disk space.</li><li>Visual search may be less accurate because the project\'s images may contain visual patterns that are not represented in the generic visual vocabulary</li></ul></details>';
+    break;
+  case 'preset_conf_2':
+    settings_details.innerHTML = '<details><summary>More details about this setting</summary><p><ul><li>Visual vocabulary is computed from the images added to the project and therefore the visual search engine creation process takes longer to complete.</li><li>The project uses more disk space.</li><li>Visual search is more accurate because the generated visual vocabulary is capable of representing most of the visual patterns contained in project\'s images.</li><li>This setting is only feasible for a project containing large (e.g. 5000) number of images.</ul></p></details>';
+    break;
+  case 'preset_conf_auto':
+    settings_details.innerHTML = '<details><summary>More details about this setting</summary><p><ul><li>Visual vocabulary is computed from the images added to the project and therefore the visual search engine creation process takes longer to complete.</li><li>Configuration parameters (e.g. number of clusters in visual vocabulary) are automatically inferred from the number of images contained in the project.</li><li>Visual search is more accurate because the generate visual vocabulary is capable of representing most of the visual patterns contained in project\'s images.</li><li>Automatic parameter selection may fail for some projects (e.g. projects with very small number of images)</ul></p></details>';
+    break;
+  case 'preset_conf_manual':
+    settings_details.innerHTML = '';
+    break;
+  default:
+    return 'Unknown';
+  }
+}
+
+function _vise_configure_init_manual_conf_editor(confdata_str) {
+  var confdata = JSON.parse(confdata_str)
+  settings_table.innerHTML = '';
+  var no_edit_key_list = ['cover_image_filename', 'data_dir', 'search_engine', 'preset_conf_id'];
 
   var pidrow = document.createElement('tr');
   pidrow.innerHTML = '<td>Project Id</td><td>' + _vise_data.PNAME + '</td>';
   settings_table.appendChild(pidrow);
-  for(var key in _vise_data.PCONF) {
+  for(var key in confdata) {
     var desc = _vise_configure_get_var_desc(key);
     var tr = document.createElement('tr');
     var keycol = document.createElement('td');
@@ -213,8 +268,8 @@ function _vise_configure_show_all_settings() {
     var input = document.createElement('input');
     input.setAttribute('type', 'text');
     input.setAttribute('name', key);
-    input.setAttribute('value', _vise_data.PCONF[key]);
-    input.setAttribute('title', _vise_data.PCONF[key]);
+    input.setAttribute('value', confdata[key]);
+    input.setAttribute('title', confdata[key]);
 
     if(no_edit_key_list.includes(key)) {
       input.setAttribute('disabled', '');
@@ -240,6 +295,58 @@ function _vise_configure_show_all_settings() {
   settings_table.appendChild(control);
 }
 
+function _vise_configure_use_preset(preset_conf_id) {
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener('load', function() {
+    switch(xhr.statusText) {
+    case 'OK':
+      if(preset_conf_id === 'preset_conf_manual') {
+        _vise_configure_get_current_conf().then(function(confdata_str) {
+          _vise_configure_init_manual_conf_editor(confdata_str);
+        }, function(err) {
+          settings_details.innerHTML = 'Error: failed to get configuration';
+        });
+      }
+      _vise_configure_init_settings_details(preset_conf_id);
+      break;
+    default:
+      settings_details.innerHTML = '<span style="color:red;">Error: ' + xhr.responseText + '</span>';
+    }
+  });
+  xhr.addEventListener('timeout', function(e) {
+    settings_details.innerHTML = 'Error: Server Timeout';
+  });
+  xhr.addEventListener('error', function(e) {
+    settings_details.innerHTML = 'Error: Server Error';
+  });
+  var endpoint = '/' + _vise_data.PNAME + '/_config_use_preset';
+  xhr.open('POST', endpoint);
+  xhr.send(preset_conf_id);
+}
+
+function _vise_configure_get_current_conf() {
+  return new Promise(function(ok_callback, err_callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function() {
+      switch(xhr.statusText) {
+      case 'OK':
+        ok_callback(xhr.responseText);
+        break;
+      default:
+        err_callback(xhr.responseText);
+      }
+    });
+    xhr.addEventListener('timeout', function(e) {
+      err_callback('Error: Server Timeout');
+    });
+    xhr.addEventListener('error', function(e) {
+      err_callback('Error: Server Error');
+    });
+    var endpoint = '/' + _vise_data.PNAME + '/_conf';
+    xhr.open('GET', endpoint);
+    xhr.send();
+  });
+}
 
 function _vise_configure_on_save_settings() {
   var input = settings_table.getElementsByTagName("input");
@@ -250,7 +357,6 @@ function _vise_configure_on_save_settings() {
       var key = input[i].getAttribute('name');
       var val = input[i].value;
       formdata.push(key + '=' + val);
-      _vise_data.PCONF[key] = val;
     }
   }
 
@@ -362,7 +468,7 @@ function _vise_configure_upload_selected_files(e) {
   upload_progress.setAttribute('value', '0');
   upload_progress.classList.remove('hide');
   file_add_status.classList.add('hide');
-  
+
   upload_progress_message.innerHTML = ''
   upload_progress_message.classList.add('hide');
 
@@ -374,7 +480,6 @@ function _vise_configure_upload_selected_files(e) {
 function _vise_configure_continue_file_upload(start_index, parallel_upload_count) {
   var upload_promise_list = [];
   var end_index = Math.min(user_selected_files.length, start_index + parallel_upload_count);
-  console.log('_vise_configure_continue_file_upload: ' + start_index + ' to ' + end_index);
   for(var i=start_index; i<end_index; ++i) {
     upload_promise_list.push(_vise_configure_upload_file(i, user_selected_files[i]));
   }

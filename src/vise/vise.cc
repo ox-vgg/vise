@@ -5,7 +5,7 @@
 // Date: 12 Nov. 2019
 //
 
-#ifdef _WIN321
+#ifdef _WIN32
 #include "vise_version.h"
 #include "vise_util.h"
 #include "http_server.h"
@@ -218,7 +218,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         trect.bottom = win_size.bottom;
         DrawText(hdc, vise_name_version_str.c_str(), vise_name_version_str.size(), &trect, 0);
 
-        // Show URL for VISE web based interface        
+        // Show URL for VISE web based interface
         GetTextExtentPoint32(hdc, vise_access_info_str.c_str(), vise_access_info_str.size(), &tdim);
         trect.left = (win_size.right - win_size.left) / 2 - tdim.cx / 2;
         trect.right = (win_size.right - win_size.left) / 2 + tdim.cx / 2;
@@ -258,8 +258,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 #endif
 
-//#ifdef __linux__
-#ifdef _WIN32
+#ifdef __linux__
+//#ifdef _WIN32
 #include "vise_version.h"
 #include "vise_util.h"
 #include "http_server.h"
@@ -276,10 +276,10 @@ int main(int argc, char **argv) {
             << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH
             << std::endl;
   const boost::filesystem::path visehome = vise::vise_home();
-  boost::filesystem::path vise_settings = visehome / "vise_settings.txt";
-  std::map<std::string, std::string> conf;
+  boost::filesystem::path vise_settings_fn = visehome / "vise_settings.txt";
+  std::map<std::string, std::string> vise_settings;
   std::cout << "VISE_HOME=" << visehome << std::flush << std::endl;
-  if(!boost::filesystem::exists(vise_settings)) {
+  if(!boost::filesystem::exists(vise_settings_fn)) {
     // use default configuration for VISE
     boost::filesystem::path vise_store = visehome / "store";
     boost::filesystem::path www_store = visehome / "www";
@@ -291,25 +291,88 @@ int main(int argc, char **argv) {
     }
 
 
-    conf["vise_store"] = vise_store.string();
-    conf["www_store"] = www_store.string();
-    conf["address"] = "0.0.0.0";
-    conf["port"] = "9670";
-    conf["nthread"] = "4";
-    vise::configuration_save(conf, vise_settings.string());
+    vise_settings["vise_store"] = vise_store.string();
+    vise_settings["www_store"] = www_store.string();
+    vise_settings["address"] = "0.0.0.0";
+    vise_settings["port"] = "9670";
+    vise_settings["nthread"] = "4";
+    vise::configuration_save(vise_settings, vise_settings_fn.string());
   }
-  // load VISE configuration
-  vise::configuration_load(vise_settings.string(), conf);
 
-  boost::filesystem::path exec_dir(argv[0]);
-  //std::cout << "\nMagick::InitializeMagick = " << exec_dir.parent_path().string().c_str() << std::endl;
-  Magick::InitializeMagick(exec_dir.parent_path().string().c_str());
-  std::cout << "\nImageMagick Magick++ quantum depth = " << MAGICKCORE_QUANTUM_DEPTH << std::endl;
+  if(argc == 1) { // no command line arguments -> run vise server
+    // load VISE configuration
+    std::cout << "using VISE settings from "
+              << vise_settings_fn << std::endl;
+    vise::configuration_load(vise_settings_fn.string(), vise_settings);
 
-  // start http server to serve contents in a web browser
-  std::cout << "Initializing http_server ..." << std::endl;
-  vise::http_server server(conf);
-  server.start();
-  return 0;
+    boost::filesystem::path exec_dir(argv[0]);
+    //std::cout << "\nMagick::InitializeMagick = " << exec_dir.parent_path().string().c_str() << std::endl;
+    Magick::InitializeMagick(exec_dir.parent_path().string().c_str());
+    std::cout << "\nImageMagick Magick++ quantum depth = " << MAGICKCORE_QUANTUM_DEPTH << std::endl;
+
+    // start http server to serve contents in a web browser
+    std::cout << "Initializing http_server ..." << std::endl;
+    vise::project_manager manager(vise_settings);
+    vise::http_server server(vise_settings, manager);
+    server.start();
+    return 0;
+  }
+
+  if(argc > 1) {
+    std::string cmd(argv[1]);
+    if(cmd == "create-project") {
+      if(argc == 4) {
+        std::string pname(argv[2]);
+        boost::filesystem::path conf_fn(argv[3]);
+        if( !boost::filesystem::exists(conf_fn) ) {
+          std::cout << "project configuration file not found: "
+                    << conf_fn << std::endl;
+          return 1;
+        }
+        vise::project new_project(pname, conf_fn.string());
+        bool success;
+        std::string message;
+        bool block_until_done = true;
+        new_project.index_create(success, message, block_until_done);
+        std::cout << message << std::endl;
+      } else {
+        std::cout << "Usage: " << argv[0]
+                  << " " << argv[1] << " PROJECT_NAME CONFIG_FILENAME" << std::endl;
+        return 1;
+      }
+      return 0;
+    }
+
+    if(cmd == "serve-project") {
+      if(argc == 4) {
+        std::map<std::string, std::string> vise_settings;
+        std::cout << "using VISE settings from "
+                  << vise_settings_fn << std::endl;
+        vise::configuration_load(vise_settings_fn.string(), vise_settings);
+
+        std::string pname(argv[2]);
+        boost::filesystem::path project_conf_fn(argv[3]);
+        if( !boost::filesystem::exists(project_conf_fn) ) {
+          std::cout << "project configuration file not found: "
+                    << project_conf_fn << std::endl;
+          return 1;
+        }
+        std::map<std::string, std::string> pname_pconf_fn_map;
+        pname_pconf_fn_map[pname] = project_conf_fn.string();
+        vise::project_manager manager(vise_settings);
+        manager.serve_only(pname_pconf_fn_map);
+        vise::http_server server(vise_settings, manager);
+        server.start();
+      } else {
+        std::cout << "Usage: " << argv[0]
+                  << " " << argv[1] << " PROJECT_NAME CONFIG_FILENAME" << std::endl;
+        return 1;
+      }
+      return 0;
+    }
+
+    std::cout << "unknown command: " << argv[1] << std::endl;
+    return 0;
+  }
 }
 #endif // end of __linux__

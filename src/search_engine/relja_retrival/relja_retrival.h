@@ -50,6 +50,7 @@
 #include "putative.h"
 #include "det_ransac.h"
 #include "macros.h"
+#include "register_images.h"
 
 #include <boost/lambda/construct.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -65,6 +66,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <functional>
+#include <stdexcept>
 
 #include <boost/filesystem.hpp>
 
@@ -73,11 +75,13 @@
 namespace vise {
   class relja_retrival:public search_engine {
   public:
-    relja_retrival(std::map<std::string, std::string> const &pconf);
+    relja_retrival(boost::filesystem::path pconf_fn,
+                   boost::filesystem::path project_dir);
     ~relja_retrival();
     void index_create(bool &success,
                       std::string &message,
-                      std::function<void(void)> callback) override;
+                      std::function<void(void)> callback,
+                      bool block_until_done=false) override;
     void index_load(bool &success, std::string &message) override;
     void index_unload(bool &success, std::string &message) override;
     bool index_is_loaded() const override;
@@ -116,10 +120,19 @@ namespace vise {
     void create_index();
 
     void index_read_status(std::vector<std::string> &status_tokens) const;
+    int32_t get_traindesc_count(std::string train_desc_fn);
 
     void findBBox2( double xl, double xu, double yl, double yu, homography const &H, double &xl2, double &xu2, double &yl2, double &yu2, uint32_t w2, uint32_t h2 ) const;
 
+    boost::filesystem::path d_data_dir;
+    boost::filesystem::path d_image_dir;
+    boost::filesystem::path d_image_src_dir;
+    boost::filesystem::path d_tmp_dir;
+    boost::filesystem::path d_pconf_fn;
+    boost::filesystem::path d_project_dir;
     std::map<std::string, std::string> d_pconf;
+    bool pconf_validate_data_dir();
+
     boost::filesystem::path d_filelist_fn;
     boost::filesystem::path d_filestat_fn;
     boost::filesystem::path d_traindesc_fn;

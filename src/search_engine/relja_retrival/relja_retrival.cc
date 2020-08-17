@@ -9,37 +9,46 @@ const std::vector<std::string> vise::relja_retrival::task_name_list = {
                                                                        "index"
 };
 
-vise::relja_retrival::relja_retrival(std::map<std::string, std::string> const &pconf)
-  : search_engine("relja_retrival"),
-    d_pconf(pconf)
+vise::relja_retrival::relja_retrival(boost::filesystem::path pconf_fn,
+                                     boost::filesystem::path project_dir)
+  : search_engine("relja_retrival"), d_pconf_fn(pconf_fn), d_project_dir(project_dir)
 {
   std::cout << "relja_retrival()" << std::endl;
-  if(d_pconf.count("data_dir") == 0 ||
-     d_pconf.count("image_dir") == 0) {
-    std::cout << "relja_retrival(): malformed config file" << std::endl;
+  if( !boost::filesystem::exists(d_pconf_fn) ) {
+    std::cout << "vise::relja_retrival::relja_retrival(): project configuration file not found: "
+              << d_pconf_fn << std::endl;
+  }
+  bool success = false;
+  success = vise::configuration_load(d_pconf_fn.string(), d_pconf);
+  if(success) {
+    if(!pconf_validate_data_dir()) {
+      std::cout << "relja_retrival(): failed to validate conf. data dir" << std::endl;
+      return;
+    }
+  } else {
+    std::cout << "relja_retrival(): failed to load configuration from: "
+              << d_pconf_fn << std::endl;
   }
 
-  const boost::filesystem::path data_dir(d_pconf.at("data_dir"));
-
-  d_filelist_fn    = data_dir / "filelist.txt";
-  d_filestat_fn    = data_dir / "filestat.txt";
-  d_traindesc_fn   = data_dir / "traindesc.bin";
-  d_bowcluster_fn  = data_dir / "bowcluster.bin";
-  d_trainassign_fn = data_dir / "trainassign.bin";
-  d_trainhamm_fn   = data_dir / "trainhamm.bin";
-  d_index_dset_fn  = data_dir / "index_dset.bin";
-  d_index_iidx_fn  = data_dir / "index_iidx.bin";
-  d_index_fidx_fn  = data_dir / "index_fidx.bin";
-  d_index_tmp_dir  = data_dir / "_tmp/";
+  d_filelist_fn    = d_data_dir / "filelist.txt";
+  d_filestat_fn    = d_data_dir / "filestat.txt";
+  d_traindesc_fn   = d_data_dir / "traindesc.bin";
+  d_bowcluster_fn  = d_data_dir / "bowcluster.bin";
+  d_trainassign_fn = d_data_dir / "trainassign.bin";
+  d_trainhamm_fn   = d_data_dir / "trainhamm.bin";
+  d_index_dset_fn  = d_data_dir / "index_dset.bin";
+  d_index_iidx_fn  = d_data_dir / "index_iidx.bin";
+  d_index_fidx_fn  = d_data_dir / "index_fidx.bin";
+  d_index_tmp_dir  = d_data_dir / "_tmp/";
   d_index_tmp_dir.make_preferred(); // convert the trailing path-separator to platform specific character
-  d_index_status_fn= data_dir / "index_status.txt";
-  d_weight_fn      = data_dir / "weight.bin";
+  d_index_status_fn= d_data_dir / "index_status.txt";
+  d_weight_fn      = d_data_dir / "weight.bin";
 
   d_is_search_engine_loaded = false;
   d_is_indexing_ongoing = false;
   d_is_indexing_done = false;
 
-  d_index_log_fn   = data_dir / "index.log";
+  d_index_log_fn   = d_data_dir / "index.log";
   d_log.open(d_index_log_fn.string(), std::fstream::app);
   d_log << "===================[ "
         << "logging started on " << vise::now_timestamp()
@@ -76,7 +85,8 @@ vise::relja_retrival::~relja_retrival() {
 
 void vise::relja_retrival::index_create(bool &success,
                                         std::string &message,
-                                        std::function<void(void)> callback) {
+                                        std::function<void(void)> callback,
+                                        bool block_until_done) {
   std::lock_guard<std::mutex> lock(d_search_engine_index_mutex);
   if (d_is_indexing_ongoing || d_is_indexing_done) {
     success = false;
@@ -91,8 +101,20 @@ void vise::relja_retrival::index_create(bool &success,
 
   try {
     d_thread_index = std::thread(&relja_retrival::index_run_all_stages, this, callback);
-    success = true;
-    message = "indexing started";
+    if(block_until_done) {
+      std::cout << "relja_retrival::index_create(): blocking until done" << std::endl;
+      d_thread_index.join();
+      if (d_is_indexing_done) {
+        message = "index created";
+        success = true;
+      } else {
+        message = "failed to create index";
+        success = false;
+      }
+    } else {
+      message = "indexing started";
+      success = true;
+    }
   } catch(std::exception &e) {
     success = false;
     std::ostringstream ss;
@@ -144,7 +166,7 @@ void vise::relja_retrival::preprocess_image(std::string srcfn,
 }
 uint32_t vise::relja_retrival::image_src_count() const {
   uint32_t count = 0;
-  const boost::filesystem::path image_src_dir(d_pconf.at("image_src_dir"));
+  const boost::filesystem::path image_src_dir(d_image_src_dir);
   boost::filesystem::recursive_directory_iterator end_itr;
   for (boost::filesystem::recursive_directory_iterator it(image_src_dir); it!=end_itr; ++it) {
     if (boost::filesystem::is_regular_file(it->path())) {
@@ -159,8 +181,8 @@ void vise::relja_retrival::create_file_list() {
 
   d_task_progress_list.at("preprocess").start(0, image_src_count());
 
-  const boost::filesystem::path image_src_dir(d_pconf.at("image_src_dir"));
-  const boost::filesystem::path image_dir(d_pconf.at("image_dir"));
+  const boost::filesystem::path image_src_dir(d_image_src_dir);
+  const boost::filesystem::path image_dir(d_image_dir);
   d_log << "preprocess: preprocessing images in : " << std::endl
         << "preprocess:   source: " << image_src_dir << std::endl
         << "preprocess:   target: " << image_dir << std::endl;
@@ -240,7 +262,7 @@ void vise::relja_retrival::extract_train_descriptors() {
     feat_getter_param << "-scale3";
   }
 
-  d_log << "traindesc: feat_getter_param : " 
+  d_log << "traindesc: feat_getter_param : "
         << feat_getter_param.str() << std::endl;
 
   featGetter_standard const feat_getter_obj(feat_getter_param.str().c_str());
@@ -249,7 +271,8 @@ void vise::relja_retrival::extract_train_descriptors() {
   std::istringstream ss(d_pconf.at("bow_descriptor_count"));
   ss >> bow_descriptor_count;
   if(bow_descriptor_count == -1) {
-    d_task_progress_list.at("traindesc").start(0, image_src_count());
+    uint32_t max_feature_count = image_src_count() * 3000; // assumption: max 3000 descriptors per image
+    d_task_progress_list.at("traindesc").start(0, max_feature_count);
   } else {
     d_task_progress_list.at("traindesc").start(0, bow_descriptor_count);
   }
@@ -257,12 +280,18 @@ void vise::relja_retrival::extract_train_descriptors() {
         << bow_descriptor_count << std::endl;
 
   buildIndex::computeTrainDescs(d_filelist_fn.string(),
-                                d_pconf.at("image_dir"),
+                                d_image_dir.string(),
                                 d_traindesc_fn.string(),
                                 bow_descriptor_count,
                                 feat_getter_obj,
                                 d_log,
                                 &d_task_progress_list.at("traindesc"));
+  int32_t actual_bow_descriptor_count = get_traindesc_count(d_traindesc_fn.string());
+  std::cout << "relja_retrival::extract_train_descriptors(): actual_bow_descriptor_count=" << actual_bow_descriptor_count << std::endl;
+  if(bow_descriptor_count != actual_bow_descriptor_count) {
+    d_pconf["bow_descriptor_count"] = std::to_string(actual_bow_descriptor_count);
+    vise::configuration_save(d_pconf, d_pconf_fn.string());
+  }
   d_task_progress_list.at("traindesc").finish_success();
 
   d_log << "traindesc: completed in "
@@ -285,22 +314,47 @@ void vise::relja_retrival::cluster_train_descriptors() {
   std::istringstream ss2(d_pconf.at("cluster_num_iteration"));
   ss2 >> cluster_num_iteration;
 
+  if(bow_cluster_count == 0) {
+    // automatically compute number of clusters based on training descriptor count
+    // 1. read number of training descriptors (save if different from conf)
+    // 2. infer cluster
+    int32_t bow_descriptor_count = 0;
+    std::istringstream ss1(d_pconf.at("bow_descriptor_count"));
+    ss1 >> bow_descriptor_count;
+
+    if(bow_descriptor_count >= 18000000) {
+      // max descriptors entails max clusters
+      bow_cluster_count = 100000;
+      cluster_num_iteration = 30;
+    } else {
+      if(bow_descriptor_count < 100000) {
+        bow_cluster_count = 1000;
+      } else {
+        bow_cluster_count = 1000 + uint32_t(bow_descriptor_count / 3000);
+      }
+      if( bow_cluster_count<10000 ) {
+        cluster_num_iteration = 10;
+      } else {
+        cluster_num_iteration = 20;
+      }
+    }
+    d_pconf["bow_cluster_count"] = std::to_string(bow_cluster_count);
+    d_pconf["cluster_num_iteration"] = std::to_string(cluster_num_iteration);
+    vise::configuration_save(d_pconf, d_pconf_fn.string());
+  }
+
   d_log << "cluster: use_root_sift=" << use_root_sift
         << ", bow_cluster_count=" << bow_cluster_count
         << ", cluster_num_iteration=" << cluster_num_iteration
         << std::endl;
-  
+
   d_task_progress_list.at("cluster").start(0, cluster_num_iteration);
-  /*
   buildIndex::compute_train_cluster(d_traindesc_fn.string(),
                                     use_root_sift,
                                     d_bowcluster_fn.string(),
                                     bow_cluster_count,
                                     cluster_num_iteration,
                                     &d_task_progress_list.at("cluster"));
-  */
-  boost::filesystem::path generic_visual_vocabulary_clst("C:\\Users\\tlm\\dep\\vise\\vise_asset\\generic_visual_vocabulary\\clst.e3bin");
-  boost::filesystem::copy_file(generic_visual_vocabulary_clst, d_bowcluster_fn);
   d_task_progress_list.at("cluster").finish_success();
 
   d_log << "cluster: completed in "
@@ -384,7 +438,7 @@ void vise::relja_retrival::create_index() {
 
   //d_task_progress_list.at("index").start() is invoked by buildIndex::build();
   buildIndex::build(d_filelist_fn.string(),
-                    d_pconf.at("image_dir"),
+                    d_image_dir.string(),
                     d_index_dset_fn.string(),
                     d_index_iidx_fn.string(),
                     d_index_fidx_fn.string(),
@@ -410,10 +464,37 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     std::ofstream index_status_f(d_index_status_fn.string());
     index_status_f << "start" << std::flush;
 
+    // reload configuration
+    bool success = false;
+    success = vise::configuration_load(d_pconf_fn.string(), d_pconf);
+    if(!success) {
+      throw std::runtime_error("Failed to load configuration file");
+      return;
+    }
+    if(!pconf_validate_data_dir()) {
+      throw std::runtime_error("Failed to validate configuration file");
+      return;
+    }
+
     d_task_progress_list.clear();
+    bool visual_vocabulary_exists = false;
+    if(boost::filesystem::exists(d_bowcluster_fn) &&
+       boost::filesystem::exists(d_trainhamm_fn)) {
+      visual_vocabulary_exists = true;
+    }
     for(uint32_t i=0; i<vise::relja_retrival::task_name_list.size(); ++i) {
       std::string task_name(vise::relja_retrival::task_name_list.at(i));
-      d_task_progress_list.insert( std::pair<std::string, vise::task_progress>(task_name, vise::task_progress(task_name)));
+      if(visual_vocabulary_exists) {
+        // since we use generic visual vocabulary, we discard some tasks
+        if(task_name != "traindesc" &&
+           task_name != "cluster" &&
+           task_name != "assign" &&
+           task_name != "hamm") {
+          d_task_progress_list.insert( std::pair<std::string, vise::task_progress>(task_name, vise::task_progress(task_name)));
+        }
+      } else {
+        d_task_progress_list.insert( std::pair<std::string, vise::task_progress>(task_name, vise::task_progress(task_name)));
+      }
     }
 
     std::cout << "relja_retrival::index_run_all_stages(): start, "
@@ -425,25 +506,35 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
       create_file_list();
       index_status_f << ",filelist" << std::flush;
     }
-    
-    if (!boost::filesystem::exists(d_traindesc_fn)) {
-      extract_train_descriptors();
-      index_status_f << ",traindesc" << std::flush;
-    }
 
-    if (!boost::filesystem::exists(d_bowcluster_fn)) {
-      cluster_train_descriptors();
-      index_status_f << ",cluster" << std::flush;
-    }
+    if(boost::filesystem::exists(d_bowcluster_fn) &&
+       boost::filesystem::exists(d_trainhamm_fn)) {
+      // use existing visual vocabulary
+      d_log << "using existing visual vocabulary defined by:\n"
+            << "  - visual vocabulary=" << d_bowcluster_fn << "\n"
+            << "  - hamming embedding=" << d_trainhamm_fn
+            << std::endl;
+      index_status_f << ",traindesc,cluster,assign,hamm" << std::flush;
+    } else {
+      if (!boost::filesystem::exists(d_traindesc_fn)) {
+        extract_train_descriptors();
+        index_status_f << ",traindesc" << std::flush;
+      }
 
-    if (!boost::filesystem::exists(d_trainassign_fn)) {
-      assign_train_descriptors();
-      index_status_f << ",assign" << std::flush;
-    }
+      if (!boost::filesystem::exists(d_bowcluster_fn)) {
+        cluster_train_descriptors();
+        index_status_f << ",cluster" << std::flush;
+      }
 
-    if (!boost::filesystem::exists(d_trainhamm_fn)) {
-      hamm_train_descriptors();
-      index_status_f << ",hamm" << std::flush;
+      if (!boost::filesystem::exists(d_trainassign_fn)) {
+        assign_train_descriptors();
+        index_status_f << ",assign" << std::flush;
+      }
+
+      if (!boost::filesystem::exists(d_trainhamm_fn)) {
+        hamm_train_descriptors();
+        index_status_f << ",hamm" << std::flush;
+      }
     }
 
     if (!boost::filesystem::exists(d_index_dset_fn) ||
@@ -513,16 +604,14 @@ void vise::relja_retrival::index_read_status(std::vector<std::string> &status_to
   status_tokens.clear();
   std::ifstream index_status_f(d_index_status_fn.string());
   if(index_status_f) {
-    std::cerr << "reading index status: " << d_index_status_fn << std::endl;
+    //std::cerr << "reading index status: " << d_index_status_fn << std::endl;
     while(index_status_f.good()) {
       std::string token;
       std::getline(index_status_f, token, ',');
-      std::cout << token << "|";
+      //std::cout << token << "|";
       status_tokens.push_back(token);
     }
     std::cout << std::endl;
-  } else {
-    std::cerr << "index status not yet available in " << d_index_status_fn << std::endl;
   }
 }
 
@@ -531,13 +620,6 @@ bool vise::relja_retrival::index_is_ongoing() const {
 }
 
 bool vise::relja_retrival::index_is_incomplete() const {
-  if(d_is_indexing_done) {
-    return false;
-  }
-  if(d_is_indexing_ongoing) {
-    return true;
-  }
-
   std::vector<std::string> status_tokens;
   index_read_status(status_tokens);
   if(status_tokens.size()==0) {
@@ -586,7 +668,7 @@ void vise::relja_retrival::index_load(bool &success,
     std::cout << "loading dataset from " << d_index_dset_fn
               << std::endl;
     d_dataset = new datasetV2( d_index_dset_fn.string(),
-                               d_pconf.at("data_dir") );
+                               d_data_dir.string() );
     std::cout << "done loading dataset"<< std::endl;
 
     // needed to setup forward and inverted index
@@ -889,25 +971,15 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
   if(!d_is_search_engine_loaded) {
     return;
   }
-  boost::filesystem::path image_dir(d_pconf.at("image_dir"));
-  boost::filesystem::path fn1 = image_dir / d_dataset->getInternalFn(file1_id);
-  boost::filesystem::path fn2 = image_dir / d_dataset->getInternalFn(file2_id);
+  boost::filesystem::path fn1 = d_image_dir / d_dataset->getInternalFn(file1_id);
+  boost::filesystem::path fn2 = d_image_dir / d_dataset->getInternalFn(file2_id);
 
   featGetter *featGetterObj= new featGetter_standard( "hesaff-rootsift" );
 
   Magick::Image im1; im1.read(fn1.string());
   Magick::Image im2; im2.read(fn2.string());
   Magick::Image im2t;
-  homography Hi;
-  Hi.H[0] = H[0];
-  Hi.H[1] = H[1];
-  Hi.H[2] = H[2];
-  Hi.H[3] = H[3];
-  Hi.H[4] = H[4];
-  Hi.H[5] = H[5];
-  Hi.H[6] = H[6];
-  Hi.H[7] = H[7];
-  Hi.H[8] = H[8];
+  homography Hi(H.data()); // initial estimate of homography matrix
   uint32_t numFeats1, numFeats2, bestNInliers;
   float* descs1;
   float* descs2;
@@ -919,26 +991,23 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
   double yu = y + height;
 
   // compute RootSIFT: image 1
-  //thread1 = new boost::thread( featWorker( featGetterObj, fn1.string(), xl, xu, yl, yu, numFeats1, regions1, descs1 ) );
   featGetterObj->getFeats(fn1.string().c_str(),
-	  static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
-	  static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
-	  numFeats1, regions1, descs1);
+                          static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
+                          static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
+                          numFeats1, regions1, descs1);
   bool firstGo = true;
   uint32_t loopNum_ = 0;
 
   boost::filesystem::path tmp_im2_fn = boost::filesystem::temp_directory_path();
-  tmp_im2_fn = tmp_im2_fn / boost::filesystem::unique_path("register_%%%%-%%%%-%%%%-%%%%.jpg");
-  std::cout << "relja_retrival::register_image " << tmp_im2_fn << std::endl;
+  tmp_im2_fn = tmp_im2_fn / boost::filesystem::unique_path("vise_register_%%%%-%%%%-%%%%-%%%%.jpg");
   matchesType inlierInds;
   while (1) {
 	  if (!firstGo) {
 		  // compute RootSIFT: image 2
 		  featGetterObj->getFeats(tmp_im2_fn.string().c_str(),
-			  static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
-			  static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
-			  numFeats2, regions2, descs2);
-		  //thread2= new boost::thread( featWorker( featGetterObj, fullSizeFn2_t.c_str(), xl, xu, yl, yu, numFeats2, regions2, descs2 ) );
+                              static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
+                              static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
+                              numFeats2, regions2, descs2);
 
 		  // run RANSAC
 		  homography Hnew;
@@ -951,9 +1020,8 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
 			  true, 0.81f, 100.0f,
 			  &Hnew, &inlierInds
 			  );
-
-		  if (bestNInliers > 29) {
-			  // good alignment obtained, no need to go any further
+		  if (! (bestNInliers > 9)) {
+			  // good alignment cannot be obtained, so be happy with the initial H
 			  break;
 		  }
 
@@ -969,7 +1037,6 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
 			  }
 			  Hi.set(Happlied);
 		  }
-
 	  }
 
 	  Hi.normLast();
@@ -980,9 +1047,8 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
 	  homography::normLast(Hinv);
 
 	  firstGo = false;
-
 	  ++loopNum_;
-	  if (loopNum_ > 5) {
+	  if (loopNum_ > 1) {
 		  break;
 	  }
 
@@ -997,17 +1063,13 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
 	  im2t.quiet(true);
 	  im2t.write(tmp_im2_fn.string().c_str());
 	  im2t.quiet(false);
-	  // AffineProjection(sx, rx, ry, sy, tx, ty) <=> H=[sx, ry, tx; sy, rx, ty; 0 0 1]
-	  //double MagickAffine[6]={Hinv[0],Hinv[3],Hinv[1],Hinv[4],Hinv[2],Hinv[5]};
-	  //im2t.virtualPixelMethod(Magick::BlackVirtualPixelMethod);
-	  //im2t.distort(Magick::AffineProjectionDistortion, 6, MagickAffine, false);
   }
-  delete[]descs1;
-  delete[]descs2;
-  //boost::filesystem::remove(tmp_im2_fn);
+  delete[] descs1;
+  delete[] descs2;
+  boost::filesystem::remove(tmp_im2_fn);
   delete featGetterObj;
 
-  // draw resulting images
+  // return the final computed Homography matrix
   Hi.getInverse(H.data());
   homography::normLast(H.data());
 }
@@ -1046,4 +1108,105 @@ void vise::relja_retrival::conf(std::map<std::string, std::string> conf_data) {
 
 std::map<std::string, std::string> vise::relja_retrival::conf() const {
     return d_pconf;
+}
+
+
+int32_t vise::relja_retrival::get_traindesc_count(std::string train_desc_fn) {
+  FILE *f = fopen(train_desc_fn.c_str(), "rb");
+  if ( f == NULL ) {
+    std::cerr << "Failed to open training descriptors file: "
+              << train_desc_fn << std::endl;
+    return -1;
+  }
+
+  // file structure
+  // SIFT-dimension (uint32_t, 4 bytes)
+  // data-type-code (uint8_t , 1 byte )
+  // continuous-stream-of-data ...
+  // size_t fwrite( const void *buffer, size_t size, size_t count, FILE *stream );
+  // size_t fread( void *buffer, size_t size, size_t count, FILE *stream );
+  const std::size_t HEADER_BYTES = 4 + 1;
+  const std::vector<std::string> DATA_TYPE_STR = {"uint8", "uint16", "uint32", "uint64", "float32", "float64"};
+  const std::size_t DATA_TYPE_SIZE[] = {1, 2, 4, 8, 4, 8};
+
+  uint32_t descriptor_dimension;
+  uint8_t data_type_code;
+
+  std::size_t read_count;
+  read_count = fread(&descriptor_dimension, sizeof(descriptor_dimension), 1, f);
+  if ( read_count != 1 ) {
+    std::cerr << "Error reading value of descriptor_dimension! "
+              << "stored in train descs file: " << train_desc_fn
+              << std::endl;
+    return -1;
+  }
+
+  read_count = fread(&data_type_code, sizeof(data_type_code), 1, f);
+  std::cout << "read_count=" << read_count << std::endl;
+  if ( read_count != 1 ) {
+    std::cerr << "Error reading value of data_type_code stored in train descs file: " << train_desc_fn << std::endl;
+    return -1;
+  }
+
+  uint32_t element_size = DATA_TYPE_SIZE[data_type_code];
+  int64_t file_size;
+#ifdef _WIN32
+  _fseeki64(f, 0, SEEK_END);
+  file_size = _ftelli64(f);
+#else
+  fseeko64(f, 0, SEEK_END);
+  file_size = ftello64(f);
+#endif
+  uint32_t descriptor_data_length = (file_size - HEADER_BYTES) / (element_size);
+  return (descriptor_data_length / descriptor_dimension);
+
+}
+
+bool vise::relja_retrival::pconf_validate_data_dir() {
+  if(!boost::filesystem::exists(d_project_dir)) {
+    std::cout << "project::conf_validate_data_dir(): "
+              << "d_project_dir=" << d_project_dir << " does not exist"
+              << std::endl;
+    return false;
+  }
+
+  if(d_pconf.empty()) {
+    std::cout << "project::conf_validate_data_dir(): "
+              << "d_pconf is empty"
+              << std::endl;
+    return false;
+  }
+
+  d_data_dir      = d_project_dir / "data/";
+  d_image_dir     = d_project_dir / "image/";
+  d_image_src_dir = d_project_dir / "image_src/";
+  d_tmp_dir       = d_project_dir / "tmp/";
+
+  if(d_pconf.count("data_dir") == 1) {
+    d_data_dir = boost::filesystem::path(d_pconf.at("data_dir"));
+  }
+  if(d_pconf.count("image_dir") == 1) {
+    d_image_dir = boost::filesystem::path(d_pconf.at("image_dir"));
+  }
+  if(d_pconf.count("image_src_dir") == 1) {
+    d_image_src_dir = boost::filesystem::path(d_pconf.at("image_src_dir"));
+  }
+  if(d_pconf.count("tmp_dir") == 1) {
+    d_tmp_dir = boost::filesystem::path(d_pconf.at("tmp_dir"));
+  }
+
+  // convert the trailing path-separator to platform specific character
+  d_data_dir.make_preferred();
+  d_image_dir.make_preferred();
+  d_image_src_dir.make_preferred();
+  d_tmp_dir.make_preferred();
+
+  if(!boost::filesystem::exists(d_data_dir) ||
+     !boost::filesystem::exists(d_image_dir) ||
+     !boost::filesystem::exists(d_image_src_dir) ||
+     !boost::filesystem::exists(d_tmp_dir) ) {
+    return false;
+  } else {
+    return true;
+  }
 }

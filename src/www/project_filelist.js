@@ -76,15 +76,15 @@ function _vise_init_filelist_toolbar() {
   start_input.setAttribute('title', 'Enter the page number to jump to that page');
   start_input.addEventListener('change', function(e) {
     var new_start = parseInt(this.value);
-	if(isNaN(new_start)) {
-	  this.value = _vise_data['FLIST_START'];
-	  return;
-	}
-	new_start = new_start;
-	if(new_start < 0 || new_start >= _vise_data['FLIST_SIZE']) {
-	  this.value = _vise_data.FLIST_START;
-	  return;
-	} else {
+	  if(isNaN(new_start)) {
+	    this.value = _vise_data['FLIST_START'];
+	    return;
+	  }
+	  new_start = new_start;
+	  if(new_start < 0 || new_start >= _vise_data['FLIST_SIZE']) {
+	    this.value = _vise_data.FLIST_START;
+	    return;
+	  } else {
       var new_end = Math.min(_vise_data['FLIST_SIZE'], new_start + FILE_PER_PAGE);
       window.location.href = '/' + _vise_data['PNAME'] + '/filelist?start=' + new_start + '&end=' + new_end;
     }
@@ -112,15 +112,13 @@ function _vise_init_filelist_toolbar() {
 
   var next_start = _vise_data['FLIST_END'];
   var next_end = Math.min(_vise_data['FLIST_SIZE'], _vise_data['FLIST_END'] + FILE_PER_PAGE);
+  console.log('next_end=' + next_end)
   var next;
-  if(_vise_data.FLIST_END === _vise_data['FLIST_SIZE']) {
+  if(_vise_data['FLIST_END'] === _vise_data['FLIST_SIZE']) {
     next = document.createElement('span');
   } else {
     next = document.createElement('a');
-    if(next_end === _vise_data['FLIST_SIZE']) {
-      // last page
-      next.setAttribute('href', 'filelist?start=' + next_start + '&end=' + next_end);
-    }
+    next.setAttribute('href', 'filelist?start=' + next_start + '&end=' + next_end);
   }
   next.innerHTML = 'Next';
   pageinfo.appendChild(next);

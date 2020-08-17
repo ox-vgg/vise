@@ -29,6 +29,10 @@ namespace vise {
     project_manager(std::map<std::string, std::string> const &conf);
     ~project_manager();
 
+    // limit serving
+    void serve_only(std::map<std::string, std::string> const pname_pconf_fn_map);
+    void serve_only_4xx_response(http_response &response) const;
+
     // http request handlers
     void process_http_request(http_request const &request,
                               http_response &response);
@@ -49,8 +53,16 @@ namespace vise {
                        std::map<std::string, std::string> const &param,
                        http_response &response);
 
+    void serve_from_www_store(std::string res_uri,
+                              http_response &response) const;
     void file_send(boost::filesystem::path fn,
                    http_response& response) const;
+    void handle_project_get_request(std::string const pname,
+                                    http_request const &request,
+                                    std::vector<std::string> const &uri,
+                                    std::map<std::string, std::string> const &param,
+                                    http_response& response) const;
+
     void payload_save(http_request const &request,
                       boost::filesystem::path fn,
                       http_response& response);
@@ -75,6 +87,10 @@ namespace vise {
     void vise_error_page(const std::string message,
                          const std::string response_format,
                          http_response &response) const;
+    void vise_wait_page(const std::string message,
+                        const std::string response_format,
+                        http_response &response) const;
+
     bool is_project_name_valid(const std::string pname) const;
 
     // project's HTML based minimal UI
@@ -107,7 +123,8 @@ namespace vise {
     bool project_load(std::string pname);
     bool project_is_loaded(std::string pname) const;
     void project_index_create(std::string pname,
-                       http_response &response);
+                              http_response &response,
+                              bool block_until_done=false);
     void project_index_load(std::string pname,
                             http_response &response);
     void project_index_unload(std::string pname,
@@ -122,9 +139,14 @@ namespace vise {
     void project_config_save(std::string pname,
                              std::string &config_formdata,
                              http_response &response);
+    void project_config_use_preset(std::string pname,
+                                   std::string preset_id,
+                                   http_response &response);
 
     void project_pname_list(std::vector<std::string> &pname_list) const;
+    uint32_t project_image_src_count(std::string pname) const;
   private:
+    bool is_serve_only_active;
     std::mutex d_project_load_mutex;
     const std::map<std::string, std::string> d_conf;
     std::map<std::string, std::unique_ptr<vise::project> > d_projects;

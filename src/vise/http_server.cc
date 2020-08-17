@@ -1,10 +1,12 @@
 #include "http_server.h"
 
-vise::http_server::http_server(std::map<std::string, std::string> const &conf)
+vise::http_server::http_server(std::map<std::string, std::string> const &conf,
+                               vise::project_manager &manager)
   : d_io_service(),
     d_acceptor(d_io_service),
     d_signals(d_io_service),
-    d_conf(conf)
+    d_conf(conf),
+    d_manager(&manager)
 {
   if (d_conf.find("address") == d_conf.end() ||
       d_conf.find("port") == d_conf.end()
@@ -37,9 +39,6 @@ vise::http_server::http_server(std::map<std::string, std::string> const &conf)
   d_signals.async_wait(boost::bind(&http_server::stop,
                                   this));
 
-  // gets destroyed by http_server::stop()
-  d_manager = new vise::project_manager(d_conf);
-
   boost::asio::ip::tcp::resolver resolver( d_io_service );
   boost::asio::ip::tcp::resolver::query query( d_conf.at("address"),
                                                d_conf.at("port") );
@@ -57,21 +56,13 @@ vise::http_server::http_server(std::map<std::string, std::string> const &conf)
             << d_conf.at("address") << ":" << d_conf.at("port")
             << " (with " << d_thread_pool_size << " threads)"
             << std::endl;
-
-  /*
-  // DEBUG CODE
-  std::cout << "vise::http_server::http_server(): executing DEBUG code now"
-            << std::endl;
-  d_manager->debug();
-  stop();
-  */
 }
 
 void vise::http_server::stop() {
   std::cout << "http_server:: stopping ..."
             << std::endl;
   d_io_service.stop();
-  delete d_manager;
+  //delete d_manager;
 }
 
 void vise::http_server::start() {

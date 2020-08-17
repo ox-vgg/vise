@@ -213,7 +213,7 @@ namespace buildIndex {
     std::vector<std::string> imageFns;
 
     if (rank==0){
-      logf << "trainImagelistFn=" << trainImagelistFn << std::endl;
+      logf << "traindesc: trainImagelistFn=" << trainImagelistFn << std::endl;
       std::ifstream fImagelist(trainImagelistFn.c_str());
       ASSERT(fImagelist.is_open());
 
@@ -250,7 +250,7 @@ namespace buildIndex {
     trainDescsWorker worker(imageFns, trainDatabasePath, featGetter_obj);
 
     if (useThreads) {
-      logf << "OpenMP: number of threads = " << numWorkerThreads << std::endl;
+      logf << "traindesc: number of threads = " << numWorkerThreads << std::endl;
       threadQueue<trainDescsResult>::start( nJobs, worker, *manager, numWorkerThreads );
     }
     else {

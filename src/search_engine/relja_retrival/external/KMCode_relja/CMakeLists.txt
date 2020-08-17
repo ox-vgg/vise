@@ -4,6 +4,8 @@ project(KMCode_relja)
 set( BUILD_SHARED_LIBS "ON" )
 
 if (UNIX)
+  find_package(PNG REQUIRED)
+	find_package(JPEG REQUIRED)
 	# soooo many warnings, suppress..
 	set( KM_COMPILE_FLAGS "-Wno-unused-variable -Wno-sign-compare -Wno-deprecated -Wno-write-strings -Wno-unused-result -Wno-format-security -Wno-unused-but-set-variable -Wno-uninitialized -Wno-parentheses -Wno-strict-overflow -DQUIET")
 	set( KM_LINKER_FLAGS "-fPIC -O2 -g3 -fno-rtti -fno-exceptions")

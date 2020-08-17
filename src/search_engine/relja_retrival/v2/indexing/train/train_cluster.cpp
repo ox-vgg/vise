@@ -18,8 +18,8 @@ namespace buildIndex {
   void compute_train_cluster(std::string const train_desc_fn,
                              bool const use_root_sift,
                              std::string const cluster_fn,
-                             uint32_t const bow_cluster_count,
-                             uint32_t const cluster_num_iteration,
+                             uint32_t bow_cluster_count,
+                             uint32_t cluster_num_iteration,
                              vise::task_progress *progress) {
     if(progress == nullptr) {
       std::cout << "buildIndex::compute_train_cluster()" << std::endl;
@@ -82,6 +82,8 @@ namespace buildIndex {
     std::cout << "element_size = " << element_size << std::endl;
     std::cout << "descriptor_data_length = " << descriptor_data_length << std::endl;
     std::cout << "descriptor_count = " << descriptor_count << std::endl;
+    std::cout << "bow_cluster_count = " << bow_cluster_count << std::endl;
+    std::cout << "cluster_num_iteration = " << cluster_num_iteration << std::endl;
 
     std::vector<float> cluster_centers( bow_cluster_count * descriptor_dimension );
     std::vector<uint8_t> descriptors_sift( descriptor_count * descriptor_dimension );
@@ -208,11 +210,15 @@ namespace buildIndex {
          << "completed in "
          << std::chrono::duration_cast<std::chrono::milliseconds>(iter_end - iter_start).count()
          << " ms";
+      std::cout << ss.str() << std::endl;
+
       if(progress != nullptr) {
         progress->update(iter, ss.str());
       } else {
         std::cout << ss.str() << std::endl;
       }
+
+      // @todo: save checkpoint of cluster center after every iteration
     }
 
     // save clusters

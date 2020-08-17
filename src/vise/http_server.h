@@ -33,7 +33,8 @@
 namespace vise {
   class http_server {
   public:
-    http_server(std::map<std::string, std::string> const &conf);
+    http_server(std::map<std::string, std::string> const &conf,
+                vise::project_manager &manager);
     void start();
     void stop();
   private:
