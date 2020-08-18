@@ -59,7 +59,6 @@ namespace vise {
                  std::string& file_content);
   bool file_save_binary(const boost::filesystem::path fn,
                         std::string& file_content);
-
   // URI decoding
   // e.g. "http%3A%2F%2Ffoo%20bar%2F" -> "http://foo bar/"
   bool url_decode(const std::string& in, std::string& out);

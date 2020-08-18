@@ -510,10 +510,13 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     if(boost::filesystem::exists(d_bowcluster_fn) &&
        boost::filesystem::exists(d_trainhamm_fn)) {
       // use existing visual vocabulary
-      d_log << "using existing visual vocabulary defined by:\n"
-            << "  - visual vocabulary=" << d_bowcluster_fn << "\n"
-            << "  - hamming embedding=" << d_trainhamm_fn
-            << std::endl;
+      std::ostringstream ss;
+      ss << "using existing visual vocabulary defined by:\n"
+         << "  - visual vocabulary=" << d_bowcluster_fn << "\n"
+         << "  - hamming embedding=" << d_trainhamm_fn
+         << std::endl;
+      d_log << ss.str();
+      std::cout << ss.str();
       index_status_f << ",traindesc,cluster,assign,hamm" << std::flush;
     } else {
       if (!boost::filesystem::exists(d_traindesc_fn)) {
@@ -553,7 +556,7 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     index_status_f.close();
 
     // delete d_traindesc_fn as it is no longer needed, @todo: review this action in future
-    boost::filesystem::remove(d_traindesc_fn);
+    // boost::filesystem::remove(d_traindesc_fn);
 
     callback();
   } catch(std::exception &e) {

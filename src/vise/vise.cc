@@ -343,6 +343,35 @@ int main(int argc, char **argv) {
       return 0;
     }
 
+    if(cmd == "create-visual-vocabulary") {
+      if(argc == 4) {
+        std::string pname(argv[2]);
+        boost::filesystem::path conf_fn(argv[3]);
+        if( !boost::filesystem::exists(conf_fn) ) {
+          std::cout << "project configuration file not found: "
+                    << conf_fn << std::endl;
+          return 1;
+        }
+        boost::filesystem::path data_dir = conf_fn.parent_path();
+        std::string placeholder("dummy file to only perform traindesc, cluster, trainassign, trainhamm and avoid indexing stage");
+        vise::file_save(data_dir / "index_dset.bin", placeholder);
+        vise::file_save(data_dir / "index_fidx.bin", placeholder);
+        vise::file_save(data_dir / "index_iidx.bin", placeholder);
+
+        vise::project new_project(pname, conf_fn.string());
+        bool success;
+        std::string message;
+        bool block_until_done = true;
+        new_project.index_create(success, message, block_until_done);
+        std::cout << message << std::endl;
+      } else {
+        std::cout << "Usage: " << argv[0]
+                  << " " << argv[1] << " PROJECT_NAME CONFIG_FILENAME" << std::endl;
+        return 1;
+      }
+      return 0;
+    }
+
     if(cmd == "serve-project") {
       if(argc == 4) {
         std::map<std::string, std::string> vise_settings;
