@@ -3,7 +3,7 @@ target_link_libraries( flat_desc_file )
 
 
 add_library( train_cluster STATIC train_cluster.cpp )
-target_link_libraries( train_cluster ${VLFEAT_LIB} )
+target_link_libraries( train_cluster ${VLFEAT_LIB} OpenMP::OpenMP_CXX)
 
 add_library( train_assign STATIC train_assign.cpp )
 target_link_libraries( train_assign
@@ -31,3 +31,13 @@ target_link_libraries( train_hamming
     same_random
     hamming_data.pb
     ${Boost_LIBRARIES} )
+
+add_library( train_resize STATIC train_resize.cpp )
+target_link_libraries( train_resize
+    par_queue
+    vise_util
+    task_progress
+    ${Boost_LIBRARIES} ${ImageMagick_LIBRARIES} )
+
+#add_executable( train_resize_test train_resize_test.cc )
+#target_link_libraries( train_resize_test train_resize par_queue ${Boost_LIBRARIES} ${ImageMagick_LIBRARIES} )

@@ -60,6 +60,7 @@ target_link_libraries(relja_retrival
   feat_standard
   hamming_embedder
   mpi_queue
+  train_resize
   train_assign
   train_descs
   train_hamming

@@ -13,21 +13,21 @@ vise::relja_retrival::relja_retrival(boost::filesystem::path pconf_fn,
                                      boost::filesystem::path project_dir)
   : search_engine("relja_retrival"), d_pconf_fn(pconf_fn), d_project_dir(project_dir)
 {
-  std::cout << "relja_retrival()" << std::endl;
   if( !boost::filesystem::exists(d_pconf_fn) ) {
-    std::cout << "vise::relja_retrival::relja_retrival(): project configuration file not found: "
+    std::cerr << "vise::relja_retrival::relja_retrival(): project configuration file not found: "
               << d_pconf_fn << std::endl;
   }
   bool success = false;
   success = vise::configuration_load(d_pconf_fn.string(), d_pconf);
   if(success) {
     if(!pconf_validate_data_dir()) {
-      std::cout << "relja_retrival(): failed to validate conf. data dir" << std::endl;
+      std::cerr << "relja_retrival(): failed to validate conf. data dir" << std::endl;
       return;
     }
   } else {
-    std::cout << "relja_retrival(): failed to load configuration from: "
+    std::cerr << "relja_retrival(): failed to load configuration from: "
               << d_pconf_fn << std::endl;
+    return;
   }
 
   d_filelist_fn    = d_data_dir / "filelist.txt";
@@ -50,19 +50,17 @@ vise::relja_retrival::relja_retrival(boost::filesystem::path pconf_fn,
 
   d_index_log_fn   = d_data_dir / "index.log";
   d_log.open(d_index_log_fn.string(), std::fstream::app);
-  d_log << "===================[ "
-        << "logging started on " << vise::now_timestamp()
-        << " ]==================="<< std::endl;
+  d_log << "///// LOG START: " << vise::now_timestamp() << std::endl;
 
   d_task_progress_list.clear();
 }
 
 vise::relja_retrival::~relja_retrival() {
-  std::cout << "~relja_retrival()" << std::endl;
+  d_log << "~relja_retrival()" << std::endl;
 
   if (d_thread_index.joinable()) {
-    std::cout << "~relja_retrival(): waiting for d_thread_index ..."
-              << std::endl;
+    d_log << "~relja_retrival(): waiting for d_thread_index ..."
+          << std::endl;
     d_thread_index.join();
   }
 
@@ -71,14 +69,14 @@ vise::relja_retrival::~relja_retrival() {
     std::string message;
     index_unload(success, message);
     if (!success) {
-      std::cout << "~relja_retrival(): index_unload failed. "
-                << "[" << message << "]"
-                << std::endl;
+      d_log << "~relja_retrival(): index_unload failed. "
+            << "[" << message << "]"
+            << std::endl;
     }
   }
 
   if(d_log) {
-    d_log << "logging ended on " << vise::now_timestamp() << std::endl;
+    d_log << "~~~~~ LOG END: " << vise::now_timestamp() << std::endl;
     d_log.close();
   }
 }
@@ -102,7 +100,7 @@ void vise::relja_retrival::index_create(bool &success,
   try {
     d_thread_index = std::thread(&relja_retrival::index_run_all_stages, this, callback);
     if(block_until_done) {
-      std::cout << "relja_retrival::index_create(): blocking until done" << std::endl;
+      d_log << "index_create:: blocking until done" << std::endl;
       d_thread_index.join();
       if (d_is_indexing_done) {
         message = "index created";
@@ -124,46 +122,6 @@ void vise::relja_retrival::index_create(bool &success,
   }
 }
 
-void vise::relja_retrival::preprocess_image(std::string srcfn,
-                                            std::string dstfn,
-                                            bool &result,
-                                            std::string &message) {
-  try {
-    std::ostringstream resize_stat;
-    std::ostringstream geom_spec;
-
-    bool resize_image = true;
-    if(d_pconf.count("resize_dimension")) {
-      if (d_pconf.at("resize_dimension") == "-1") {
-          resize_image = false;
-      } else {
-        geom_spec << d_pconf.at("resize_dimension");
-      }
-    } else {
-      geom_spec << "800x800";
-    }
-    geom_spec << "+0+0>";
-
-    Magick::Image src(srcfn);
-    src.quiet(true); // to supress warnings
-    resize_stat << src.rows() << "," << src.columns();
-    src.magick("JPEG");
-    src.colorSpace(Magick::RGBColorspace);
-    if (resize_image) {
-      Magick::Geometry dst_img_size(geom_spec.str());
-      src.resize(dst_img_size);
-    }
-
-    src.write(dstfn);
-    src.quiet(false);
-    resize_stat << "," << src.rows() << "," << src.columns();
-    result = true;
-    message = resize_stat.str();
-  } catch(std::exception &ex) {
-    result = false;
-    message = ex.what();
-  }
-}
 uint32_t vise::relja_retrival::image_src_count() const {
   uint32_t count = 0;
   const boost::filesystem::path image_src_dir(d_image_src_dir);
@@ -176,107 +134,46 @@ uint32_t vise::relja_retrival::image_src_count() const {
   return count;
 }
 
-void vise::relja_retrival::create_file_list() {
-  std::cout << "preprocess: resize_dimension=" << d_pconf.at("resize_dimension") << std::endl;
-
+void vise::relja_retrival::preprocess_images() {
+  std::cout << "starting preprocess" << std::endl;
   d_task_progress_list.at("preprocess").start(0, image_src_count());
-
-  const boost::filesystem::path image_src_dir(d_image_src_dir);
-  const boost::filesystem::path image_dir(d_image_dir);
-  d_log << "preprocess: preprocessing images in : " << std::endl
-        << "preprocess:   source: " << image_src_dir << std::endl
-        << "preprocess:   target: " << image_dir << std::endl;
-
-  d_log << "preprocess: resize_dimension=" << d_pconf.at("resize_dimension") << std::endl;
-
-  uint32_t success_count = 0;
-  uint32_t fail_count = 0;
-  std::ofstream filelist(d_filelist_fn.string());
-  std::ofstream filestat(d_filestat_fn.string());
-  boost::filesystem::recursive_directory_iterator end_itr;
-  uint32_t count = 0;
-  for (boost::filesystem::recursive_directory_iterator it(image_src_dir); it!=end_itr; ++it) {
-    if (boost::filesystem::is_regular_file(it->path())) {
-      boost::filesystem::path fn = boost::filesystem::relative(it->path(), image_src_dir).string();
-      boost::filesystem::path dst_dir = image_dir / boost::filesystem::relative(it->path(), image_src_dir).parent_path();
-      if (!boost::filesystem::exists(dst_dir)) {
-          boost::filesystem::create_directories(dst_dir);
-      }
-
-      bool preprocess_result = true;
-      std::string preprocess_message("");
-      std::string dst_str;
-      if (d_pconf.at("resize_dimension") == "-1") {
-        // simply copy images (no preprocessing required)
-        boost::system::error_code ec;
-        boost::filesystem::path dst = dst_dir / it->path().filename();
-        dst_str = dst.string();
-        boost::filesystem::copy_file(it->path(), dst, boost::filesystem::copy_option::overwrite_if_exists, ec);
-        if(ec) {
-            preprocess_result = false;
-            preprocess_message = ec.message();
-        }
-      } else {
-        boost::filesystem::path dst = dst_dir / it->path().stem();
-        dst_str = dst.string() + ".jpg";
-        preprocess_image(it->path().string(), dst_str, preprocess_result, preprocess_message);
-      }
-      if(preprocess_result) {
-        boost::filesystem::path dst_path(dst_str);
-        std::string dst_relpath(boost::filesystem::relative(dst_path, image_dir).string());
-#ifdef _WIN32
-        // convert relative paths to Unix format so that it is compatible with HTTP requests
-        // e.g. GET /pname/subdir1/image1.jpg
-        std::replace(dst_relpath.begin(), dst_relpath.end(), '\\', '/');
-#endif
-        filelist << dst_relpath << std::endl;
-        filestat << dst_relpath << "," << preprocess_message << std::endl;
-        success_count++;
-      } else {
-        d_log << "preprocess: discarded " << fn.string()
-              << " [reason: " << preprocess_message << "]" << std::endl;
-        fail_count++;
-      }
-      count++;
-      d_task_progress_list.at("preprocess").update(count);
-    }
-  }
-  filelist.close();
-  filestat.close();
+  std::cout << "1" << std::endl;
+  buildIndex::computeTrainResize(d_image_src_dir,
+                                 d_image_dir,
+                                 d_filelist_fn,
+                                 d_filestat_fn,
+                                 d_pconf.at("resize_dimension"),
+                                 d_log,
+                                 &d_task_progress_list.at("preprocess"));
   d_task_progress_list.at("preprocess").finish_success();
-  d_log << "preprocess: written " << success_count
-        << " (discarded " << fail_count << ")"
-        << " filenames to " << d_filelist_fn << std::endl;
-  d_log << "preprocess: completed in "
-        << d_task_progress_list.at("preprocess").d_elapsed_ms
-        << "ms" << std::endl;
+  d_log << "preprocess:: completed in "
+        << (d_task_progress_list.at("preprocess").d_elapsed_ms/1000)
+        << "sec." << std::endl;
   d_log << std::flush;
 }
 
 void vise::relja_retrival::extract_train_descriptors() {
-  std::cout << "relja_retrival::extract_train_descriptors()" << std::endl;
-
   std::ostringstream feat_getter_param;
   feat_getter_param << "hesaff-sift";
   if (d_pconf.count("sift_scale_3")) {
     feat_getter_param << "-scale3";
   }
 
-  d_log << "traindesc: feat_getter_param : "
+  d_log << "traindesc:: feat_getter_param : "
         << feat_getter_param.str() << std::endl;
 
   featGetter_standard const feat_getter_obj(feat_getter_param.str().c_str());
 
-  int32_t bow_descriptor_count = -1;
+  int64_t bow_descriptor_count = -1;
   std::istringstream ss(d_pconf.at("bow_descriptor_count"));
   ss >> bow_descriptor_count;
   if(bow_descriptor_count == -1) {
-    uint32_t max_feature_count = image_src_count() * 3000; // assumption: max 3000 descriptors per image
+    int64_t max_feature_count = image_src_count() * 3000; // assumption: max 3000 descriptors per image
     d_task_progress_list.at("traindesc").start(0, max_feature_count);
   } else {
     d_task_progress_list.at("traindesc").start(0, bow_descriptor_count);
   }
-  d_log << "traindesc: bow_descriptor_count : "
+  d_log << "traindesc:: bow_descriptor_count : "
         << bow_descriptor_count << std::endl;
 
   buildIndex::computeTrainDescs(d_filelist_fn.string(),
@@ -286,7 +183,7 @@ void vise::relja_retrival::extract_train_descriptors() {
                                 feat_getter_obj,
                                 d_log,
                                 &d_task_progress_list.at("traindesc"));
-  int32_t actual_bow_descriptor_count = get_traindesc_count(d_traindesc_fn.string());
+  int64_t actual_bow_descriptor_count = get_traindesc_count(d_traindesc_fn.string());
   std::cout << "relja_retrival::extract_train_descriptors(): actual_bow_descriptor_count=" << actual_bow_descriptor_count << std::endl;
   if(bow_descriptor_count != actual_bow_descriptor_count) {
     d_pconf["bow_descriptor_count"] = std::to_string(actual_bow_descriptor_count);
@@ -294,7 +191,7 @@ void vise::relja_retrival::extract_train_descriptors() {
   }
   d_task_progress_list.at("traindesc").finish_success();
 
-  d_log << "traindesc: completed in "
+  d_log << "traindesc:: completed in "
         << d_task_progress_list.at("traindesc").d_elapsed_ms
         << "ms" << std::endl;
   d_log << std::flush;
@@ -343,7 +240,7 @@ void vise::relja_retrival::cluster_train_descriptors() {
     vise::configuration_save(d_pconf, d_pconf_fn.string());
   }
 
-  d_log << "cluster: use_root_sift=" << use_root_sift
+  d_log << "cluster:: use_root_sift=" << use_root_sift
         << ", bow_cluster_count=" << bow_cluster_count
         << ", cluster_num_iteration=" << cluster_num_iteration
         << std::endl;
@@ -354,12 +251,12 @@ void vise::relja_retrival::cluster_train_descriptors() {
                                     d_bowcluster_fn.string(),
                                     bow_cluster_count,
                                     cluster_num_iteration,
+                                    d_log,
                                     &d_task_progress_list.at("cluster"));
   d_task_progress_list.at("cluster").finish_success();
-
-  d_log << "cluster: completed in "
-        << d_task_progress_list.at("cluster").d_elapsed_ms
-        << "ms" << std::endl;
+  d_log << "cluster:: completed in "
+        << (d_task_progress_list.at("cluster").d_elapsed_ms / 1000)
+        << "sec." << std::endl;
   d_log << std::flush;
 }
 
@@ -379,7 +276,7 @@ void vise::relja_retrival::assign_train_descriptors() {
                                   &d_task_progress_list.at("assign"));
   d_task_progress_list.at("assign").finish_success();
 
-  d_log << "assign: completed in "
+  d_log << "assign:: completed in "
         << d_task_progress_list.at("assign").d_elapsed_ms
         << "ms" << std::endl;
   d_log << std::flush;
@@ -403,10 +300,11 @@ void vise::relja_retrival::hamm_train_descriptors() {
                              d_trainassign_fn.string(),
                              d_trainhamm_fn.string(),
                              hamm_embedding_bits,
+                             d_log,
                              &d_task_progress_list.at("hamm"));
   d_task_progress_list.at("hamm").finish_success();
 
-  d_log << "hamm: completed in "
+  d_log << "hamm:: completed in "
         << d_task_progress_list.at("hamm").d_elapsed_ms
         << "ms" << std::endl;
   d_log << std::flush;
@@ -445,12 +343,13 @@ void vise::relja_retrival::create_index() {
                     d_index_tmp_dir.string(),
                     feat_getter_obj,
                     d_bowcluster_fn.string(),
+                    d_log,
                     embed_factory,
                     &d_task_progress_list.at("index"));
   delete embed_factory; // @todo: for safety, use shared_ptr
   d_task_progress_list.at("index").finish_success();
 
-  d_log << "index: completed in "
+  d_log << "index:: completed in "
         << d_task_progress_list.at("index").d_elapsed_ms
         << "ms" << std::endl;
   d_log << std::flush;
@@ -468,10 +367,12 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     bool success = false;
     success = vise::configuration_load(d_pconf_fn.string(), d_pconf);
     if(!success) {
+      d_log << "failed to load configuration from " << d_pconf_fn.string() << std::endl;
       throw std::runtime_error("Failed to load configuration file");
       return;
     }
     if(!pconf_validate_data_dir()) {
+      d_log << "failed to validate configuration" << std::endl;
       throw std::runtime_error("Failed to validate configuration file");
       return;
     }
@@ -497,13 +398,11 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
       }
     }
 
-    std::cout << "relja_retrival::index_run_all_stages(): start, "
-              << "thread_id=" << std::this_thread::get_id()
-              << std::endl;
-    d_log << "indexing started on " << vise::now_timestamp() << std::endl;
+    d_log << "indexing started on " << vise::now_timestamp()
+          << " using thread " << std::this_thread::get_id() << std::endl;
 
     if (!boost::filesystem::exists(d_filelist_fn)) {
-      create_file_list();
+      preprocess_images();
       index_status_f << ",filelist" << std::flush;
     }
 
@@ -516,7 +415,6 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
          << "  - hamming embedding=" << d_trainhamm_fn
          << std::endl;
       d_log << ss.str();
-      std::cout << ss.str();
       index_status_f << ",traindesc,cluster,assign,hamm" << std::flush;
     } else {
       if (!boost::filesystem::exists(d_traindesc_fn)) {
@@ -547,22 +445,22 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
       index_status_f << ",index" << std::flush;
     }
 
-    std::cout << "relja_retrival::index_run_all_stages(): end, "
-              << "thread_id=" << std::this_thread::get_id()
-              << std::endl;
+    d_log << "relja_retrival::index_run_all_stages(): end, "
+          << "thread_id=" << std::this_thread::get_id()
+          << std::endl;
     d_is_indexing_ongoing = false;
     d_is_indexing_done = true;
     index_status_f << ",end";
     index_status_f.close();
 
     // delete d_traindesc_fn as it is no longer needed, @todo: review this action in future
-    // boost::filesystem::remove(d_traindesc_fn);
+    //boost::filesystem::remove(d_traindesc_fn);
 
     callback();
   } catch(std::exception &e) {
     d_is_indexing_ongoing = false;
     d_is_indexing_done = false;
-    d_log << "Exception: " << e.what() << std::endl;
+    d_log << "Exception in index_run_all_stages(): " << e.what() << std::endl;
     callback();
   }
 }
@@ -597,8 +495,7 @@ bool vise::relja_retrival::index_is_done() const {
 	  status_tokens.at(6) == "index" &&
 	  status_tokens.at(7) == "end" ) {
 	  return true;
-  }
-  else {
+  } else {
     return false;
   }
 }
@@ -1114,7 +1011,7 @@ std::map<std::string, std::string> vise::relja_retrival::conf() const {
 }
 
 
-int32_t vise::relja_retrival::get_traindesc_count(std::string train_desc_fn) {
+int64_t vise::relja_retrival::get_traindesc_count(std::string train_desc_fn) {
   FILE *f = fopen(train_desc_fn.c_str(), "rb");
   if ( f == NULL ) {
     std::cerr << "Failed to open training descriptors file: "
@@ -1160,7 +1057,7 @@ int32_t vise::relja_retrival::get_traindesc_count(std::string train_desc_fn) {
   fseeko64(f, 0, SEEK_END);
   file_size = ftello64(f);
 #endif
-  uint32_t descriptor_data_length = (file_size - HEADER_BYTES) / (element_size);
+  int64_t descriptor_data_length = (file_size - HEADER_BYTES) / (element_size);
   return (descriptor_data_length / descriptor_dimension);
 
 }

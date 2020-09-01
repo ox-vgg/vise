@@ -20,6 +20,7 @@
 #include "feat_standard.h"
 #include "hamming_embedder.h"
 #include "mpi_queue.h"
+#include "train_resize.h"
 #include "train_assign.h"
 #include "train_descs.h"
 #include "train_cluster.h"
@@ -107,12 +108,8 @@ namespace vise {
     std::map<std::string, std::string> conf() const override;
   private:
     void index_run_all_stages(std::function<void(void)> callback);
-    void preprocess_image(std::string srcfn,
-                          std::string dstfn,
-                          bool &result,
-                          std::string &message);
     uint32_t image_src_count() const;
-    void create_file_list();
+    void preprocess_images();
     void extract_train_descriptors();
     void cluster_train_descriptors();
     void assign_train_descriptors();
@@ -120,7 +117,7 @@ namespace vise {
     void create_index();
 
     void index_read_status(std::vector<std::string> &status_tokens) const;
-    int32_t get_traindesc_count(std::string train_desc_fn);
+    int64_t get_traindesc_count(std::string train_desc_fn);
 
     void findBBox2( double xl, double xu, double yl, double yu, homography const &H, double &xl2, double &xu2, double &yl2, double &yu2, uint32_t w2, uint32_t h2 ) const;
 

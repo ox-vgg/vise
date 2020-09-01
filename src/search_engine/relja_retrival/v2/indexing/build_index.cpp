@@ -44,6 +44,7 @@ Updates:
 #include "proto_index.h"
 #include "timing.h"
 #include "util.h"
+#include "vise/vise_util.h"
 
 // for kd-tree based nearest neighbour search
 #include <vl/generic.h>
@@ -88,7 +89,7 @@ namespace buildIndex {
   class buildManagerFiles : public managerWithTiming<std::string> {
   public:
 
-    buildManagerFiles(uint32_t nJobs, std::string const desc, vise::task_progress *progress) : managerWithTiming<std::string>(nJobs, desc), d_progress(progress) {}
+    buildManagerFiles(uint32_t nJobs, std::string const desc, std::ofstream&logf, vise::task_progress *progress) : managerWithTiming<std::string>(nJobs, desc, &logf), d_progress(progress) {}
 
     void
     compute( uint32_t jobID, std::string &result ){
@@ -184,10 +185,11 @@ namespace buildIndex {
   class buildManagerSemiSorted : public managerWithTiming<buildResultSemiSorted> {
   public:
 
-    buildManagerSemiSorted(uint32_t numDocs, std::string const dsetFn, vise::task_progress *progress)
-      : managerWithTiming<buildResultSemiSorted>(numDocs, "buildManagerSemiSorted"),
+    buildManagerSemiSorted(uint32_t numDocs, std::string const dsetFn, std::ofstream &logf, vise::task_progress *progress)
+      : managerWithTiming<buildResultSemiSorted>(numDocs, "index::buildManagerSemiSorted", &logf),
         dsetBuilder_(dsetFn),
         nextID_(0),
+        d_logf(&logf),
         d_progress(progress)
     {}
 
@@ -198,6 +200,7 @@ namespace buildIndex {
     datasetBuilder dsetBuilder_;
     uint32_t nextID_;
     std::map<uint32_t, buildResultSemiSorted> results_;
+    std::ofstream *d_logf;
     vise::task_progress *d_progress;
 
     DISALLOW_COPY_AND_ASSIGN(buildManagerSemiSorted)
@@ -209,6 +212,10 @@ namespace buildIndex {
   buildManagerSemiSorted::compute( uint32_t jobID, buildResultSemiSorted &result ){
     // make sure results are saved sorted by job/docID!
     results_[jobID]= result;
+    if(result.second.first == 0 && result.second.second == 0) {
+      (*d_logf) << "index:: DISCARD=" << result.first << ", REASON=invalid image" << std::endl;
+    }
+
     if (jobID==nextID_){
       // save the buffered results and remove them from the map
       for (std::map<uint32_t, buildResultSemiSorted>::iterator it= results_.begin();
@@ -343,6 +350,19 @@ namespace buildIndex {
     result.first= imageFn;
     imageFn= databasePath_ + imageFn;
 
+    // ensure that image is valid
+    // added by Abhishek Dutta (26 Aug. 2020)
+    std::string message;
+    uint32_t width  = 0;
+    uint32_t height = 0;
+    if(vise::if_valid_get_image_size(imageFn, message, width, height)) {
+      result.second.first = width;
+      result.second.second = height;
+    } else {
+      result.second = std::make_pair(0,0); // indicator for invalid image
+      return;
+    }
+    /*
     // make sure the image exists and is readable
     result.second= std::make_pair(0,0);
     if (boost::filesystem::exists(imageFn) && boost::filesystem::is_regular_file(imageFn)){
@@ -355,6 +375,7 @@ namespace buildIndex {
       std::cerr<<"buildWorkerSemiSorted::operator(): "<<imageFn<<" is corrupt or 0x0\n";
       return;
     }
+    */
 
     uint32_t numFeats;
     std::vector<ellipse> regions;
@@ -363,6 +384,7 @@ namespace buildIndex {
     // extract features
     featGetter_->getFeats(imageFn.c_str(), numFeats, regions, descs);
     if (numFeats==0){
+      result.second = std::make_pair(0,0); // indicator for invalid image
       delete []descs;
       return;
     }
@@ -703,6 +725,7 @@ namespace buildIndex {
                    std::vector<std::string> const &fns,
                    std::string const iidxFn,
                    uint32_t const totalFeats,
+                   std::ofstream &logf,
                    embedderFactory const *embFactory= NULL){
     bool delEmbF= false;
     if (embFactory==NULL){
@@ -716,7 +739,7 @@ namespace buildIndex {
     std::vector<uint32_t> ID_fake;
     std::vector<rr::indexEntry> entries, entries_temp;
 
-    timing::progressPrint progressPrint(totalFeats, "buildIndex::mergeSortedFiles");
+    timing::progressPrint progressPrint(totalFeats, "index::mergeSortedFiles", &logf);
 
     // the heap
     // entries[first].id(second)
@@ -882,7 +905,7 @@ namespace buildIndex {
     for (uint32_t iEntry= 0; iEntry<numFiles; ++iEntry)
       ASSERT(embedders[iEntry]==NULL);
 
-    std::cout<<"buildIndex::mergeSortedFiles: done\n";
+    logf<<"index:: mergeSortedFiles: done" << std::endl;
 
     ASSERT( progressPrint.totalDone() == totalFeats );
 
@@ -894,7 +917,7 @@ namespace buildIndex {
 
 
   void
-  mergePartialFidx(std::vector<std::string> const &fns, std::string const fidxFn) {
+  mergePartialFidx(std::vector<std::string> const &fns, std::string const fidxFn, std::ofstream &logf) {
     uint32_t const numFiles= fns.size();
     std::vector< protoDbFile* > inDbs;
     std::vector<uint32_t> IDs(numFiles);
@@ -925,15 +948,15 @@ namespace buildIndex {
     // do merging
     protoDbFileBuilder dbBuilder(fidxFn, "index");
 
-    while (queue.size()){
-
+    while (queue.size()) {
       // get smallest ID
       uint32_t iFile= queue.top();
       queue.pop();
       ID= IDs[iFile];
       ASSERT(ID>=nextID);
-      for (; numNoFeatsWarnings<5 && nextID<ID; ++nextID, ++numNoFeatsWarnings)
-        std::cout<<"buildIndex::mergePartialFidx: warning no features detected in imageID="<<nextID<<"\n";
+      for (; numNoFeatsWarnings<5 && nextID<ID; ++nextID, ++numNoFeatsWarnings) {
+        logf<<"index:: mergePartialFidx: warning no features detected in imageID="<<nextID<<std::endl;
+      }
       nextID= ID+1;
 
       // get/add data
@@ -952,8 +975,9 @@ namespace buildIndex {
       }
       data.clear();
       if (!hasFeatures){
-        if (numNoFeatsWarnings<5)
-          std::cout<<"buildIndex::mergePartialFidx: warning no features detected in imageID="<<ID<<"\n";
+        if (numNoFeatsWarnings<5) {
+          logf<<"index:: mergePartialFidx: warning no features detected in imageID="<<ID<<std::endl;
+        }
         ++numNoFeatsWarnings;
       }
 
@@ -970,10 +994,10 @@ namespace buildIndex {
     util::delPointerVector(inDbs);
 
     if (numNoFeatsWarnings>5) {
-      std::cout<<"buildIndex::mergePartialFidx: warning no features detected "<<numNoFeatsWarnings<<" images\n";
+      logf<<"index:: mergePartialFidx: warning no features detected "<<numNoFeatsWarnings<<" images" << std::endl;
     }
 
-    std::cout<<"buildIndex::mergePartialFidx: done\n";
+    logf<<"index:: mergePartialFidx: done" << std::endl;
 
     for (uint32_t i= 0; i<fns.size(); ++i) {
       boost::filesystem::remove(fns[i]);
@@ -1004,12 +1028,13 @@ namespace buildIndex {
         std::string const tmpDir,
         featGetter const &featGetter_obj,
         std::string const clstFn,
+        std::ofstream &logf,
         embedderFactory const *embFactory,
         vise::task_progress *progress) {
 
     MPI_GLOBAL_ALL
       bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads= omp_get_max_threads();
+    uint32_t numWorkerThreads = vise::configuration_get_nthread();
 
     ASSERT(tmpDir[tmpDir.length()-1]=='/' || tmpDir[tmpDir.length() - 1] == '\\');
     std::string indexingStatusFn= tmpDir+"indexingstatus.bin";
@@ -1035,31 +1060,42 @@ namespace buildIndex {
       // also save the bare fidx (i.e. list of unique wordIDs)
       // also construct the dataset info (i.e. list of images, width/height)
 
-      if (rank==0)
-        std::cout<<"buildIndex::build: beginning\n";
+      if (rank==0) {
+        logf << "index:: beginning" << std::endl;
+      }
 
       // clusters
-      if (rank==0)
-        std::cout<<"buildIndex::build: Loading cluster centres\n";
+      if (rank==0) {
+        logf << "index:: Loading cluster centres\n";
+      }
+
       double t0= timing::tic();
       clstCentres clstCentres_obj( clstFn.c_str(), true );
-      if (rank==0)
-        std::cout<<"buildIndex::build: Loading cluster centres - DONE ("<< timing::toc(t0) <<" ms)\n";
+      if (rank==0) {
+        logf << "index:: Loading " << clstCentres_obj.numClst
+             << "cluster centres of dimension " << clstCentres_obj.numDims
+             << " - DONE ("<< timing::toc(t0) <<" ms)"
+             << std::endl;
+      }
 
-      if (rank==0)
-        std::cout<<"buildIndex::build: Constructing NN search object\n";
+      if (rank==0) {
+        logf <<"index:: Constructing NN search object" << std::endl;
+      }
+
       t0= timing::tic();
-
       // build kd-tree for nearest neighbour search
       // to assign cluster-id for each descriptor
       std::size_t num_trees = 8;
-      std::size_t max_num_checks = 1024;
+      std::size_t max_num_checks = 512;
       VlKDForest* kd_forest = vl_kdforest_new( VL_TYPE_FLOAT, clstCentres_obj.numDims, num_trees, VlDistanceL2 );
       vl_kdforest_set_max_num_comparisons(kd_forest, max_num_checks);
       vl_kdforest_build(kd_forest, clstCentres_obj.numClst, clstCentres_obj.clstC_flat);
 
-      if (rank==0)
-        std::cout<<"buildIndex::build: Constructing NN search object - DONE ("<< timing::toc(t0) << " ms)\n";
+      if (rank==0) {
+        logf<<"index:: Constructing NN search object ("
+            <<"num_trees=" << num_trees << ",max_num_checks=" << max_num_checks << ")"
+            << " - DONE ("<< timing::toc(t0) << " ms)" << std::endl;
+      }
 
       // get number of documents
       uint32_t numDocs= 0;
@@ -1087,7 +1123,7 @@ namespace buildIndex {
 #endif
 
       buildManagerSemiSorted *manager= (rank==0) ?
-        new buildManagerSemiSorted(numDocs, dsetFn, progress) :
+        new buildManagerSemiSorted(numDocs, dsetFn, logf, progress) :
         NULL;
 
       std::vector<std::string> fns;
@@ -1192,14 +1228,15 @@ namespace buildIndex {
       // sort the previously generated files (sorted within each indexEntry by clusterID) such that sorting is maintained accorss indexEntries as well (i.e. last element of first indexEntry is < than first element of second indexEntry)
 
       if (rank==0){
-        std::cout<<"buildIndex::build: semiSorted\n";
-        std::cout<< "\n" << status.DebugString() <<"\n";
+        logf << "buildIndex::build: semiSorted" << std::endl;
+        logf << std::endl << status.DebugString() << std::endl;
       }
 
       std::vector<std::string> fns;
       fns.reserve( status.filename_size() );
-      for (int i= 0; i < status.filename_size(); ++i)
+      for (int i= 0; i < status.filename_size(); ++i) {
         fns.push_back(status.filename(i));
+      }
 
       uint32_t nJobs= fns.size();
       if(progress != nullptr) {
@@ -1207,14 +1244,16 @@ namespace buildIndex {
       }
 
       buildManagerFiles *manager= (rank==0) ?
-        new buildManagerFiles(nJobs, "buildManagerSorted", progress) :
+        new buildManagerFiles(nJobs, "index::buildManagerSorted", logf, progress) :
         NULL;
       buildWorkerSorted worker(tmpDir, fns, mergingMemoryLim / std::max(numProc, numWorkerThreads), embFactory );
 
-      if (useThreads)
+      if (useThreads) {
         threadQueue<std::string>::start( nJobs, worker, *manager, numWorkerThreads );
-      else
+      }
+      else {
         mpiQueue<std::string>::start( nJobs, worker, manager );
+      }
 
       // delete old files
       if (rank==0){
@@ -1247,31 +1286,32 @@ namespace buildIndex {
     if (status.state()==rr::buildIndexStatus::merged){
 
       if (rank==0){
-        std::cout<<"buildIndex::build: merged\n";
-        std::cout<< "\n" << status.DebugString() <<"\n";
+        logf << "buildIndex::build: merged" << std::endl;
+        logf << std::endl << status.DebugString() << std::endl;
       }
 
       std::vector<std::string> fns;
       fns.reserve( status.filename_size() );
-      for (int i= 0; i < status.filename_size(); ++i)
+      for (int i= 0; i < status.filename_size(); ++i) {
         fns.push_back(status.filename(i));
+      }
 
       std::vector<std::string> fidxFns;
       fidxFns.reserve( status.fidx_filename_size() );
-      for (int i= 0; i < status.fidx_filename_size(); ++i)
+      for (int i= 0; i < status.fidx_filename_size(); ++i) {
         fidxFns.push_back(status.fidx_filename(i));
+      }
 
       if(progress != nullptr) {
         progress->start(0, 2);
       }
 
       if (useThreads){
-
         // merge fidx
-        boost::thread thread1( boost::bind(mergePartialFidx, fidxFns, fidxFn) );
+        boost::thread thread1( boost::bind(mergePartialFidx, fidxFns, fidxFn, std::ref(logf)) );
 
         // merge iidx
-        boost::thread thread2( boost::bind(mergeSortedFiles, fns, iidxFn, status.totalfeats(), embFactory) );
+        boost::thread thread2( boost::bind(mergeSortedFiles, fns, iidxFn, status.totalfeats(), std::ref(logf), embFactory) );
 
         thread1.join();
         progress->add(1);
@@ -1315,8 +1355,8 @@ namespace buildIndex {
       ASSERT(status.state()==rr::buildIndexStatus::done);
 
       std::chrono::steady_clock::time_point build_end = std::chrono::steady_clock::now();
-      std::cout<<"buildIndex::build: done in "<< std::chrono::duration_cast<std::chrono::minutes>(build_end - build_start).count() <<" minutes\n";
-      std::cout<< "\n" << status.DebugString() <<"\n";
+      logf<<"index:: build done in "<< std::chrono::duration_cast<std::chrono::minutes>(build_end - build_start).count() <<" minutes\n";
+      logf<< std::endl << status.DebugString() << std::endl;
     }
 
   }

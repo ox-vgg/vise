@@ -17,8 +17,10 @@
 #include <ctime>
 #include <chrono>
 #include <cstdlib>
+#include <omp.h>
 
 #include <boost/filesystem.hpp>
+#include <Magick++.h>
 
 /*
 #ifndef ASSERT
@@ -33,7 +35,8 @@ namespace vise {
   bool configuration_save(std::map<std::string, std::string> &conf,
                           std::string filename);
   void configuration_show(std::map<std::string, std::string> const &conf);
-
+  std::string configuration_get(std::string key);
+  uint32_t configuration_get_nthread();
   boost::filesystem::path vise_home();
 
   // string
@@ -85,5 +88,9 @@ namespace vise {
   // timing and profiling
   std::string now_timestamp();
   uint32_t getmillisecs();
+
+  // check if input image is valid
+  bool is_valid_image(std::string img_fn, std::string &message);
+  bool if_valid_get_image_size(std::string img_fn, std::string &message, uint32_t &width, uint32_t &height);
 }
 #endif

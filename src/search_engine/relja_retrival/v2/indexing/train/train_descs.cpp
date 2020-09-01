@@ -30,6 +30,7 @@
 #include "par_queue.h"
 #include "same_random.h"
 #include "timing.h"
+#include "vise/vise_util.h"
 
 namespace buildIndex {
 
@@ -45,15 +46,18 @@ namespace buildIndex {
                       uint8_t dtypeCode,
                       int64_t trainNumDescs,
                       std::string const trainDescsFn,
+                      std::ofstream &logf,
                       vise::task_progress *progress)
       : allDescs_(trainNumDescs<0),
         remainNumDescs_(trainNumDescs<0 ? 0 : trainNumDescs),
         nextID_(0),
-        progressPrint_(
-                       trainNumDescs<0 ? numDocs : trainNumDescs,
-                       std::string("trainDescsManager") + (trainNumDescs<0 ? "(images)" : "(descs)") ) ,
+        d_progress_print(trainNumDescs<0 ? numDocs : trainNumDescs,
+                         std::string("traindesc"),
+                         &logf),
+        d_logf(&logf),
         d_progress(progress)
     {
+      d_discarded_file_count = 0;
       f_= fopen(trainDescsFn.c_str(), "wb");
       ASSERT(f_!=NULL);
       fwrite( &numDims, sizeof(numDims), 1, f_ );
@@ -71,23 +75,31 @@ namespace buildIndex {
     bool const allDescs_;
     int64_t remainNumDescs_;
     uint32_t nextID_;
+    uint32_t d_discarded_file_count;
     std::map<uint32_t, trainDescsResult> results_;
     FILE *f_;
-    timing::progressPrint progressPrint_;
+    timing::progressPrint d_progress_print;
+    std::ofstream *d_logf;
     vise::task_progress *d_progress;
 
     DISALLOW_COPY_AND_ASSIGN(trainDescsManager)
   };
 
-
-
   void
   trainDescsManager::operator()( uint32_t jobID, trainDescsResult &result ){
     if (stopJobs_){
       results_.clear();
+      (*d_logf) << "traindesc:: feature extraction failed on " << d_discarded_file_count
+                << " images" << std::endl;
       return;
     }
     // make sure results are saved sorted by job/docID!
+    if(result.first == 0) {
+      // no feature got extracted
+      d_discarded_file_count++;
+      (*d_logf) << "traindesc:: DISCARD: " << result.second << std::endl;
+    }
+
     results_[jobID]= result;
     if (jobID==nextID_){
 
@@ -100,15 +112,14 @@ namespace buildIndex {
         if (allDescs_) {
           if(d_progress != nullptr) {
             d_progress->add(1);
-          } else {
-            progressPrint_.inc();
           }
+          d_progress_print.inc();
         }
 
         if (res.first>0) {
-          uint32_t numToCopy= (allDescs_ || res.first < remainNumDescs_) ?
+          int64_t numToCopy= (allDescs_ || res.first < remainNumDescs_) ?
             res.first :
-            static_cast<uint32_t>(remainNumDescs_);
+            static_cast<int64_t>(remainNumDescs_);
           ASSERT( res.second.size() % res.first == 0 );
           // the numToCopy*res.second.size()/res.first is because we don't know size per scalar (could be uint8, float32..)
           fwrite( res.second.c_str(),
@@ -118,9 +129,8 @@ namespace buildIndex {
           if (!allDescs_) {
             if(d_progress != nullptr) {
               d_progress->add(numToCopy);
-            } else {
-              progressPrint_.inc(numToCopy);
             }
+            d_progress_print.inc(numToCopy);
           }
           remainNumDescs_-= numToCopy;
         }
@@ -169,10 +179,20 @@ namespace buildIndex {
   trainDescsWorker::operator() ( uint32_t jobID, trainDescsResult &result ) const {
 
     uint32_t docID= jobID;
-    result= std::make_pair(0, "");
+    result = std::make_pair(0, "");
 
     // get filename
     std::string imageFn= databasePath_ + imageFns_->at(docID);
+
+    // added by Abhishek Dutta, 21 Aug. 2020
+    // check if image is valid before sending it to feature extractor
+    // to avoid segmentation fault
+    std::string message;
+    if(!vise::is_valid_image(imageFn, message)) {
+      result.first = 0;
+      result.second = imageFn + ", REASON=" + message;
+      return;
+    }
 
     uint32_t numFeats;
     std::vector<ellipse> regions;
@@ -182,12 +202,12 @@ namespace buildIndex {
     featGetter_->getFeats(imageFn.c_str(), numFeats, regions, descs);
     result.first= numFeats;
     if (numFeats==0){
+      result.second = imageFn + ", REASON=no features";
       delete []descs;
       return;
     }
     result.second= featGetter_->getRawDescs(descs, numFeats);
     delete []descs;
-
   }
 
 
@@ -197,7 +217,7 @@ namespace buildIndex {
                     std::string const trainImagelistFn,
                     std::string const trainDatabasePath,
                     std::string const trainDescsFn,
-                    int32_t const trainNumDescs,
+                    int64_t const trainNumDescs,
                     featGetter const &featGetter_obj,
                     std::ofstream& logf,
                     vise::task_progress *progress){
@@ -205,18 +225,19 @@ namespace buildIndex {
     MPI_GLOBAL_RANK;
 
     bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads= omp_get_max_threads();
-    //uint32_t numWorkerThreads = 2;
+    uint32_t numWorkerThreads = vise::configuration_get_nthread();
 
     // read the list of training images and shuffle it
-
     std::vector<std::string> imageFns;
 
     if (rank==0){
-      logf << "traindesc: trainImagelistFn=" << trainImagelistFn << std::endl;
+      logf << "traindesc:: using " << numWorkerThreads << " threads" << std::endl;
+      logf << "traindesc:: image filename list = " << trainImagelistFn << std::endl;
+      logf << "traindesc:: image source dir = " << trainDatabasePath << std::endl;
+      logf << "traindesc:: image feature descriptors will be written to " << trainDescsFn << std::endl;
+      logf << "traindesc:: number of training feature descriptors = " << trainNumDescs << std::endl;
       std::ifstream fImagelist(trainImagelistFn.c_str());
       ASSERT(fImagelist.is_open());
-
       imageFns.reserve(100000);
       std::string imageFn;
       while (std::getline(fImagelist, imageFn)) {
@@ -224,6 +245,7 @@ namespace buildIndex {
       }
       sameRandomUint32 sr(100000, 43);
       sr.shuffle<std::string>(imageFns.begin(), imageFns.end());
+      logf << "traindesc:: image filename count = " << imageFns.size() << std::endl;
     }
 
 #ifdef RR_MPI
@@ -244,13 +266,13 @@ namespace buildIndex {
                             featGetter_obj.getDtypeCode(),
                             trainNumDescs,
                             trainDescsFn,
+                            logf,
                             progress) :
       NULL;
 
     trainDescsWorker worker(imageFns, trainDatabasePath, featGetter_obj);
 
     if (useThreads) {
-      logf << "traindesc: number of threads = " << numWorkerThreads << std::endl;
       threadQueue<trainDescsResult>::start( nJobs, worker, *manager, numWorkerThreads );
     }
     else {

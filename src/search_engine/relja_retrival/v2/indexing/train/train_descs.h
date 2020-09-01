@@ -28,7 +28,7 @@ namespace buildIndex {
     void
         computeTrainDescs(std::string const trainImagelistFn, std::string const trainDatabasePath,
                           std::string const trainDescsFn,
-                          int32_t const trainNumDescs,
+                          int64_t const trainNumDescs,
                           featGetter const &featGetter_obj,
                           std::ofstream& logf,
                           vise::task_progress *progress = nullptr);

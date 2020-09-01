@@ -1,5 +1,7 @@
 #include "task_progress.h"
 
+#include <iostream>
+
 vise::task_progress::task_progress(std::string name) {
     d_name = name;
     d_value = 0;
@@ -9,7 +11,7 @@ vise::task_progress::task_progress(std::string name) {
     d_has_started = false;
 }
 
-void vise::task_progress::start(uint32_t value, uint32_t max) {
+void vise::task_progress::start(int64_t value, int64_t max) {
     d_value = value;
     d_max = max;
     d_is_complete = false;
@@ -30,22 +32,29 @@ void vise::task_progress::finish_error() {
     d_elapsed_ms = getmillisecs() - d_tstart;
 }
 
-void vise::task_progress::update(uint32_t value, std::string message) {
+void vise::task_progress::update(int64_t value, std::string message) {
     d_value = value;
     d_message = message;
     d_elapsed_ms = getmillisecs() - d_tstart;
 }
 
-void vise::task_progress::update(uint32_t value) {
+void vise::task_progress::update(int64_t value) {
     d_value = value;
     d_message = "";
     d_elapsed_ms = getmillisecs() - d_tstart;
 }
 
-void vise::task_progress::add(uint32_t value) {
+void vise::task_progress::add(int64_t value) {
     d_value = d_value + value;
     d_message = "";
     d_elapsed_ms = getmillisecs() - d_tstart;
+}
+
+uint32_t vise::task_progress::get_time_remaining() {
+  double elapsed_ms = (double) (getmillisecs() - d_tstart);
+  double avg_time_per_step = elapsed_ms / ((double) d_value);
+  uint32_t remaining_ms = (uint32_t) ( (avg_time_per_step * ((double) (d_max-1))) - elapsed_ms );
+  return remaining_ms;
 }
 
 std::string vise::task_progress::to_json() const {
@@ -64,4 +73,3 @@ uint32_t vise::task_progress::getmillisecs() {
     std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
     return std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
 }
-

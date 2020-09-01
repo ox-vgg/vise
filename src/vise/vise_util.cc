@@ -31,7 +31,7 @@ bool vise::configuration_load(std::string filename,
     conf[key] = value;
   }
   file.close();
-  std::cout << "vise_util::configuration_load(): loaded from " << filename << std::endl;
+  //std::cout << "vise_util::configuration_load(): loaded from " << filename << std::endl;
 
   return true;
 }
@@ -50,7 +50,7 @@ bool vise::configuration_save(std::map<std::string, std::string> &conf,
     file << itr->first << "=" << itr->second << std::endl;
   }
   file.close();
-  std::cout << "vise_util::configuration_save(): saved to " << filename << std::endl;
+  //std::cout << "vise_util::configuration_save(): saved to " << filename << std::endl;
   return true;
 }
 
@@ -327,7 +327,9 @@ std::string vise::json_escape_str(const std::string& in) {
 
 std::string vise::now_timestamp() {
   std::time_t now = std::time(nullptr);
-  return std::string( std::asctime(std::localtime(&now)) );
+  std::string ts( std::asctime(std::localtime(&now)) );
+  ts.pop_back();
+  return ts;
 }
 
 uint32_t vise::getmillisecs() {
@@ -341,7 +343,116 @@ boost::filesystem::path vise::vise_home() {
   boost::filesystem::path vise_home_dir = home / "vise";
 #else
   boost::filesystem::path home(std::getenv("HOME"));
-  boost::filesystem::path vise_home_dir = home / ".vise";
+  std::string vise_dirname(".vise");
+  boost::filesystem::path vise_home_dir = home / vise_dirname;
 #endif
   return vise_home_dir;
+}
+
+std::string vise::configuration_get(std::string key) {
+  // if available, load vise configuration to find out the number of threads that should be used
+  const boost::filesystem::path visehome = vise::vise_home();
+  boost::filesystem::path vise_settings_fn = visehome / "vise_settings.txt";
+  if(boost::filesystem::exists(vise_settings_fn)) {
+    std::map<std::string, std::string> vise_settings;
+    vise::configuration_load(vise_settings_fn.string(), vise_settings);
+    if(vise_settings.count(key)) {
+      return vise_settings.at(key);
+    } else {
+      return "";
+    }
+  } else {
+    return "";
+  }
+}
+
+uint32_t vise::configuration_get_nthread() {
+  uint32_t nthread = omp_get_max_threads(); // i.e. use all available cores
+  std::string nthread_str = vise::configuration_get("nthread");
+  if(nthread_str != "") {
+    int32_t conf_nthread = 0;
+    std::istringstream ss(nthread_str);
+    ss >> conf_nthread;
+    if(conf_nthread < 0) {
+      nthread = omp_get_max_threads() + conf_nthread;
+    } else {
+      nthread = conf_nthread;
+    }
+    if(nthread == 0 || nthread > omp_get_max_threads()) {
+      nthread = omp_get_max_threads();
+    }
+  }
+  return nthread;
+}
+
+bool vise::is_valid_image(std::string img_fn, std::string &message) {
+  if(!boost::filesystem::exists(boost::filesystem::path(img_fn))) {
+    message = "file missing";
+    return false;
+  }
+
+  bool success = true;
+  try {
+    Magick::Image img(img_fn);
+    img.quiet(true); // to supress warnings
+    if(img.rows() < 32 || img.columns() < 32) {
+      std::ostringstream ss;
+      ss << "image size " << img.columns() << "x" << img.rows() << " must be greater than 32x32";
+      message = ss.str();
+      success = false;
+    } else if(img.colorSpace() != Magick::RGBColorspace &&
+              img.colorSpace() != Magick::sRGBColorspace &&
+              img.colorSpace() != Magick::GRAYColorspace) {
+      std::ostringstream ss;
+      ss << "image color space " << img.colorSpace() << " is not "
+         << Magick::RGBColorspace << " (i.e. RGB) or " << Magick::sRGBColorspace
+         << " (i.e. sRGB)";
+      message = ss.str();
+      success = false;
+    } else if(img.magick() != "JPEG") {
+      message = "image format must be JPEG";
+      success = false;
+    }
+    img.quiet(false);
+
+  } catch(std::exception &ex) {
+    message = ex.what();
+    success = false;
+  }
+  return success;
+}
+
+bool vise::if_valid_get_image_size(std::string img_fn, std::string &message, uint32_t &width, uint32_t &height) {
+  if(!boost::filesystem::exists(boost::filesystem::path(img_fn))) {
+    message = "file missing";
+    return false;
+  }
+
+  bool success = true;
+  try {
+    Magick::Image img(img_fn);
+    img.quiet(true); // to supress warnings
+    width = img.columns();
+    height = img.rows();
+    if(img.rows() < 32 || img.columns() < 32) {
+      std::ostringstream ss;
+      ss << "image size " << img.columns() << "x" << img.rows() << " must be greater than 32x32";
+      message = ss.str();
+      success = false;
+    } else if(img.colorSpace() != Magick::RGBColorspace &&
+              img.colorSpace() != Magick::sRGBColorspace &&
+              img.colorSpace() != Magick::GRAYColorspace) {
+      message = "image color space must be RGB";
+      success = false;
+    } else if(img.magick() != "JPEG") {
+      message = "image format must be JPEG";
+      success = false;
+    }
+    img.quiet(false);
+
+  } catch(std::exception &ex) {
+    message = ex.what();
+    success = false;
+  }
+  return success;
 }

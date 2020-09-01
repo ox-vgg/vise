@@ -13,6 +13,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iomanip>
+#include <omp.h>
+#include <sstream>
+#include "vise/vise_util.h"
+#include "timing.h"
 
 namespace buildIndex {
   void compute_train_cluster(std::string const train_desc_fn,
@@ -20,18 +25,20 @@ namespace buildIndex {
                              std::string const cluster_fn,
                              uint32_t bow_cluster_count,
                              uint32_t cluster_num_iteration,
+                             std::ofstream &logf,
                              vise::task_progress *progress) {
-    if(progress == nullptr) {
-      std::cout << "buildIndex::compute_train_cluster()" << std::endl;
-      std::cout << "train_desc_fn = " << train_desc_fn << std::endl;
-      std::cout << "use_root_sift = " << use_root_sift << std::endl;
-      std::cout << "cluster_fn = " << cluster_fn << std::endl;
-      std::cout << "bow_cluster_count = " << bow_cluster_count << std::endl;
-    }
+    logf << "cluster:: train_desc_fn = " << train_desc_fn << std::endl;
+    logf << "cluster:: use_root_sift = " << use_root_sift << std::endl;
+    logf << "cluster:: cluster_fn = " << cluster_fn << std::endl;
+
+    uint32_t num_worker_threads = vise::configuration_get_nthread();
+    vl_set_num_threads(num_worker_threads);
+    logf << "cluster:: using " << num_worker_threads << " threads" << std::endl;
+
     FILE *f = fopen(train_desc_fn.c_str(), "rb");
     if ( f == NULL ) {
-      std::cerr << "Failed to open training descriptors file: "
-                << train_desc_fn << std::endl;
+      logf << "cluster:: failed to open training descriptors file: "
+           << train_desc_fn << std::endl;
       return;
     }
 
@@ -58,14 +65,14 @@ namespace buildIndex {
     }
 
     read_count = fread(&data_type_code, sizeof(data_type_code), 1, f);
-    std::cout << "read_count=" << read_count << std::endl;
     if ( read_count != 1 ) {
-      std::cerr << "Error reading value of data_type_code stored in train descs file: " << train_desc_fn << std::endl;
+      logf << "cluster:: error reading value of data_type_code stored in train descs file: " << train_desc_fn << std::endl;
       return;
     }
+    logf << "cluster:: data_type_code=" << DATA_TYPE_STR.at(data_type_code) << std::endl;
 
     uint32_t element_size = DATA_TYPE_SIZE[data_type_code];
-    int64_t file_size;
+    std::size_t file_size;
 #ifdef _WIN32
     _fseeki64(f, 0, SEEK_END);
     file_size = _ftelli64(f);
@@ -73,35 +80,40 @@ namespace buildIndex {
     fseeko64(f, 0, SEEK_END);
     file_size = ftello64(f);
 #endif
-    uint32_t descriptor_data_length = (file_size - HEADER_BYTES) / (element_size);
+    std::size_t descriptor_data_length = (file_size - HEADER_BYTES) / (element_size);
     uint32_t descriptor_count = descriptor_data_length / descriptor_dimension;
 
-    std::cout << "descriptor_dimension = " << descriptor_dimension << std::endl;
-    std::cout << "data_type_code = " << (int) data_type_code << std::endl;
-    std::cout << "file_size = " << file_size << std::endl;
-    std::cout << "element_size = " << element_size << std::endl;
-    std::cout << "descriptor_data_length = " << descriptor_data_length << std::endl;
-    std::cout << "descriptor_count = " << descriptor_count << std::endl;
-    std::cout << "bow_cluster_count = " << bow_cluster_count << std::endl;
-    std::cout << "cluster_num_iteration = " << cluster_num_iteration << std::endl;
+    logf << "cluster:: descriptor_dimension = " << descriptor_dimension << std::endl;
+    logf << "cluster:: data_type_code = " << (int) data_type_code << std::endl;
+    logf << "cluster:: file_size = " << file_size << std::endl;
+    logf << "cluster:: element_size = " << element_size << std::endl;
+    logf << "cluster:: descriptor_data_length = " << descriptor_data_length << std::endl;
+    logf << "cluster:: descriptor_count = " << descriptor_count << std::endl;
+    logf << "cluster:: bow_cluster_count = " << bow_cluster_count << std::endl;
+    logf << "cluster:: cluster_num_iteration = " << cluster_num_iteration << std::endl;
 
     std::vector<float> cluster_centers( bow_cluster_count * descriptor_dimension );
-    std::vector<uint8_t> descriptors_sift( descriptor_count * descriptor_dimension );
-    std::vector<float> descriptors_rootsift( descriptor_count * descriptor_dimension );
+    std::vector<uint8_t> descriptors_sift( descriptor_data_length );
+    std::vector<float> descriptors_rootsift( descriptor_data_length );
 
     // read descriptors
-    std::cout << "Reading SIFT descriptors ... ";
 #ifdef _WIN32
-    _fseeki64(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
+    read_count = _fseeki64(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
 #else
-    fseek(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
+    read_count = fseek(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
 #endif
+    if(read_count) {
+      logf << "cluster:: fseek() failed for file " << train_desc_fn << std::endl;
+      fclose(f);
+      return;
+    }
+    logf << "cluster:: reading SIFT descriptors ... ";
     read_count = fread(descriptors_sift.data(), element_size, descriptor_data_length, f);
-    std::cout << read_count << " elements read" << std::endl;
+    logf << "cluster:: " << read_count << " elements read" << std::endl;
     fclose(f);
 
     // convert SIFT descriptors to RootSIFT
-    std::cout << "Converting descriptors to RootSIFT ... " << std::endl;
+    logf << "cluster:: converting descriptors to RootSIFT ... " << std::endl;
     uint32_t descriptor_index = 0;
     std::vector<uint32_t> descriptors_sum( descriptor_count, 0 );
     for ( std::size_t i = 0; i < descriptor_data_length; i++ ) {
@@ -116,14 +128,12 @@ namespace buildIndex {
     }
 
     // assign cluster centers to randomly choosen descripts
-    std::cout << "Assigning initial clusters to random descriptors ... " << std::endl;
+    logf << "cluster:: assigning initial clusters to random descriptors ... " << std::endl;
     std::vector<uint32_t> descriptors_index_list( descriptor_count );
     for ( std::size_t i = 0; i < descriptor_count; ++i ) {
       descriptors_index_list[i] = i;
     }
 
-    std::cout << "Starting " << cluster_num_iteration << " iterations of kmeans ..."
-              << std::endl;
     std::uint32_t random_seed = 9971;
     std::srand(random_seed);
     std::random_shuffle( descriptors_index_list.begin(), descriptors_index_list.end() );
@@ -145,7 +155,9 @@ namespace buildIndex {
     float cluster_distance_sum = 0.0;
     std::cout.precision(7);
 
-    for ( std::size_t iter = 0; iter < cluster_num_iteration; ++iter ) {
+    logf << "cluster:: starting " << cluster_num_iteration << " iterations of kmeans ..."
+         << std::endl;
+    for ( uint32_t iter = 0; iter < cluster_num_iteration; ++iter ) {
       std::chrono::steady_clock::time_point iter_start = std::chrono::steady_clock::now();
 
       VlKDForest* kd_forest = vl_kdforest_new( VL_TYPE_FLOAT, descriptor_dimension, num_trees, VlDistanceL2 );
@@ -175,20 +187,24 @@ namespace buildIndex {
       }
 
       // ensure that no cluster is empty
-      for ( std::size_t i = 0; i < bow_cluster_count; ++i ) {
+      uint32_t empty_cluster_count = 0;
+      for ( uint32_t i = 0; i < bow_cluster_count; ++i ) {
         if ( cluster_descriptor_count[i] == 0 ) {
-          std::cout << "Empty cluster found!" << std::endl;
-          break;
+	  empty_cluster_count++;
         }
+      }
+      if(empty_cluster_count) {
+        logf << "cluster:: " << empty_cluster_count << " empty cluster found!" << std::endl;
       }
 
       //std::cout << "Recomputing cluster centers ..." << std::endl;
       cluster_centers = std::vector<float>( bow_cluster_count * descriptor_dimension, 0.0 );
-      uint32_t  cluster_id, descriptor_id, offset;
+#pragma omp parallel
+#pragma omp for
       for ( std::size_t i = 0; i < descriptor_data_length; ++i ) {
-        descriptor_id = (uint32_t) ( i / descriptor_dimension );
-        offset = i - (descriptor_id * descriptor_dimension);
-        cluster_id = descriptor_cluster_assignment[descriptor_id];
+	std::size_t descriptor_id = i / descriptor_dimension;
+	std::size_t offset = i - (descriptor_id * descriptor_dimension);
+	std::size_t cluster_id = descriptor_cluster_assignment[descriptor_id];
         cluster_centers[cluster_id * descriptor_dimension + offset] += descriptors_rootsift[i];
       }
 
@@ -202,62 +218,69 @@ namespace buildIndex {
 
       // cleanup of kd-tree
       vl_kdforest_delete(kd_forest);
-
+      uint32_t elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(iter_end - iter_start).count();
+      uint32_t remaining_sec = (cluster_num_iteration-iter-1) * elapsed_sec;
       std::ostringstream ss;
-      ss << "Iteration " << iter << " of "
-         << cluster_num_iteration << " : "
-         << "Sum of distance to cluster=" << cluster_distance_sum << ", "
-         << "completed in "
-         << std::chrono::duration_cast<std::chrono::milliseconds>(iter_end - iter_start).count()
-         << " ms";
-      std::cout << ss.str() << std::endl;
+      ss << "cluster:: iteration " << iter << "/"
+         << cluster_num_iteration << ", error="
+         << std::setprecision(10) << cluster_distance_sum << ", elapsed="
+         << timing::hrminsec(elapsed_sec) << ", "
+         << "remaining=" << timing::hrminsec(remaining_sec);
 
       if(progress != nullptr) {
         progress->update(iter, ss.str());
+      }
+      logf << ss.str() << std::endl;
+
+      // save clusters
+      // file structure
+      // data-type-code                           (uint8_t , 1 byte )
+      // cluster-count, cluster-dim               (uint32_t, 8 bytes)
+      // current-iteration, cluster_num_iteration (uint32_t, 8 bytes)
+      // descriptor_count, descriptor_dimension   (uint32_t, 8 bytes)
+      // seed                                     (uint32_t, 4 bytes)
+      // distortion                               (float32, 4 bytes)
+      // continuous-stream-of-data ...
+      // size_t fwrite( const void *buffer, size_t size, size_t count, FILE *stream );
+      // size_t fread( void *buffer, size_t size, size_t count, FILE *stream );
+
+      std::string cluster_data_fn;
+      if(iter == (cluster_num_iteration - 1)) {
+        // last iteration
+        //boost::filesystem::remove(boost::filesystem::path(cluster_cp_fn));
+        cluster_data_fn = cluster_fn;
       } else {
-        std::cout << ss.str() << std::endl;
+        cluster_data_fn = cluster_fn + ".temp";
       }
 
-      // @todo: save checkpoint of cluster center after every iteration
+      FILE *cf = fopen(cluster_data_fn.c_str(), "wb");
+      if ( cf == NULL ) {
+        logf << "cluster:: failed to open cluster file for writing: "
+                  << cluster_fn << std::endl;
+        logf << "cluster:: writing results to temp_clusters.bin file";
+        cf = fopen("temp_clusters.bin", "wb");
+      }
+
+      uint8_t cluster_dtype_code = 4; // float32
+      fwrite( &cluster_dtype_code, sizeof(cluster_dtype_code), 1, cf);
+
+      fwrite( &bow_cluster_count, sizeof(bow_cluster_count), 1, cf);
+      fwrite( &descriptor_dimension, sizeof(descriptor_dimension), 1, cf);
+
+      fwrite( &iter, sizeof(iter), 1, cf);
+      fwrite( &cluster_num_iteration, sizeof(cluster_num_iteration), 1, cf);
+
+      fwrite( &descriptor_count, sizeof(descriptor_count), 1, cf);
+      fwrite( &descriptor_dimension, sizeof(descriptor_dimension), 1, cf);
+
+      fwrite( &random_seed, sizeof(random_seed), 1, cf);
+
+      fwrite( &cluster_distance_sum, sizeof(cluster_distance_sum), 1, cf);
+
+      std::size_t data_count = bow_cluster_count * descriptor_dimension;
+      fwrite( cluster_centers.data(), sizeof(cluster_centers[0]), data_count, cf);
+      fclose(cf);
     }
-
-    // save clusters
-    // file structure
-    // data-type-code                           (uint8_t , 1 byte )
-    // cluster-count, cluster-dim               (uint32_t, 8 bytes)
-    // current-iteration, cluster_num_iteration (uint32_t, 8 bytes)
-    // descriptor_count, descriptor_dimension   (uint32_t, 8 bytes)
-    // seed                                     (uint32_t, 4 bytes)
-    // distortion                               (float32, 4 bytes)
-    // continuous-stream-of-data ...
-    // size_t fwrite( const void *buffer, size_t size, size_t count, FILE *stream );
-    // size_t fread( void *buffer, size_t size, size_t count, FILE *stream );
-
-    FILE *cf = fopen(cluster_fn.c_str(), "wb");
-    if ( cf == NULL ) {
-      std::cerr << "Failed to open cluster file for writing: "
-                << cluster_fn << std::endl;
-      std::cerr << "Writing results to temp_clusters.bin file";
-      cf = fopen("temp_clusters.bin", "wb");
-    }
-
-    uint8_t cluster_dtype_code = 4; // float32
-    fwrite( &cluster_dtype_code, sizeof(cluster_dtype_code), 1, cf);
-
-    fwrite( &bow_cluster_count, sizeof(bow_cluster_count), 1, cf);
-    fwrite( &descriptor_dimension, sizeof(descriptor_dimension), 1, cf);
-
-    fwrite( &cluster_num_iteration, sizeof(cluster_num_iteration), 1, cf);
-    fwrite( &cluster_num_iteration, sizeof(cluster_num_iteration), 1, cf);
-
-    fwrite( &descriptor_count, sizeof(descriptor_count), 1, cf);
-    fwrite( &descriptor_dimension, sizeof(descriptor_dimension), 1, cf);
-
-    fwrite( &random_seed, sizeof(random_seed), 1, cf);
-
-    fwrite( &cluster_distance_sum, sizeof(cluster_distance_sum), 1, cf);
-
-    fwrite( cluster_centers.data(), sizeof(cluster_centers[0]), bow_cluster_count * descriptor_dimension, cf);
-    fclose(cf);
+    logf << "cluster:: written clusters to " << cluster_fn << std::endl;
   }
 }; // end of namespace buildIndex

@@ -276,9 +276,10 @@ int main(int argc, char **argv) {
             << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH
             << std::endl;
   const boost::filesystem::path visehome = vise::vise_home();
+
   boost::filesystem::path vise_settings_fn = visehome / "vise_settings.txt";
   std::map<std::string, std::string> vise_settings;
-  std::cout << "VISE_HOME=" << visehome << std::flush << std::endl;
+  std::cout << "Using VISE application configuration from: " << vise_settings_fn << std::endl;
   if(!boost::filesystem::exists(vise_settings_fn)) {
     // use default configuration for VISE
     boost::filesystem::path vise_store = visehome / "store";
@@ -290,19 +291,21 @@ int main(int argc, char **argv) {
       boost::filesystem::create_directory(www_store);
     }
 
-
     vise_settings["vise_store"] = vise_store.string();
     vise_settings["www_store"] = www_store.string();
     vise_settings["address"] = "0.0.0.0";
     vise_settings["port"] = "9670";
-    vise_settings["nthread"] = "4";
+    vise_settings["nthread"] = "0";
+    // comments
+    vise_settings["# www_store : "] = "HTML, Javascript, CSS, static images and other assets of VISE web application are stored in this path.";
+    vise_settings["# vise_store : "] = "all files (images, index, configuration, etc) associated with a project files are stored in this path.";
+    vise_settings["# nthread : "] = "0 will use all the available threads; nthread > 0 will use the specified number of threads; nthread < 0 will only use (MAX_THREADS-nthread) threads.";
+
     vise::configuration_save(vise_settings, vise_settings_fn.string());
   }
 
   if(argc == 1) { // no command line arguments -> run vise server
     // load VISE configuration
-    std::cout << "using VISE settings from "
-              << vise_settings_fn << std::endl;
     vise::configuration_load(vise_settings_fn.string(), vise_settings);
 
     boost::filesystem::path exec_dir(argv[0]);

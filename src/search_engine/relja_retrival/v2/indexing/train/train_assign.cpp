@@ -30,6 +30,7 @@ Updates:
 #include "par_queue.h"
 #include "timing.h"
 #include "util.h"
+#include "vise/vise_util.h"
 
 // for kd-tree based nearest neighbour search
 #include <vl/generic.h>
@@ -45,8 +46,8 @@ namespace buildIndex {
   class trainAssignsManager : public managerWithTiming<trainAssignsResult> {
   public:
 
-    trainAssignsManager(uint32_t numDocs, std::string const trainAssignsFn, vise::task_progress *progress)
-      : managerWithTiming<trainAssignsResult>(numDocs, "trainAssignsManager"),
+    trainAssignsManager(uint32_t numDocs, std::string const trainAssignsFn, std::ofstream &logf, vise::task_progress *progress)
+      : managerWithTiming<trainAssignsResult>(numDocs, "trainassign", &logf),
         nextID_(0),
         d_progress(progress)
     {
@@ -162,13 +163,13 @@ namespace buildIndex {
 
     if (boost::filesystem::exists(trainAssignsFn)){
       if (rank==0)
-          logf <<"buildIndex::computeTrainAssigns: trainAssignsFn already exist ("<<trainAssignsFn<<")\n";
+          logf <<"trainassign::computeTrainAssigns: trainAssignsFn already exist ("<<trainAssignsFn<<")\n";
       return;
     }
     ASSERT( boost::filesystem::exists(trainDescsFn) );
 
     bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads= omp_get_max_threads();
+    uint32_t numWorkerThreads = vise::configuration_get_nthread();
 
     // clusters
     if (rank==0)
@@ -185,7 +186,7 @@ namespace buildIndex {
     // build kd-tree for nearest neighbour search
     // to assign cluster-id for each descriptor
     std::size_t num_trees = 8;
-    std::size_t max_num_checks = 1024;
+    std::size_t max_num_checks = 512;
     VlKDForest* kd_forest = vl_kdforest_new( VL_TYPE_FLOAT, clstCentres_obj.numDims, num_trees, VlDistanceL2 );
     vl_kdforest_set_max_num_comparisons(kd_forest, max_num_checks);
     vl_kdforest_build(kd_forest, clstCentres_obj.numClst, clstCentres_obj.clstC_flat);
@@ -214,7 +215,7 @@ namespace buildIndex {
 #endif
 
     trainAssignsManager *manager= (rank==0) ?
-      new trainAssignsManager(nJobs, trainAssignsFn, progress) :
+      new trainAssignsManager(nJobs, trainAssignsFn, logf, progress) :
       NULL;
 
     trainAssignsWorker worker(kd_forest, descFile, chunkSize, clstCentres_obj.numDims);

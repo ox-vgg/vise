@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
   config << "bow_cluster_count=1000\n";
   config << "cluster_num_iteration=3\n";
   config << "hamm_embedding_bits=32\n";
-  config << "resize_dimension=-1\n";
+  config << "resize_dimension=200x200\n";
   std::string config_str(config.str());
   manager.project_config_save(pname, config_str, last_http_response);
   std::cout << "manager.project_config_save(): "
@@ -144,6 +144,6 @@ int main(int argc, char** argv) {
 
   std::chrono::steady_clock::time_point tend = std::chrono::steady_clock::now();
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(tend - tstart);
-  std::cout << "project_manager_test,ok," << ms.count() << std::endl;
+  std::cout << "project_manager_test,ok," << ms.count() << "ms" << std::endl;
   return 0;
 }

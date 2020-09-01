@@ -9,4 +9,8 @@ target_link_libraries( test_oxford_buildings
     proto_index
     spatial_verif_v2
     feat_standard
-    tfidf_v2 )
+    tfidf_v2
+    image_util
+    ${ImageMagick_LIBRARIES}
+    ${Boost_LIBRARIES}
+)

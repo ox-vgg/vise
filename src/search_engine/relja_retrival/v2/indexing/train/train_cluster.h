@@ -22,6 +22,7 @@ namespace buildIndex {
                              std::string const cluster_fn,
                              uint32_t const bow_cluster_count,
                              uint32_t const cluster_num_iteration,
+                             std::ofstream &logf,
                              vise::task_progress *progress = nullptr);
 
 }

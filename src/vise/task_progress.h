@@ -13,8 +13,8 @@
 namespace vise {
   class task_progress {
   public:
-    uint32_t d_value;
-    uint32_t d_max;
+    int64_t d_value;
+    int64_t d_max;
     std::string d_name;
     std::string d_message;
     bool d_has_started;
@@ -23,12 +23,13 @@ namespace vise {
     uint32_t d_elapsed_ms;
 
     task_progress(std::string name);
-    void start(uint32_t value, uint32_t max);
+    void start(int64_t value, int64_t max);
     void finish_success();
     void finish_error();
-    void update(uint32_t value, std::string message);
-    void update(uint32_t value);
-    void add(uint32_t value);
+    void update(int64_t value, std::string message);
+    void update(int64_t value);
+    void add(int64_t value);
+    uint32_t get_time_remaining();
 
     std::string to_json() const;
     uint32_t getmillisecs();

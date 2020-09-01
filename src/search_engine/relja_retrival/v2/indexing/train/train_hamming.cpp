@@ -35,8 +35,7 @@ No usage or redistribution is allowed without explicit permission.
 #include "same_random.h"
 #include "timing.h"
 
-
-
+#include "vise/vise_util.h"
 
 namespace buildIndex {
 
@@ -54,8 +53,9 @@ class trainHammingManager : public managerWithTiming<trainHammingResult> {
                             uint32_t const numDims,
                             uint32_t const numClst,
                             uint32_t const vocChunkSize,
+                            std::ofstream &logf,
                             vise::task_progress *progress)
-                            : managerWithTiming<trainHammingResult>(nJobs, "trainHammingManager"),
+          : managerWithTiming<trainHammingResult>(nJobs, "hamm", &logf),
                               trainHammFn_(trainHammFn),
                               vocChunkSize_(vocChunkSize),
                               hammEmbBits_(rot.size() / numDims),
@@ -251,32 +251,39 @@ computeHamming(
         std::string const trainAssignsFn,
         std::string const trainHammFn,
         uint32_t const hammEmbBits,
+        std::ofstream &logf,
         vise::task_progress *progress){
 
     MPI_GLOBAL_ALL;
 
     if (boost::filesystem::exists(trainHammFn)){
-        if (rank==0)
-            std::cout<<"buildIndex::computeHamming: trainHammFn already exist ("<<trainHammFn<<")\n";
-        return;
+      if (rank==0) {
+        logf<<"hamm::computeHamming:: trainHammFn already exist ("<<trainHammFn<<")" << std::endl;
+      }
+      return;
     }
     ASSERT( boost::filesystem::exists(trainDescsFn) );
     ASSERT( boost::filesystem::exists(trainAssignsFn) );
     ASSERT( hammEmbBits<=64 );
 
     // clusters
-    if (rank==0)
-        std::cout<<"buildIndex::computeHamming: Loading cluster centres\n";
+    if (rank==0) {
+      std::cout<<"hamm::computeHamming: Loading cluster centres" << std::endl;
+    }
     double t0= timing::tic();
     clstCentres const clstCentres_obj( clstFn.c_str(), true );
     uint32_t numClst= clstCentres_obj.numClst;
     uint32_t numDims= clstCentres_obj.numDims;
-    if (rank==0)
-        std::cout<<"buildIndex::computeHamming: Loading cluster centres - DONE ("<< timing::toc(t0) <<" ms)\n";
+    if (rank==0) {
+      logf<<"hamm::computeHamming: Loading cluster centres - DONE ("<< timing::toc(t0) <<" ms)"
+          << std::endl;
+      logf << "hamm:: numDims=" << numDims << ", hammEmbBits=" << hammEmbBits
+           << std::endl;
+    }
     ASSERT(numDims>=hammEmbBits);
 
     bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads= omp_get_max_threads();
+    uint32_t numWorkerThreads = vise::configuration_get_nthread();
 
     // rotation
     std::vector<float> rot;
@@ -337,7 +344,7 @@ computeHamming(
         delete []clusterIDs;
 
         double t0= timing::tic();
-        std::cout<<"buildIndex::computeHamming: Computing PCA\n";
+        logf<<"buildIndex::computeHamming: Computing PCA" << std::endl;
         Eigen::Map<Eigen::MatrixXf> trainData(descs, numDims, numTrainDescsPCA);
         Eigen::JacobiSVD<Eigen::MatrixXf> svdForPCA(trainData, Eigen::ComputeThinU);
         // doing SVD of trainData is like eig(trainData*trainData'), leftmost columns of U are largest eigenvectors
@@ -346,7 +353,7 @@ computeHamming(
         delete []descs;
 
         // --- get the random rotation (hammEmbBits x hammEmbBits)
-        std::cout<<"buildIndex::computeHamming: Computing random rotation\n";
+        logf<<"hamm::computeHamming: Computing random rotation" << std::endl;
 
         // make random matrix
         sameRandomUint32 sr(hammEmbBits * hammEmbBits, 43);
@@ -373,7 +380,7 @@ computeHamming(
         double t0= timing::tic();
 
         // --- get the random rotation (hammEmbBits x numDims)
-        std::cout<<"buildIndex::computeHamming: Computing random rotation\n";
+        logf<<"hamm::computeHamming: Computing random rotation" << std::endl;
 
         // make random matrix
         sameRandomUint32 sr(numDims * numDims, 43);
@@ -399,7 +406,8 @@ computeHamming(
             for (uint32_t j= 0; j<numDims; ++j)
                 rot.push_back(R(i,j));
 
-        std::cout<<"buildIndex::computeHamming: Done with rotation ("<< timing::toc(t0) <<" ms)\n";
+        logf<<"hamm::computeHamming: Done with rotation ("<< timing::toc(t0) <<" ms)"
+            << std::endl;
     }
 
     #ifdef RR_MPI
@@ -426,7 +434,7 @@ computeHamming(
     #endif
 
     trainHammingManager *manager= (rank==0) ?
-      new trainHammingManager(nJobs, trainHammFn, rot, numDims, numClst, vocChunkSize, progress) :
+      new trainHammingManager(nJobs, trainHammFn, rot, numDims, numClst, vocChunkSize, logf, progress) :
         NULL;
 
     trainHammingWorker worker(trainDescsFn, trainAssignsFn,
