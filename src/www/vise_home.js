@@ -108,7 +108,7 @@ function _vise_home_show_project_create_panel() {
   newproject.appendChild(form);
 
   var message = document.createElement('p');
-  message.innerHTML = 'To search a collection of images, create a new project, add those images to this new project.'
+  message.innerHTML = 'To search a collection of images, create a new project and add those images to this new project.'
   newproject.appendChild(message);
 
   content.appendChild(newproject);

@@ -112,7 +112,6 @@ function _vise_init_filelist_toolbar() {
 
   var next_start = _vise_data['FLIST_END'];
   var next_end = Math.min(_vise_data['FLIST_SIZE'], _vise_data['FLIST_END'] + FILE_PER_PAGE);
-  console.log('next_end=' + next_end)
   var next;
   if(_vise_data['FLIST_END'] === _vise_data['FLIST_SIZE']) {
     next = document.createElement('span');

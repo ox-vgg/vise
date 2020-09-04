@@ -20,6 +20,9 @@ vise::http_server::http_server(std::map<std::string, std::string> const &conf,
     d_thread_pool_size = 1;
   } else {
     d_thread_pool_size = std::atoi(d_conf.at("nthread").c_str());
+	if(d_thread_pool_size == 0) {
+	  d_thread_pool_size = std::max(1, omp_get_max_threads()-2);
+	}
   }
 
   // add hooks to stop http server when the program exits

@@ -100,6 +100,11 @@ function _vise_show_configure_ui() {
   _vise_init_configure_toolbar();
   _vise_init_configure_files();
   _vise_init_configure_settings();
+
+  if(_vise_data.IMAGE_SRC_COUNT > 0) {
+		create_search_engine_button.removeAttribute('disabled');
+    document.getElementById('preset_conf_2').removeAttribute('disabled');
+	}
 }
 
 function _vise_init_configure_toolbar() {
@@ -119,6 +124,7 @@ function _vise_project_file_count_update() {
       pageinfo.innerHTML = 'Project contains ' + file_count + ' files.';
 	    if(file_count > 0) {
 		    create_search_engine_button.removeAttribute('disabled');
+        document.getElementById('preset_conf_2').removeAttribute('disabled');
 	    }
       break;
     default:
@@ -153,7 +159,7 @@ function _vise_init_configure_files() {
 
   var local = document.createElement('div');
   var label1 = document.createElement('span');
-  label1.innerHTML = 'Select local files&nbsp;';
+  label1.innerHTML = 'Select local files (press <span class="key">Ctrl</span> + <span class="key">A</span> to select all files in a folder)&nbsp;';
   local.appendChild(label1);
   local.appendChild(local_file_selector); // local_file_selector already initialized as global var.
   upload_progress.setAttribute('class', 'hide');
@@ -193,6 +199,9 @@ function _vise_configure_init_settings_mode_selector() {
     preset_radio.setAttribute('name', 'settings');
     preset_radio.setAttribute('value', preset_id);
     preset_radio.setAttribute('id', preset_id);
+    if(preset_id === 'preset_conf_2') {
+      preset_radio.setAttribute('disabled', '');
+    }
     if(preset_id === _vise_data.PRESET_CONF_ID) {
       preset_radio.setAttribute('checked', '');
       _vise_configure_init_settings_details(preset_id);
@@ -218,7 +227,7 @@ function _vise_configure_preset_id_to_title(preset_id) {
     return 'Preset 1: Fast indexing but less accurate visual search';
     break;
   case 'preset_conf_2':
-    return 'Preset 2: More accurate visual search but indexing process takes longer to complete';
+    return 'Preset 2: Indexing is slow but search is accurate (only select after adding all files)';
     break;
   case 'preset_conf_auto':
     return 'Auto: Automatic selection of configuration parameters';
@@ -237,7 +246,7 @@ function _vise_configure_init_settings_details(preset_id) {
     settings_details.innerHTML = '<details><summary>More details about this setting</summary><ul><li>A precomputed generic visual vocaulary is used and therefore visual search engine gets created quickly.</li><li>The project uses less disk space.</li><li>Visual search may be less accurate because the project\'s images may contain visual patterns that are not represented in the generic visual vocabulary</li></ul></details>';
     break;
   case 'preset_conf_2':
-    settings_details.innerHTML = '<details><summary>More details about this setting</summary><p><ul><li>Visual vocabulary is computed from the images added to the project and therefore the visual search engine creation process takes longer to complete.</li><li>The project uses more disk space.</li><li>Visual search is more accurate because the generated visual vocabulary is capable of representing most of the visual patterns contained in project\'s images.</li><li>This setting is only feasible for a project containing large (e.g. 5000) number of images.</ul></p></details>';
+    settings_details.innerHTML = '<details><summary>More details about this setting</summary><p><ul><li>Visual vocabulary is computed from the images added to the project and therefore the visual search engine creation process takes longer to complete.</li><li>The project uses more disk space.</li><li>You must add all the images before selecting this option because the most of the configuration parameters are estimated using the number of images.</ul></p></details>';
     break;
   case 'preset_conf_auto':
     settings_details.innerHTML = '<details><summary>More details about this setting</summary><p><ul><li>Visual vocabulary is computed from the images added to the project and therefore the visual search engine creation process takes longer to complete.</li><li>Configuration parameters (e.g. number of clusters in visual vocabulary) are automatically inferred from the number of images contained in the project.</li><li>Visual search is more accurate because the generate visual vocabulary is capable of representing most of the visual patterns contained in project\'s images.</li><li>Automatic parameter selection may fail for some projects (e.g. projects with very small number of images)</ul></p></details>';
@@ -496,16 +505,14 @@ function _vise_configure_continue_file_upload(start_index, parallel_upload_count
           file_add_status.innerHTML += '[' + i + '] ' + upload_error_filename_list[i] + '<br/>';
         }
       }
-	  upload_progress.classList.add('hide');
-
-	  upload_progress_message.innerHTML = 'Finished uploading ' + upload_success_filename_list.length + ' files.'
-	  upload_progress_message.classList.remove('hide');
+	    upload_progress.classList.add('hide');
+	    upload_progress_message.innerHTML = 'Finished uploading ' + upload_success_filename_list.length + ' files.';
+	    upload_progress_message.classList.remove('hide');
     }
   }, function(err_file_list) {
     console.log('upload promise error');
     console.log(err_file_list);
   });
-
 }
 
 function _vise_configure_upload_file(file_index, file) {

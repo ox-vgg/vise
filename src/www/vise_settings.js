@@ -176,7 +176,7 @@ function _vise_settings_get_var_desc(variable_name) {
   case 'nthread':
     desc = [
       'Threads',
-      'Number of parallel threads to handle HTTP requests'
+      'Number of parallel threads to use for various operations. A value of 0 will use all the available threads; value > 0 will use the specified number of threads; value < 0 will only use (MAX_THREADS-nthread) threads.'
     ];
     break;
   case 'port':

@@ -57,7 +57,9 @@ bool vise::configuration_save(std::map<std::string, std::string> &conf,
 void vise::configuration_show(std::map<std::string, std::string> const &conf) {
   std::map<std::string, std::string>::const_iterator itr;
   for (itr=conf.begin(); itr!=conf.end(); ++itr) {
-    std::cout << "::" << itr->first << "=" << itr->second << std::endl;
+	if(itr->first.at(0) != '#') {
+      std::cout << "::" << itr->first << "=" << itr->second << std::endl;
+	}
   }
 }
 

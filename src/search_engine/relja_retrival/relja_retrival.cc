@@ -222,7 +222,7 @@ void vise::relja_retrival::cluster_train_descriptors() {
     if(bow_descriptor_count >= 18000000) {
       // max descriptors entails max clusters
       bow_cluster_count = 100000;
-      cluster_num_iteration = 30;
+      cluster_num_iteration = 10;
     } else {
       if(bow_descriptor_count < 100000) {
         bow_cluster_count = 1000;
@@ -230,7 +230,7 @@ void vise::relja_retrival::cluster_train_descriptors() {
         bow_cluster_count = 1000 + uint32_t(bow_descriptor_count / 3000);
       }
       if( bow_cluster_count<10000 ) {
-        cluster_num_iteration = 10;
+        cluster_num_iteration = 5;
       } else {
         cluster_num_iteration = 20;
       }
@@ -454,7 +454,8 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     index_status_f.close();
 
     // delete d_traindesc_fn as it is no longer needed, @todo: review this action in future
-    //boost::filesystem::remove(d_traindesc_fn);
+	std::cout << "deleting traindesc file: " << d_traindesc_fn << std::endl;
+    boost::filesystem::remove(d_traindesc_fn);
 
     callback();
   } catch(std::exception &e) {
@@ -466,10 +467,6 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
 }
 
 bool vise::relja_retrival::index_is_done() const {
-  if(d_is_indexing_done) {
-    return true;
-  }
-
   if(d_is_indexing_ongoing) {
     return false;
   }
@@ -487,14 +484,14 @@ bool vise::relja_retrival::index_is_done() const {
   }
 
   if( status_tokens.at(0) == "start" &&
-	  status_tokens.at(1) == "filelist" &&
-	  status_tokens.at(2) == "traindesc" &&
-	  status_tokens.at(3) == "cluster" &&
-	  status_tokens.at(4) == "assign" &&
-	  status_tokens.at(5) == "hamm" &&
-	  status_tokens.at(6) == "index" &&
-	  status_tokens.at(7) == "end" ) {
-	  return true;
+      status_tokens.at(1) == "filelist" &&
+      status_tokens.at(2) == "traindesc" &&
+      status_tokens.at(3) == "cluster" &&
+      status_tokens.at(4) == "assign" &&
+      status_tokens.at(5) == "hamm" &&
+      status_tokens.at(6) == "index" &&
+      status_tokens.at(7) == "end" ) {
+    return true;
   } else {
     return false;
   }
@@ -613,7 +610,7 @@ void vise::relja_retrival::index_load(bool &success,
     // build kd-tree for nearest neighbour search
     // to assign cluster-id for each descriptor
     std::size_t num_trees = 8;
-    std::size_t max_num_checks = 1024;
+    std::size_t max_num_checks = 512;
     d_kd_forest = vl_kdforest_new(VL_TYPE_FLOAT,
                                   d_clst_centres->numDims,
                                   num_trees,

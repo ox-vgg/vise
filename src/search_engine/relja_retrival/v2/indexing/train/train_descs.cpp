@@ -111,9 +111,9 @@ namespace buildIndex {
         trainDescsResult const &res= it->second;
         if (allDescs_) {
           if(d_progress != nullptr) {
-            d_progress->add(1);
+            d_progress->add(res.first);
           }
-          d_progress_print.inc();
+          d_progress_print.inc(res.first);
         }
 
         if (res.first>0) {

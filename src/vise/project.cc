@@ -7,7 +7,7 @@
 const std::vector<std::string> vise::project::d_preset_name_list = {
                                                                     "preset_conf_1",
                                                                     "preset_conf_2",
-                                                                    "preset_conf_auto",
+//                                                                    "preset_conf_auto",
                                                                     "preset_conf_manual" };
 
 vise::project::project(std::string pname,
@@ -17,32 +17,50 @@ vise::project::project(std::string pname,
     d_state(project_state::UNKNOWN),
     d_is_index_load_ongoing(false)
 {
+  d_project_dir = boost::filesystem::path(d_pconf_fn).parent_path().parent_path();
+  std::cout << "PRECONDITION: " << std::endl
+	    << "- the project configuration file is saved as $PROJECT_DIR/data/conf.txt" << std::endl
+	    << "- $PROJECT_DIR is the folder in which VISE will store all the project's data" << std::endl
+	    << "- $PROJECT_DIR=" << d_project_dir.string() << std::endl;
+  if(d_pconf_fn.filename() != "conf.txt") {
+    std::cout << "PRECONDITION FAILED: configuration filename must be conf.txt" << std::endl;
+    d_state = project_state::INIT_FAILED;
+    return;
+  }
+  if(!boost::filesystem::exists(d_pconf_fn)) {
+    std::cout << "configuration file " << d_pconf_fn.string() << " not found"
+	      << std::endl;
+    d_state = project_state::INIT_FAILED;
+    return;
+  }
+  
   bool success = false;
   success = vise::configuration_load(d_pconf_fn.string(), d_pconf);
-  std::cout << "success=" << success << std::endl;
   if(success) {
-    // ASSUMPTION: d_pconf_fn = $PROJECT_DIR/data/conf.txt
-    d_project_dir = boost::filesystem::path(d_pconf_fn).parent_path().parent_path();
-    bool create_dir_if_missing = true;
-    if(!conf_validate_data_dir(create_dir_if_missing)) {
-      std::cout << "project(): failed to validate configuration file" << std::endl;
+    bool create_data_dir_if_missing = true;
+    bool data_dir_created = init_project_data_dir(create_data_dir_if_missing);
+    if(!data_dir_created) {
       d_state = project_state::INIT_FAILED;
+      std::cout << "project(): failed to initialize project's data directories" << std::endl;
+      return;
     }
   } else {
-    std::cout << "failed to load project configuration file from "
-              << pconf_fn << std::endl;
     d_state = project_state::INIT_FAILED;
+    std::cout << "project(): failed to load project configuration file from "
+              << d_pconf_fn.string() << std::endl;
+    return;
   }
 
   success = false;
   std::string message;
   search_engine_init(d_pconf.at("search_engine"), success, message);
   if(!success) {
-    std::cerr << message << std::endl;
+    d_state = project_state::INIT_FAILED;
+    std::cout << "project(): failed to initialize search engine" << std::endl;
+    return;
   }
   state_update();
 }
-
 
 vise::project::project(std::string pname,
                        std::map<std::string, std::string> const &vise_conf)
@@ -52,25 +70,49 @@ vise::project::project(std::string pname,
   std::cout << "project(): constructing " << pname << " ..."
             << std::endl;
   d_project_dir = boost::filesystem::path(d_conf.at("vise_store")) / pname;
-  if( !boost::filesystem::exists(d_project_dir) ) {
+  d_pconf_fn = d_project_dir / "data";
+  d_pconf_fn = d_pconf_fn / "conf.txt";
+  bool save_conf = false;
+  if( boost::filesystem::exists(d_project_dir) &&
+      boost::filesystem::exists(d_pconf_fn) ) {
+    // this is an existing project, load configuration
+    vise::configuration_load(d_pconf_fn.string(), d_pconf);
+  } else {
+    if( boost::filesystem::exists(d_project_dir) ) {
+      // this is a new project
+      // - create standard folder structure (e.g. $PROJECT_DIR/data, $PROJECT_DIR/image, ...)
+      // - create default configuration file
+      // -  save configuration
+      init_default_conf();
+      save_conf = true;
+    } else {
+      d_state = project_state::INIT_FAILED;
+      std::cout << "project(): project_dir=" << d_project_dir
+                << "does not exist." << std::endl;
+      return;
+    }
+  }
+
+  // define and create default data directories if the configuration file 
+  // does not contain definition of d_data_dir, d_image_dir, d_image_src_dir, etc.
+  bool create_data_dir_if_missing = true;
+  bool data_dir_created = init_project_data_dir(create_data_dir_if_missing);
+  if(!data_dir_created) {
     d_state = project_state::INIT_FAILED;
-    std::cout << "project(): project_dir=" << d_project_dir
-              << "does not exist." << std::endl;
+    std::cout << "project(): failed to initialize project's data directories" << std::endl;
     return;
   }
 
-  conf_init_default();
-  d_data_dir = d_project_dir / "data";
-  d_pconf_fn = d_data_dir / "conf.txt";
-  if(boost::filesystem::exists(d_pconf_fn)) {
-    vise::configuration_load(d_pconf_fn.string(), d_pconf);
+  if(save_conf) {
+    vise::configuration_save(d_pconf, d_pconf_fn.string());
   }
 
-  bool create_dir_if_missing = true;
-  bool is_data_dir_valid = conf_validate_data_dir(create_dir_if_missing);
-  if(!is_data_dir_valid) {
-    std::cout << "project(pname, vise_conf): failed to validate configuration file" << std::endl;
+  bool success;
+  std::string message;
+  search_engine_init(d_pconf.at("search_engine"), success, message);
+  if(!success) {
     d_state = project_state::INIT_FAILED;
+    std::cerr << "project(): search_engine_init failed: " << message << std::endl;
     return;
   }
 
@@ -145,6 +187,9 @@ void vise::project::state_update() {
   // check everything and ascertain the current state of a project
   bool success;
   std::string message;
+  std::cout << "index_is_done()=" << index_is_done() << std::endl;
+  std::cout << "index_is_ongoing()=" << index_is_ongoing() << std::endl;
+  std::cout << "index_is_incomplete()=" << index_is_incomplete() << std::endl;
   if(index_is_done()) {
     index_load(success, message);
     if(success) {
@@ -169,7 +214,7 @@ void vise::project::state_update() {
 //
 // conf
 //
-void vise::project::conf_init_default() {
+void vise::project::init_default_conf() {
   d_pconf.clear();
   d_pconf["search_engine"] = "relja_retrival";
   d_pconf["use_root_sift"] = "true";
@@ -188,8 +233,8 @@ bool vise::project::conf_reload() {
   if(!vise::configuration_load(d_pconf_fn.string(), d_pconf)) {
     return false;
   }
-  bool create_dir_if_missing = false;
-  if(!conf_validate_data_dir(create_dir_if_missing)) {
+  bool create_data_dir_if_missing = false;
+  if(!init_project_data_dir(create_data_dir_if_missing)) {
     return false;
   }
 
@@ -227,7 +272,7 @@ bool vise::project::conf_from_plaintext(std::string plaintext) {
       }
     }
     bool create_dir_if_missing = true;
-    if(!conf_validate_data_dir(create_dir_if_missing)) {
+    if(!init_project_data_dir(create_dir_if_missing)) {
       return false;
     }
     bool result = vise::configuration_save(d_pconf, d_pconf_fn.string());
@@ -270,9 +315,11 @@ bool vise::project::use_preset_conf(std::string preset_conf_id) {
 }
 
 bool vise::project::use_preset_conf_1() {
+  std::cout << "use_preset_conf_1()" << std::endl;
+	
   // load generic visual vocabulary configuration
   boost::filesystem::path generic_vvoc_dir(d_conf.at("generic_visual_vocabulary"));
-  boost::filesystem::path generic_vvoc_conf_fn = generic_vvoc_dir / "conf.txt";
+  boost::filesystem::path generic_vvoc_conf_fn = generic_vvoc_dir / "generic_visual_vocab_conf.txt";
   std::cout << "generic_vvoc_conf_fn=" << generic_vvoc_conf_fn << std::endl;
   std::map<std::string, std::string> generic_vvoc_conf;
   bool success = vise::configuration_load(generic_vvoc_conf_fn.string(), generic_vvoc_conf);
@@ -280,11 +327,12 @@ bool vise::project::use_preset_conf_1() {
     return false;
   }
 
-  conf_init_default();
+  init_default_conf();
   d_pconf["bow_descriptor_count"] = generic_vvoc_conf["bow_descriptor_count"];
   d_pconf["bow_cluster_count"] = generic_vvoc_conf["bow_cluster_count"];
   d_pconf["hamm_embedding_bits"] = generic_vvoc_conf["hamm_embedding_bits"];
   d_pconf["cluster_num_iteration"] = generic_vvoc_conf["cluster_num_iteration"];
+  d_pconf["resize_dimension"] = generic_vvoc_conf["resize_dimension"];
   d_pconf["preset_conf_id"] = "preset_conf_1";
 
   // copy files corresponding to generic visual vocabulary
@@ -299,7 +347,8 @@ bool vise::project::use_preset_conf_1() {
                                d_data_dir / "trainhamm.bin",
                                boost::filesystem::copy_option::overwrite_if_exists);
 
-  return true;
+  success = vise::configuration_save(d_pconf, d_pconf_fn.string());
+  return success;
 }
 
 void vise::project::remove_existing_visual_vocabulary() {
@@ -312,23 +361,52 @@ void vise::project::remove_existing_visual_vocabulary() {
 }
 
 void vise::project::use_preset_conf_2() {
+  std::cout << "use_preset_conf_2()" << std::endl;
   remove_existing_visual_vocabulary();
 
-  conf_init_default();
+  init_default_conf();
   d_pconf["bow_descriptor_count"] = "18000000"; // max 18 million descriptors
   d_pconf["bow_cluster_count"] = "0";           // select automatically
   d_pconf["hamm_embedding_bits"] = "64";
-  d_pconf["cluster_num_iteration"] = "0";       // select automatically
+  d_pconf["cluster_num_iteration"] = "10";       // select automatically
   d_pconf["preset_conf_id"] = "preset_conf_2";
+  
+  init_default_conf();
+  uint32_t img_count = image_src_count();
+  // assumption: each image contains 3000 descriptors
+  d_pconf["bow_descriptor_count"] = "-1";
+  if(img_count >= 1 && img_count < 100) {
+    d_pconf["bow_cluster_count"] = "1000";
+	d_pconf["cluster_num_iteration"] = "3";
+  } else if(img_count > 100 && img_count < 300) {
+	d_pconf["bow_cluster_count"] = "1500";
+	d_pconf["cluster_num_iteration"] = "3";
+  } else if(img_count > 300 && img_count < 1000) {
+	d_pconf["bow_cluster_count"] = "5000";
+	d_pconf["cluster_num_iteration"] = "4";
+  } else if(img_count > 1000 && img_count < 3000) {
+	d_pconf["bow_cluster_count"] = "10000";
+    d_pconf["bow_descriptor_count"] = "5000000";
+	d_pconf["cluster_num_iteration"] = "5";
+  } else if(img_count > 3000 && img_count < 10000) {
+	d_pconf["bow_cluster_count"] = "50000";
+    d_pconf["bow_descriptor_count"] = "10000000";
+	d_pconf["cluster_num_iteration"] = "7";
+  } else {
+	d_pconf["bow_cluster_count"] = "100000";
+    d_pconf["bow_descriptor_count"] = "18000000";
+	d_pconf["cluster_num_iteration"] = "10";
+  }
+  d_pconf["resize_dimension"] = "800x800";
+  
+  vise::configuration_save(d_pconf, d_pconf_fn.string());
 }
 
 void vise::project::use_preset_conf_auto() {
   remove_existing_visual_vocabulary();
 
-  conf_init_default();
+  init_default_conf();
   uint32_t img_count = image_src_count();
-  // assumption: each image contains 1500 descriptors
-  uint32_t DESC_PER_IMG = 3000;
   if(img_count < 500) {
     d_pconf["bow_descriptor_count"] = "-1";
   } else if(img_count < 4000) {
@@ -345,30 +423,18 @@ void vise::project::use_preset_conf_auto() {
   d_pconf["bow_cluster_count"] = "0";
   d_pconf["resize_dimension"] = "800x800";
   d_pconf["preset_conf_id"] = "preset_conf_auto";
+  
+  vise::configuration_save(d_pconf, d_pconf_fn.string());
 }
 
 void vise::project::use_preset_conf_manual() {
   remove_existing_visual_vocabulary();
-  conf_init_default();
+  init_default_conf();
   d_pconf["preset_conf_id"] = "preset_conf_manual";
+  vise::configuration_save(d_pconf, d_pconf_fn.string());
 }
 
-
-bool vise::project::conf_validate_data_dir(bool create_dir_if_missing) {
-  if(!boost::filesystem::exists(d_project_dir)) {
-    std::cout << "project::conf_validate_data_dir(): "
-              << "d_project_dir=" << d_project_dir << " does not exist"
-              << std::endl;
-    return false;
-  }
-
-  if(d_pconf.empty()) {
-    std::cout << "project::conf_validate_data_dir(): "
-              << "d_pconf is empty"
-              << std::endl;
-    return false;
-  }
-
+bool vise::project::init_project_data_dir(bool create_data_dir_if_missing) {
   d_data_dir      = d_project_dir / "data/";
   d_image_dir     = d_project_dir / "image/";
   d_image_src_dir = d_project_dir / "image_src/";
@@ -392,8 +458,8 @@ bool vise::project::conf_validate_data_dir(bool create_dir_if_missing) {
   d_image_dir.make_preferred();
   d_image_src_dir.make_preferred();
   d_tmp_dir.make_preferred();
-
-  if(create_dir_if_missing) {
+	
+  if(create_data_dir_if_missing) {
     try {
       boost::filesystem::create_directories(d_data_dir);
       boost::filesystem::create_directories(d_image_dir);
@@ -401,7 +467,7 @@ bool vise::project::conf_validate_data_dir(bool create_dir_if_missing) {
       boost::filesystem::create_directories(d_tmp_dir);
       return true;
     } catch(std::exception &ex) {
-      std::cout << "error: " << ex.what() << std::endl;
+      std::cout << "project(): failed to create project data directories: " << ex.what() << std::endl;
       return false;
     }
   } else {
@@ -426,7 +492,7 @@ void vise::project::search_engine_init(std::string search_engine_name,
     if (d_pconf.at("search_engine") == "relja_retrival") {
       d_search_engine = std::unique_ptr<vise::relja_retrival>(new relja_retrival(d_pconf_fn, d_project_dir));
       success = true;
-      message = "initialized relja_retrival search engine";
+      message = "initialized relja_retrival";
     } else {
       success = false;
       message = "unknown search_engine";
@@ -521,34 +587,42 @@ void vise::project::register_image(uint32_t file1_id, uint32_t file2_id,
   }
 }
 
-bool vise::project::index_is_loaded() {
+bool vise::project::index_is_loaded() const {
   if (d_search_engine) {
     return d_search_engine->index_is_loaded();
   } else {
+    std::cout << "project::index_is_loaded(): cannot query index state as search engine has not been initialized yet."
+	      << std::endl;
     return false;
   }
 }
 
-bool vise::project::index_is_done() {
+bool vise::project::index_is_done() const {
   if (d_search_engine) {
     return d_search_engine->index_is_done();
   } else {
+    std::cout << "project::index_is_done(): cannot query index state as search engine has not been initialized yet."
+	      << std::endl;
     return false;
   }
 }
 
-bool vise::project::index_is_incomplete() {
+bool vise::project::index_is_incomplete() const {
   if (d_search_engine) {
     return d_search_engine->index_is_incomplete();
   } else {
+    std::cout << "project::index_is_incomplete(): cannot query index state as search engine has not been initialized yet."
+	      << std::endl;
     return false;
   }
 }
 
-bool vise::project::index_is_ongoing() {
+bool vise::project::index_is_ongoing() const {
   if (d_search_engine) {
     return d_search_engine->index_is_ongoing();
   } else {
+    std::cout << "project::index_is_ongoing(): cannot query index state as search engine has not been initialized yet."
+	      << std::endl;
     return false;
   }
 }

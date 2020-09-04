@@ -201,10 +201,18 @@ namespace buildIndex {
       cluster_centers = std::vector<float>( bow_cluster_count * descriptor_dimension, 0.0 );
 #pragma omp parallel
 #pragma omp for
+#ifdef _WIN32
+	  // msvc required: index variable in OpenMP 'for' statement must have signed integral type
+	  // this error is reported for old version of OpenMP
+	  // Abhishek Dutta <adutta@robots.ox.ac.uk>, 2 Sep. 2020
+      for ( long long i = 0; i < descriptor_data_length; ++i ) {
+
+#else
       for ( std::size_t i = 0; i < descriptor_data_length; ++i ) {
-	std::size_t descriptor_id = i / descriptor_dimension;
-	std::size_t offset = i - (descriptor_id * descriptor_dimension);
-	std::size_t cluster_id = descriptor_cluster_assignment[descriptor_id];
+#endif
+		std::size_t descriptor_id = i / descriptor_dimension;
+		std::size_t offset = i - (descriptor_id * descriptor_dimension);
+		std::size_t cluster_id = descriptor_cluster_assignment[descriptor_id];
         cluster_centers[cluster_id * descriptor_dimension + offset] += descriptors_rootsift[i];
       }
 
@@ -281,6 +289,10 @@ namespace buildIndex {
       fwrite( cluster_centers.data(), sizeof(cluster_centers[0]), data_count, cf);
       fclose(cf);
     }
+	// delete temporary cluster file
+	std::string tmp_cluster_fn = cluster_fn + ".temp";
+	boost::filesystem::remove(boost::filesystem::path(tmp_cluster_fn));
+	logf << "cluster:: deleted temp. clusters file " << tmp_cluster_fn << std::endl;
     logf << "cluster:: written clusters to " << cluster_fn << std::endl;
   }
 }; // end of namespace buildIndex

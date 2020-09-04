@@ -34,10 +34,10 @@ namespace vise {
     void index_load(bool &success, std::string &message);
     void index_unload(bool &success, std::string &message);
     bool index_load_is_ongoing() const;
-    bool index_is_loaded();
-    bool index_is_done();
-    bool index_is_incomplete();
-    bool index_is_ongoing();
+    bool index_is_loaded() const;
+    bool index_is_done() const;
+    bool index_is_incomplete() const;
+    bool index_is_ongoing() const;
     std::string index_status_to_json();
 
     void index_search(vise::search_query const &query,
@@ -59,11 +59,9 @@ namespace vise {
 
     uint32_t image_src_count() const;
 
-    void conf_init_default();
     bool conf_reload();
     void conf_to_json(std::ostringstream &json);
     bool conf_from_plaintext(std::string plaintext);
-    bool conf_validate_data_dir(bool create_dir_if_missing=false);
     std::string pconf(std::string key);
     bool use_preset_conf(std::string preset_conf_id);
     bool use_preset_conf_1();
@@ -101,8 +99,9 @@ namespace vise {
                             std::string &message);
 
     static const std::vector<std::string> d_preset_name_list;
-    void conf_load_default();
+    void init_default_conf();
     void init_preset_conf();
+    bool init_project_data_dir(bool create_data_dir_if_missing=false);
   };
 }
 #endif
