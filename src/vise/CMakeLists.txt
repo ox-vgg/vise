@@ -32,7 +32,7 @@ add_library(http_server STATIC http_server.cc)
 target_link_libraries(http_server vise_util project_manager http_request http_response connection ${Boost_LIBRARIES})
 
 if (WIN32)
-	add_executable(VISE WIN32 vise.cc)
+	add_executable(VISE WIN32 vise.cc ${WINDOWS_RESOURCE_FILENAME})
 	target_link_libraries(VISE vise_util http_server ${ImageMagick_LIBRARIES})
 
 	#add_executable(VISE vise.cc)
