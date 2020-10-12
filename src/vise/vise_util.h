@@ -29,6 +29,10 @@
 */
 
 namespace vise {
+  // VISE settings
+  void init_vise_settings_comments(std::map<std::string, std::string> &vise_settings);
+  void init_vise_settings(std::map<std::string, std::string> &vise_settings);
+
   // VISE configuration
   bool configuration_load(std::string filename,
                           std::map<std::string, std::string> &conf );

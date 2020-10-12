@@ -68,7 +68,7 @@ target_link_libraries( retriever_v2
 #    tfidf_v2 )
 
 add_library( spatial_verif_v2 STATIC spatial_verif_v2.cpp )
-target_link_libraries( spatial_verif_v2 daat det_ransac ellipse homography index_entry_util par_queue retriever_v2 uniq_entries ${Boost_LIBRARIES} ${VLFEAT_LIB} )
+target_link_libraries( spatial_verif_v2 daat det_ransac ellipse homography index_entry_util par_queue retriever_v2 uniq_entries vise_util ${Boost_LIBRARIES} ${VLFEAT_LIB} )
 
 PROTOBUF_GENERATE_CPP(tfidf_data.pb.cpp tfidf_data.pb.h ./tfidf_data.proto)
 add_library( tfidf_data.pb STATIC ${tfidf_data.pb.cpp} )

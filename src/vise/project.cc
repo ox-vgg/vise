@@ -33,7 +33,7 @@ vise::project::project(std::string pname,
     d_state = project_state::INIT_FAILED;
     return;
   }
-  
+
   bool success = false;
   success = vise::configuration_load(d_pconf_fn.string(), d_pconf);
   if(success) {
@@ -93,7 +93,7 @@ vise::project::project(std::string pname,
     }
   }
 
-  // define and create default data directories if the configuration file 
+  // define and create default data directories if the configuration file
   // does not contain definition of d_data_dir, d_image_dir, d_image_src_dir, etc.
   bool create_data_dir_if_missing = true;
   bool data_dir_created = init_project_data_dir(create_data_dir_if_missing);
@@ -216,6 +216,7 @@ void vise::project::state_update() {
 //
 void vise::project::init_default_conf() {
   d_pconf.clear();
+  d_pconf["project_name"] = d_pname;
   d_pconf["search_engine"] = "relja_retrival";
   d_pconf["use_root_sift"] = "true";
   d_pconf["sift_scale_3"] = "true";
@@ -316,7 +317,7 @@ bool vise::project::use_preset_conf(std::string preset_conf_id) {
 
 bool vise::project::use_preset_conf_1() {
   std::cout << "use_preset_conf_1()" << std::endl;
-	
+
   // load generic visual vocabulary configuration
   boost::filesystem::path generic_vvoc_dir(d_conf.at("generic_visual_vocabulary"));
   boost::filesystem::path generic_vvoc_conf_fn = generic_vvoc_dir / "generic_visual_vocab_conf.txt";
@@ -370,7 +371,7 @@ void vise::project::use_preset_conf_2() {
   d_pconf["hamm_embedding_bits"] = "64";
   d_pconf["cluster_num_iteration"] = "10";       // select automatically
   d_pconf["preset_conf_id"] = "preset_conf_2";
-  
+
   init_default_conf();
   uint32_t img_count = image_src_count();
   // assumption: each image contains 3000 descriptors
@@ -398,7 +399,7 @@ void vise::project::use_preset_conf_2() {
 	d_pconf["cluster_num_iteration"] = "10";
   }
   d_pconf["resize_dimension"] = "800x800";
-  
+
   vise::configuration_save(d_pconf, d_pconf_fn.string());
 }
 
@@ -423,7 +424,7 @@ void vise::project::use_preset_conf_auto() {
   d_pconf["bow_cluster_count"] = "0";
   d_pconf["resize_dimension"] = "800x800";
   d_pconf["preset_conf_id"] = "preset_conf_auto";
-  
+
   vise::configuration_save(d_pconf, d_pconf_fn.string());
 }
 
@@ -458,7 +459,7 @@ bool vise::project::init_project_data_dir(bool create_data_dir_if_missing) {
   d_image_dir.make_preferred();
   d_image_src_dir.make_preferred();
   d_tmp_dir.make_preferred();
-	
+
   if(create_data_dir_if_missing) {
     try {
       boost::filesystem::create_directories(d_data_dir);

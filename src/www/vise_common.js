@@ -20,3 +20,19 @@ function _vise_common_get_svg_button(icon_id, title, id) {
   }
   return el;
 }
+
+function _vise_sanitize_rect(x0, y0, x1, y1) {
+  if(x1 > x0) {
+    if(y1 > y0) {
+      return [x0, y0, x1, y1];
+    } else {
+      return [x0, y1, x1, y0];
+    }
+  } else {
+    if(y1 > y0) {
+      return [x1, y0, x0, y1];
+    } else {
+      return [x1, y1, x0, y0];
+    }
+  }
+}

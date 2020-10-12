@@ -33,6 +33,9 @@ namespace vise {
     void serve_only(std::map<std::string, std::string> const pname_pconf_fn_map);
     void serve_only_4xx_response(http_response &response) const;
 
+    // http uri namespace
+    void uri_namespace_mismatch_4xx_response(http_response &response) const;
+
     // http request handlers
     void process_http_request(http_request const &request,
                               http_response &response);

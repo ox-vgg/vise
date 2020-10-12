@@ -57,6 +57,7 @@ vise::http_server::http_server(std::map<std::string, std::string> const &conf,
 
   std::cout << "http_server: listening for connections at "
             << d_conf.at("address") << ":" << d_conf.at("port")
+            << d_conf.at("http_uri_namespace")
             << " (with " << d_thread_pool_size << " threads)"
             << std::endl;
 }

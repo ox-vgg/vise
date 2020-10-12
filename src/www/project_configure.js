@@ -61,11 +61,11 @@ if( !_vise_self_check_is_ok()) {
 } else {
   var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/index.html');
+  home_link.setAttribute('href', '../index.html');
   home_link.appendChild(home_icon);
 
   var pname_link = document.createElement('a');
-  pname_link.setAttribute('href', '/' + _vise_data.PNAME + '/');
+  pname_link.setAttribute('href', 'configure');
   pname_link.setAttribute('title', 'Home of ' + _vise_data.PNAME + ' project');
   pname_link.innerHTML = _vise_data.PNAME;
 
@@ -87,7 +87,7 @@ function _vise_self_check_is_ok() {
 function _vise_show_configure_ui() {
   var form = document.createElement('form');
   form.setAttribute('method', 'POST');
-  form.setAttribute('action', '/' + _vise_data.PNAME + '/_index_create');
+  form.setAttribute('action', '_index_create');
   create_search_engine_button = document.createElement('input');
   create_search_engine_button.setAttribute('type', 'submit');
   create_search_engine_button.setAttribute('value', 'Create Visual Search Engine');
@@ -134,7 +134,7 @@ function _vise_project_file_count_update() {
   xhr.addEventListener('timeout', _vise_project_file_count_on_error);
   xhr.addEventListener('error', _vise_project_file_count_on_error);
 
-  var endpoint = '/' + _vise_data.PNAME + '/_image_src_count';
+  var endpoint = '_image_src_count';
   xhr.open('GET', endpoint);
   xhr.send();
 }
@@ -224,10 +224,10 @@ function _vise_configure_init_settings_mode_selector() {
 function _vise_configure_preset_id_to_title(preset_id) {
   switch(preset_id) {
   case 'preset_conf_1':
-    return 'Preset 1: Fast indexing but less accurate visual search';
+    return 'Preset 1: Fast indexing but visual search may be less accurate';
     break;
   case 'preset_conf_2':
-    return 'Preset 2: Indexing is slow but search is accurate (only select after adding all files)';
+    return 'Preset 2: Indexing is slow but search is accurate if project contains large  (e.g. 500) number of files (only select after adding all files)';
     break;
   case 'preset_conf_auto':
     return 'Auto: Automatic selection of configuration parameters';
@@ -262,7 +262,7 @@ function _vise_configure_init_settings_details(preset_id) {
 function _vise_configure_init_manual_conf_editor(confdata_str) {
   var confdata = JSON.parse(confdata_str)
   settings_table.innerHTML = '';
-  var no_edit_key_list = ['cover_image_filename', 'data_dir', 'search_engine', 'preset_conf_id'];
+  var no_edit_key_list = ['cover_image_filename', 'data_dir', 'search_engine', 'preset_conf_id', 'project_name'];
 
   var pidrow = document.createElement('tr');
   pidrow.innerHTML = '<td>Project Id</td><td>' + _vise_data.PNAME + '</td>';
@@ -328,7 +328,7 @@ function _vise_configure_use_preset(preset_conf_id) {
   xhr.addEventListener('error', function(e) {
     settings_details.innerHTML = 'Error: Server Error';
   });
-  var endpoint = '/' + _vise_data.PNAME + '/_config_use_preset';
+  var endpoint = '_config_use_preset';
   xhr.open('POST', endpoint);
   xhr.send(preset_conf_id);
 }
@@ -351,7 +351,7 @@ function _vise_configure_get_current_conf() {
     xhr.addEventListener('error', function(e) {
       err_callback('Error: Server Error');
     });
-    var endpoint = '/' + _vise_data.PNAME + '/_conf';
+    var endpoint = '_conf';
     xhr.open('GET', endpoint);
     xhr.send();
   });
@@ -385,7 +385,7 @@ function _vise_configure_on_save_settings() {
   xhr.addEventListener('error', function(e) {
     document.getElementById('config_save_status').innerHTML = 'Server Error';
   });
-  var endpoint = '/' + _vise_data.PNAME + '/_config_save';
+  var endpoint = '_config_save';
   xhr.open('POST', endpoint);
   xhr.send(formdata.join('\n'));
   document.getElementById('config_save_status').innerHTML = 'Saving ...';
@@ -459,6 +459,20 @@ function _vise_configure_get_var_desc(variable_name) {
     desc = [
       'Resize Images to (in pixels)',
       'Resize original images such that their width and height does not exceed the specified dimension. To prevent image resize, set the value to -1'
+    ];
+    break;
+
+  case 'preset_conf_id':
+    desc = [
+      'Preset Configuration Id',
+      'Identifier for preset configuration'
+    ];
+    break;
+
+  case 'project_name':
+    desc = [
+      'Name of project',
+      'Project name (can only contain characters a-z, A-Z, dash (-) and underscore (_)'
     ];
     break;
 
@@ -543,7 +557,7 @@ function _vise_configure_upload_file(file_index, file) {
       upload_error_filename_list.push(file.name);
       err_callback('error')
     });
-    xhr.open('PUT', '/' + _vise_data.PNAME + '/' + file.name);
+    xhr.open('PUT', file.name);
     xhr.send(file);
   });
 }
@@ -581,7 +595,7 @@ function _vise_configure_import_files_from_folder() {
   xhr.addEventListener('error', function(e) {
     file_add_status.innerHTML += 'Failed to add files from folder ' + import_folder + '... [SERVER ERROR]<br/>';
   });
-  var endpoint = '/' + _vise_data.PNAME + '/_file_add?';
+  var endpoint = '_file_add?';
   endpoint += 'source_type=local_folder&response_format=json&source_loc=' + import_folder;
   xhr.open('POST', endpoint);
   xhr.send();

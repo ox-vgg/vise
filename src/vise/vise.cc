@@ -15,74 +15,6 @@
 #include <boost/filesystem.hpp>
 #include <Magick++.h>
 
-void init_vise_settings_comments(std::map<std::string, std::string> &vise_settings) {
-  // comments
-  vise_settings["# www_store"] = "HTML, Javascript, CSS, static images and other assets of VISE web application are stored in this path.";
-  vise_settings["# vise_store"] = "all files (images, index, configuration, etc) associated with a project files are stored in this path.";
-  vise_settings["# asset_store"] = "VISE application assets (e.g. generic visual vocabulary) are stored in this path.";
-  vise_settings["# nthread"] = "0 will use all the available threads; nthread > 0 will use the specified number of threads; nthread < 0 will only use (MAX_THREADS-nthread) threads.";
-  vise_settings["# generic_visual_vocabulary"] = "location of generic visual vocabulary relative to VISE_HOME, e.g. asset/visual_vocabulary/voc100k_hamm32_800x800_imcount90k_nbd512/";
-}
-
-void init_vise_settings(std::map<std::string, std::string> &vise_settings) {
-  const boost::filesystem::path visehome = vise::vise_home();
-  boost::filesystem::path vise_settings_fn = visehome / "vise_settings.txt";
-  std::cout << "Using VISE application configuration from: " << vise_settings_fn << std::endl;
-
-  if(!boost::filesystem::exists(vise_settings_fn)) {
-    // use default configuration for VISE
-    boost::filesystem::path vise_store = visehome / "store";
-    boost::filesystem::path www_store = visehome / "www";
-	boost::filesystem::path asset_store = visehome / "asset";
-
-    if(!boost::filesystem::exists(visehome)) {
-      boost::filesystem::create_directories(visehome);
-      boost::filesystem::create_directory(vise_store);
-      boost::filesystem::create_directory(www_store);
-	  boost::filesystem::create_directory(asset_store);
-    }
-	boost::filesystem::path generic_visual_vocabulary(asset_store);
-	generic_visual_vocabulary = generic_visual_vocabulary / "visual_vocabulary";
-	generic_visual_vocabulary = generic_visual_vocabulary / "voc100k_hamm32_800x800_imcount90k_nbd512";
-
-    vise_settings.clear();
-    vise_settings["vise_store"] = vise_store.string();
-    vise_settings["www_store"] = www_store.string();
-    vise_settings["asset_store"] = asset_store.string();
-    vise_settings["address"] = "localhost";
-    vise_settings["port"] = "9669";
-    vise_settings["nthread"] = "0";
-	vise_settings["generic_visual_vocabulary"] = generic_visual_vocabulary.string();
-	init_vise_settings_comments(vise_settings);
-
-    vise::configuration_save(vise_settings, vise_settings_fn.string());
-  } else {
-    vise_settings.clear();
-    vise::configuration_load(vise_settings_fn.string(), vise_settings);
-	bool settings_changed = false;
-	if(vise_settings.count("asset_store") == 0) {
-		boost::filesystem::path asset_store = visehome / "asset";
-		boost::filesystem::create_directory(asset_store);
-		vise_settings["asset_store"] = asset_store.string();
-		vise_settings["# asset_store"] = "VISE application assets (e.g. generic visual vocabulary) are stored in this path.";
-		settings_changed = true;
-	}
-	if(vise_settings.count("generic_visual_vocabulary") == 0) {
-		boost::filesystem::path asset_store = visehome / "asset";
-		boost::filesystem::path generic_visual_vocabulary(asset_store);
-		generic_visual_vocabulary = generic_visual_vocabulary / "visual_vocabulary";
-		generic_visual_vocabulary = generic_visual_vocabulary / "voc100k_hamm32_800x800_imcount90k_nbd512";
-		vise_settings["generic_visual_vocabulary"] = generic_visual_vocabulary.string();
-		vise_settings["# generic_visual_vocabulary"] = "location of generic visual vocabulary, e.g. C:\\Users\\tlm\\AppData\\Local\\vise\\asset\\visual_vocabulary\\voc100k_hamm32_800x800_imcount90k_nbd512\\";
-		settings_changed = true;
-	}
-	if(settings_changed) {
-		init_vise_settings_comments(vise_settings);
-		vise::configuration_save(vise_settings, vise_settings_fn.string());
-	}
-  }
-}
-
 #ifdef _WIN32
 #include <windows.h>
 #include <stdlib.h>
@@ -123,7 +55,7 @@ int CALLBACK WinMain(
   std::cout << VISE_FULLNAME << " (" << VISE_NAME << ") "
 			<< VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH
 			<< std::endl;
-  init_vise_settings(::vise_settings);
+  vise::init_vise_settings(::vise_settings);
   if(__argc == 1) { // no command line arguments -> run vise server
     char exec_path[MAX_PATH];
     GetModuleFileName(hInstance, exec_path, MAX_PATH);
@@ -327,7 +259,7 @@ int main(int argc, char **argv) {
             << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH
             << std::endl;
   std::map<std::string, std::string> vise_settings;
-  init_vise_settings(vise_settings);
+  vise::init_vise_settings(vise_settings);
 
   if(argc == 1) { // no command line arguments -> run vise server
     boost::filesystem::path exec_dir(argv[0]);

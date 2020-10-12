@@ -32,17 +32,20 @@ _via0.prototype._init = function() {
 }
 
 _via0.prototype._on_img_load = function(e) {
+  /*
   var container_css = [];
   container_css.push('position:relative');
   container_css.push('border:none');
   this.c.setAttribute('style', container_css.join(';'));
-
+  */
+  console.log('container.clientSize=' + this.c.clientWidth + 'x' + this.c.clientHeight)
   if(this.img.naturalHeight > this.c.clientHeight) {
     this.scale = this.img.naturalHeight / this.c.clientHeight;
     this.sheight = this.c.clientHeight;
     this.swidth = Math.floor(this.img.naturalWidth / this.scale);
     if(this.swidth > this.c.clientWidth) {
       this.swidth = this.c.clientWidth;
+      this.scale = this.img.naturalWidth / this.c.clientWidth;
       this.sheight = Math.floor(this.img.naturalHeight / this.scale);
     }
   } else {
@@ -53,6 +56,7 @@ _via0.prototype._on_img_load = function(e) {
     this.swidth = Math.floor(this.img.naturalWidth / this.scale);
     if(this.swidth > this.c.clientWidth) {
       this.swidth = this.c.clientWidth;
+      this.scale = this.img.naturalWidth / this.c.clientWidth;
       this.sheight = Math.floor(this.img.naturalHeight / this.scale);
     }
   }
@@ -71,8 +75,8 @@ _via0.prototype._on_img_load = function(e) {
   this.rshape = document.createElementNS(this.SVG_NS, 'svg');
   var rshape_css = img_css.slice();
   rshape_css.push('fill:none');
-  rshape_css.push('stroke:yellow');
-  rshape_css.push('stroke-width:2');
+  rshape_css.push('stroke:blue');
+  rshape_css.push('stroke-width:4');
   rshape_css.push('z-index:1');
   this.rshape.setAttribute('style', rshape_css.join(';'));
   this.rshape_rect = document.createElementNS(this.SVG_NS, 'rect');
@@ -85,7 +89,7 @@ _via0.prototype._on_img_load = function(e) {
   user_input_layer_css.push('z-index:2');
   user_input_layer_css.push('cursor:crosshair');
   this.user_input_layer.setAttribute('style', user_input_layer_css.join(';'));
-  this.user_input_layer.setAttribute('title', 'Click and drag mouse to define a search query region');
+  //this.user_input_layer.setAttribute('title', 'Click and drag mouse to define a search query region');
   this.user_input_layer.addEventListener('mousedown', this._on_mousedown.bind(this));
   this.user_input_layer.addEventListener('mouseup', this._on_mouseup.bind(this));
   this.user_input_layer.addEventListener('mousemove', this._on_mousemove.bind(this));

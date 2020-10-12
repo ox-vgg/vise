@@ -33,11 +33,11 @@ if( !_vise_self_check_is_ok()) {
 } else {
   var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/index.html');
+  home_link.setAttribute('href', '../index.html');
   home_link.appendChild(home_icon);
 
   var pname_link = document.createElement('a');
-  pname_link.setAttribute('href', '/' + _vise_data.PNAME + '/');
+  pname_link.setAttribute('href', 'filelist');
   pname_link.setAttribute('title', 'Home page of ' + _vise_data.PNAME);
   pname_link.innerHTML = _vise_data.PNAME;
 
@@ -73,7 +73,8 @@ function _vise_init_filelist_toolbar() {
   start_input.setAttribute('type', 'text');
   start_input.setAttribute('style', 'width:2em;');
   start_input.setAttribute('value', _vise_data.FLIST_START);
-  start_input.setAttribute('title', 'Enter the page number to jump to that page');
+  start_input.setAttribute('pattern', '[0-9]{1,10}');
+  start_input.setAttribute('title', 'Enter the image index to show that image and remaining images.');
   start_input.addEventListener('change', function(e) {
     var new_start = parseInt(this.value);
 	  if(isNaN(new_start)) {
@@ -86,12 +87,12 @@ function _vise_init_filelist_toolbar() {
 	    return;
 	  } else {
       var new_end = Math.min(_vise_data['FLIST_SIZE'], new_start + FILE_PER_PAGE);
-      window.location.href = '/' + _vise_data['PNAME'] + '/filelist?start=' + new_start + '&end=' + new_end;
+      window.location.href = 'filelist?start=' + new_start + '&end=' + new_end;
     }
   });
 
   var label2 = document.createElement('span');
-  label2.innerHTML = 'to ' + _vise_data['FLIST_END'] + '&nbsp;';
+  label2.innerHTML = 'to ' + _vise_data['FLIST_END'] + ' of ' + _vise_data['FLIST_SIZE'] + ' files.&nbsp;';
   pageinfo.appendChild(label1);
   pageinfo.appendChild(start_input);
   pageinfo.appendChild(label2);
@@ -128,10 +129,10 @@ function _vise_init_filelist_content() {
   filelist.setAttribute('class', 'filelist');
   for(var i=0; i<_vise_data.FLIST.length; ++i) {
     var img = document.createElement('img');
-    img.setAttribute('src', '/' + _vise_data.PNAME + '/' + _vise_data.FLIST[i]);
+    img.setAttribute('src', _vise_data.FLIST[i]);
     img.setAttribute('data-findex', i);
     var a = document.createElement('a');
-    a.setAttribute('href', '/' + _vise_data.PNAME + '/file?file_id=' + (_vise_data.FLIST_START + i));
+    a.setAttribute('href', 'file?file_id=' + (_vise_data.FLIST_START + i));
     a.setAttribute('title', '[' + (_vise_data.FLIST_START + i) + '] ' + _vise_data.FLIST[i] + ' : click to search using this file');
     a.appendChild(img);
     filelist.appendChild(a);

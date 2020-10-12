@@ -26,6 +26,11 @@ document.body.appendChild(toolbar);
 document.body.appendChild(content);
 
 var query_img;
+var via_img_annotator;
+var query_img_container = document.createElement('div');
+query_img_container.setAttribute('id', 'query_img_container');
+
+var query_img_container_height = 65;
 
 // update the search result when browser is resized
 // this is required as the image size changes and hence the bounding box needs update
@@ -37,11 +42,11 @@ if( !_vise_self_check_is_ok()) {
 } else {
   var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/index.html');
+  home_link.setAttribute('href', '../index.html');
   home_link.appendChild(home_icon);
 
   var pname_link = document.createElement('a');
-  pname_link.setAttribute('href', '/' + _vise_data.PNAME + '/');
+  pname_link.setAttribute('href', 'filelist');
   pname_link.setAttribute('title', 'Home of ' + _vise_data.PNAME + ' project');
   pname_link.innerHTML = _vise_data.PNAME;
 
@@ -70,7 +75,7 @@ function _vise_init_query_toolbar() {
   sep.innerHTML = '&nbsp;|&nbsp;';
 
   var fileinfo = document.createElement('div');
-  fileinfo.innerHTML = 'Showing file [' + _vise_data.FILE_ID + '] <a target="_blank" href="/' + _vise_data.PNAME + '/' + _vise_data.FILENAME + '">' + _vise_data.FILENAME + '</a>';
+  fileinfo.innerHTML = 'Showing file ' + _vise_data.FILE_ID + ' of ' + _vise_data.FLIST_SIZE + ' | <a target="_blank" href="' + _vise_data.FILENAME + '">' + _vise_data.FILENAME + '</a>';
 
   var list = document.createElement('a');
   list.setAttribute('href', 'filelist?start=' + _vise_data.FILE_ID);
@@ -109,20 +114,47 @@ function _vise_init_query_toolbar() {
 
 function _vise_init_query_content() {
   fileview_panel.innerHTML = '';
-  var formdata = {'file_id':_vise_data.FILE_ID};
+  var toolbar = document.createElement('div');
+  toolbar.setAttribute('id', 'img_toolbar');
+  var zoomin_icon = _vise_common_get_svg_button('micon_zoomin', 'Zoom In');
+  var zoomout_icon = _vise_common_get_svg_button('micon_zoomout', 'Zoom Out');
 
-  var query_img_container = document.createElement('div');
-  query_img_container.setAttribute('class', 'query_img_container');
-  fileview_panel.appendChild(query_img_container);
-  var img_src = '/' + _vise_data.PNAME + '/' + _vise_data.FILENAME;
-  var img_annotator = new _via0(query_img_container, img_src);
-  img_annotator.add_hook('region_add', _vise_query_on_region_add, formdata);
+  var zoomin_link = document.createElement('a');
+  zoomin_link.appendChild(zoomin_icon);
+  zoomin_link.addEventListener('click', function() {
+    query_img_container_height = query_img_container_height + 10;
+    query_img_container.innerHTML = '';
+    query_img_container.setAttribute('style', 'height:' + query_img_container_height + 'vh');
+    via_img_annotator = new _via0(query_img_container, _vise_data.FILENAME);
+    via_img_annotator.add_hook('region_add', _vise_query_on_region_add, formdata);
+  });
+  var zoomout_link = document.createElement('a');
+  zoomout_link.appendChild(zoomout_icon);
+  zoomout_link.addEventListener('click', function() {
+    query_img_container_height = query_img_container_height - 10;
+    if(query_img_container_height > 0) {
+      query_img_container.innerHTML = '';
+      query_img_container.setAttribute('style', 'height:' + query_img_container_height + 'vh');
+      via_img_annotator = new _via0(query_img_container, _vise_data.FILENAME);
+      via_img_annotator.add_hook('region_add', _vise_query_on_region_add, formdata);
+    }
+  });
+  toolbar.appendChild(zoomin_link);
+  toolbar.appendChild(zoomout_link);
+
+  var formdata = {'file_id':_vise_data.FILE_ID};
+  query_img_container.style.height = query_img_container_height + 'vh';
+  via_img_annotator = new _via0(query_img_container, _vise_data.FILENAME);
+  via_img_annotator.add_hook('region_add', _vise_query_on_region_add, formdata);
 
   var search_query_form = _vise_query_init_form(formdata);
-  fileview_panel.appendChild(search_query_form);
 
   var info = document.createElement('p');
   info.innerHTML = 'Draw a region to define the search query.'
+
+  fileview_panel.appendChild(toolbar);
+  fileview_panel.appendChild(query_img_container);
+  fileview_panel.appendChild(search_query_form);
   fileview_panel.appendChild(info);
 }
 
@@ -133,7 +165,7 @@ function _vise_query_init_form(formdata) {
   var form = document.createElement('form');
   form.setAttribute('id', 'search_query_form');
   form.setAttribute('method', 'GET');
-  form.setAttribute('action', '/' + _vise_data.PNAME + '/search');
+  form.setAttribute('action', 'search');
 
   for(var name in formdata) {
     var field = document.createElement('input');

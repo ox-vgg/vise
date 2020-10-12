@@ -37,11 +37,11 @@ if( !_vise_self_check_is_ok()) {
 } else {
   var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/index.html');
+  home_link.setAttribute('href', '../index.html');
   home_link.appendChild(home_icon);
 
   var pname_link = document.createElement('a');
-  pname_link.setAttribute('href', '/' + _vise_data.PNAME + '/');
+  pname_link.setAttribute('href', 'index_status');
   pname_link.setAttribute('title', 'Home of ' + _vise_data.PNAME + ' project');
   pname_link.innerHTML = _vise_data.PNAME;
 
@@ -170,7 +170,7 @@ function _vise_fetch_index_progress() {
 	    _vise_data = JSON.parse(this.responseText);
 	    if(_vise_data.INDEX_STATUS.index_is_done === 1 &&
          _vise_data.INDEX_STATUS.index_is_ongoing === 0 ) {
-		    window.location.replace('/' + _vise_data.PNAME + '/filelist');
+		    window.location.replace('filelist');
 	    } else {
 		    if(_vise_is_first_run) {
 		      _vise_is_first_run = false;
@@ -196,6 +196,6 @@ function _vise_fetch_index_progress() {
     message_container.innerHTML = 'Error fetching status: server error';
   });
 
-  xhr.open('GET', '/' + _vise_data.PNAME + '/index_status?response_format=json');
+  xhr.open('GET', 'index_status?response_format=json');
   xhr.send();
 }

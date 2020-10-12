@@ -34,6 +34,14 @@ namespace vise {
     }
 
     search_query(std::map<std::string, std::string> const &param) {
+      d_file_id = 0;
+      d_x = 0;
+      d_y = 0;
+      d_width = 0;
+      d_height = 0;
+      is_region_query = false;
+      d_max_result_count = 0;
+
       std::stringstream ss;
       if (param.count("file_id")) {
         ss << param.at("file_id");

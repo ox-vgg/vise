@@ -31,7 +31,7 @@ if( !_vise_self_check_is_ok()) {
 } else {
   var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/home');
+  home_link.setAttribute('href', '../index.html');
   home_link.appendChild(home_icon);
 
   pname.innerHTML = '';

@@ -560,6 +560,10 @@ void vise::relja_retrival::index_load(bool &success,
   }
 
   try {
+    // for debugging, add artificial delay in load operation
+    //std::cout << "DEBUG: loading with delay ..." << std::endl;
+    //std::this_thread::sleep_for (std::chrono::seconds(6));
+
     // @todo use std::shared_ptr instead of raw pointers
     // for d_dataset, d_cons_queue, ....
     std::cout << "loading dataset from " << d_index_dset_fn
@@ -786,31 +790,33 @@ void vise::relja_retrival::index_search(vise::search_query const &q,
               << q.d_width << "," << q.d_height << std::endl;
     */
     qobj = query(q.d_file_id, true, "", q.d_x, q.d_x + q.d_width, q.d_y, q.d_y + q.d_height);
-  } else {
-    std::cout << "query: fid=" << q.d_file_id << " (full image query)" << std::endl;
   }
 
   std::vector<indScorePair> all_result;
   std::map<uint32_t, homography> H_list;
+  /*
   try {
+    std::cout << "DEBUG: relja_retrival.cc:800 : using try catch block" << std::endl;
+    std::cout << "q.d_max_result_count=" << q.d_max_result_count << std::endl;
     d_spatial_retriever->spatialQuery(qobj, all_result, H_list, q.d_max_result_count);
   } catch(std::exception &e) {
     std::cout << "exception: " << e.what() << std::endl;
   }
+  */
+
+  d_spatial_retriever->spatialQuery(qobj, all_result, H_list, q.d_max_result_count);
 
   for ( uint32_t i = 0; i < all_result.size(); ++i ) {
     uint32_t file_id = all_result[i].first;
-    if ( H_list.count(file_id) == 1 ) {
-      float score = (float) all_result[i].second;
-      std::array<double, 9> H = {{H_list[file_id].H[0], H_list[file_id].H[1], H_list[file_id].H[2],
-                                  H_list[file_id].H[3], H_list[file_id].H[4], H_list[file_id].H[5],
-                                  H_list[file_id].H[6], H_list[file_id].H[7], H_list[file_id].H[8]}};
-      r.push_back(vise::search_result(file_id,
-                                      d_dataset->getInternalFn(file_id),
-                                      score,
-                                      H)
-                  );
-    }
+    float score = (float) all_result[i].second;
+    std::array<double, 9> H = {{H_list[file_id].H[0], H_list[file_id].H[1], H_list[file_id].H[2],
+                                H_list[file_id].H[3], H_list[file_id].H[4], H_list[file_id].H[5],
+                                H_list[file_id].H[6], H_list[file_id].H[7], H_list[file_id].H[8]}};
+    r.push_back(vise::search_result(file_id,
+                                    d_dataset->getInternalFn(file_id),
+                                    score,
+                                    H)
+                );
   }
 }
 
@@ -819,12 +825,14 @@ void vise::relja_retrival::index_internal_match(vise::search_query const &q,
                                                 std::ostringstream &json) const {
   homography H;
   std::vector< std::pair<ellipse, ellipse> > matches;
+  std::vector< std::pair<ellipse, ellipse> > putative;
 
   query qobj(q.d_file_id, true, "");
   if(q.is_region_query) {
     qobj = query(q.d_file_id, true, "", q.d_x, q.d_x + q.d_width, q.d_y, q.d_y + q.d_height);
   }
   d_spatial_retriever->getMatches(qobj, match_file_id, H, matches);
+  d_spatial_retriever->getPutativeMatches(qobj, match_file_id, putative);
 
   json.str("");
   json.clear();
@@ -856,6 +864,35 @@ void vise::relja_retrival::index_internal_match(vise::search_query const &q,
            << matches.at(i).second.a << ","
            << matches.at(i).second.b << ","
            << matches.at(i).second.c << "]";
+    }
+    json << "]";
+  }
+
+  if(putative.size()) {
+    json << ",\"putative\":[["
+         << putative.at(0).first.x << ","
+         << putative.at(0).first.y << ","
+         << putative.at(0).first.a << ","
+         << putative.at(0).first.b << ","
+         << putative.at(0).first.c << ","
+         << putative.at(0).second.x << ","
+         << putative.at(0).second.y << ","
+         << putative.at(0).second.a << ","
+         << putative.at(0).second.b << ","
+         << putative.at(0).second.c << "]";
+
+    for(uint32_t i=1; i < putative.size(); ++i) {
+      json << ",["
+           << putative.at(i).first.x << ","
+           << putative.at(i).first.y << ","
+           << putative.at(i).first.a << ","
+           << putative.at(i).first.b << ","
+           << putative.at(i).first.c << ","
+           << putative.at(i).second.x << ","
+           << putative.at(i).second.y << ","
+           << putative.at(i).second.a << ","
+           << putative.at(i).second.b << ","
+           << putative.at(i).second.c << "]";
     }
     json << "]";
   }

@@ -55,8 +55,7 @@ spatialVerifV2::queryExecute( rr::indexEntry &queryRep, std::vector<indScorePair
 
 
 void
-spatialVerifV2::spatialQueryExecute(
-                                    rr::indexEntry &queryRep,
+spatialVerifV2::spatialQueryExecute(rr::indexEntry &queryRep,
                                     std::vector<indScorePair> &queryRes,
                                     std::map<uint32_t, homography> *Hs,
                                     std::set<uint32_t> *ignoreDocs,
@@ -64,33 +63,36 @@ spatialVerifV2::spatialQueryExecute(
                                     bool queryFirst,
                                     bool forgetFirst) const {
 
-  assert( !forgetFirst || queryFirst );
+  //assert( !forgetFirst || queryFirst );
   ASSERT(queryRep.id_size()==queryRep.x_size() || queryRep.id_size()==queryRep.qx_size());
   ASSERT(queryRep.id_size()==queryRep.y_size() || queryRep.id_size()==queryRep.qy_size());
   ASSERT( ignoreDocs==NULL ); // TODO
 
   uint32_t spatialDepthEff= spatParams_.spatialDepth;
 
-  if (ignoreDocs!=NULL)
+  if (ignoreDocs!=NULL) {
     spatialDepthEff+= ignoreDocs->size();
+  }
 
   ASSERT(verifyFromIidx_);
   uniqEntries ue;
   iidx_->getUniqEntries(queryRep, ue);
   precompUEIterator ueIter(ue);
 
+  std::vector<indScorePair> initial_query_results;
   if (queryFirst){
     uint32_t toReturnFirst= toReturn;
-    if (toReturn!=0 && toReturnFirst < spatialDepthEff )
+    if (toReturn!=0 && toReturnFirst < spatialDepthEff ) {
       toReturnFirst= spatialDepthEff;
-    std::vector<indScorePair> queryResDummy;
-    firstRetriever_->queryExecute( queryRep, &ueIter, forgetFirst ? queryResDummy : queryRes, toReturnFirst );
+    }
+    firstRetriever_->queryExecute( queryRep, &ueIter, initial_query_results, toReturnFirst );
     // queryExecute could change queryRep, so check it hasn't changed id_size
     ASSERT(ueIter.getNum()==static_cast<uint32_t>(queryRep.id_size()));
   }
 
-  if (spatialDepthEff>queryRes.size())
-    spatialDepthEff= queryRes.size();
+  if (spatialDepthEff > initial_query_results.size()) {
+    spatialDepthEff = initial_query_results.size();
+  }
 
   // create ellipses of the query
   std::vector<ellipse> ellipses1;
@@ -98,8 +100,9 @@ spatialVerifV2::spatialQueryExecute(
 
   // which docIDs to verify?
   std::vector<uint32_t> docIDtoVerify(spatialDepthEff);
-  for (uint32_t i= 0; i<spatialDepthEff; ++i)
-    docIDtoVerify[i]= queryRes[i].first;
+  for (uint32_t i= 0; i<spatialDepthEff; ++i) {
+    docIDtoVerify[i]= initial_query_results[i].first;
+  }
   std::sort(docIDtoVerify.begin(), docIDtoVerify.end());
 
   // prepare for DAAT output (returns ind into unique queryRep.id's)
@@ -116,26 +119,39 @@ spatialVerifV2::spatialQueryExecute(
 
   // synchronous DAAT call is relatively expensive so the gain of using
   // multiple threads is not large (maybe re-evalaute this?)
+  /*
+  uint32_t conf_nthread = vise::configuration_get_nthread();
   uint32_t const numWorkerThreads= std::min(
-                                            static_cast<uint32_t>(detectUseThreads() ? 10 : 1),
+                                            static_cast<uint32_t>(detectUseThreads() ? conf_nthread : 1),
                                             spatialDepthEff);
-
+  */
+  uint32_t const numWorkerThreads = 1;
+  std::cout << "spatial_verif_v2.cpp:127:: numWorkerThreads=" << numWorkerThreads << std::endl;
   std::vector<queueWorker<Result> const *> workers;
-  for (uint32_t iThread= 0; iThread < numWorkerThreads; ++iThread)
+  for (uint32_t iThread= 0; iThread < numWorkerThreads; ++iThread) {
     workers.push_back( new spatWorker(ellipses1, ue, daatIter, daatLock, uniqIndToInd, spatParams_, elUnquant_, sameRandomObj_) );
+  }
 
-  spatManager manager( queryRes, spatParams_, spatialDepthEff, Hs );
+  spatManager manager( forgetFirst, initial_query_results, queryRes, spatParams_, spatialDepthEff, Hs );
 
   // start the threads
 
   threadQueue<Result>::start(
                              spatialDepthEff, workers, manager
                              );
-
   // cleanup
   util::delPointerVector(workers);
 
   retriever::sortResults( queryRes, spatialDepthEff, toReturn );
+
+  std::cout << "sorted spatially verified results=" << queryRes.size() << std::endl;
+  for(std::size_t i=0; i<queryRes.size(); ++i) {
+    uint32_t fid = queryRes[i].first;
+    std::cout << "  [" << i << "] fid=" << fid << ", score=" << queryRes[i].second
+              << ", H=[" << Hs->at(fid).H[0] << "," << Hs->at(fid).H[1] << "," <<  Hs->at(fid).H[2] << ","
+              << Hs->at(fid).H[3] << "," << Hs->at(fid).H[4] << "," << Hs->at(fid).H[5] << ","
+              << Hs->at(fid).H[6] << "," << Hs->at(fid).H[7] << "," << Hs->at(fid).H[8] << "]" << std::endl;
+  }
 
 }
 
@@ -452,33 +468,49 @@ spatialVerifV2::getPutativeMatches(
 
 
 
-spatialVerifV2::spatManager::spatManager(
+spatialVerifV2::spatManager::spatManager(bool forget_initial_results,
+                                         std::vector<indScorePair> &initial_query_results,
                                          std::vector<indScorePair> &queryRes,
                                          spatParams const &spatParamsObj,
                                          uint32_t spatialDepthEff,
                                          std::map<uint32_t, homography> *Hs)
-  : queryRes_(&queryRes), spatParams_(&spatParamsObj), spatialDepthEff_(spatialDepthEff), Hs_(Hs) {
+  : d_forget_initial_results(forget_initial_results),
+    d_initial_query_results(&initial_query_results),
+    queryRes_(&queryRes), spatParams_(&spatParamsObj), spatialDepthEff_(spatialDepthEff), Hs_(Hs) {
 }
 
 
 
 void
-spatialVerifV2::spatManager::operator() (uint32_t resInd, Result &result){
-
-  if (result.first.second.second >= spatParams_->minInliers){
-    // success
+spatialVerifV2::spatManager::operator() (uint32_t resInd, Result &result) {
+  // Result = <docID, <score,#inliers>, H>
+  if(result.first.second.second >= spatParams_->minInliers ) {
     uint32_t docID= result.first.first;
+    double score = result.first.second.first;
     uint32_t i;
-    for (i= 0; i<spatialDepthEff_ && queryRes_->at(i).first!=docID; ++i);
-    ASSERT(i<spatialDepthEff_);
-    queryRes_->at(i).second+= result.first.second.first;
+    for (i= 0; i<spatialDepthEff_; ++i) {
+      if(d_initial_query_results->at(i).first == docID) {
+        score = score + d_initial_query_results->at(i).second;
+        break;
+      }
+    }
+    queryRes_->push_back( std::make_pair(docID, score) );
     if (Hs_!=NULL)
       (*Hs_)[docID]= result.second;
+  } else {
+    if(!d_forget_initial_results) {
+      uint32_t docID= result.first.first;
+      uint32_t i;
+      for (i= 0; i<spatialDepthEff_ && queryRes_->at(i).first!=docID; ++i);
+      ASSERT(i<spatialDepthEff_);
+      double score = d_initial_query_results->at(i).second;
+      queryRes_->push_back( std::make_pair(docID, score) );
+      if (Hs_!=NULL) {
+        (*Hs_)[docID]= result.second;
+      }
+    }
   }
-
 }
-
-
 
 spatialVerifV2::spatWorker::spatWorker(
                                        std::vector<ellipse> const &ellipses1,
@@ -539,6 +571,7 @@ spatialVerifV2::spatWorker::operator() (uint32_t resInd, Result &result) const {
 
   // do matching
   uint32_t numInliers= 0;
+
   double score=
     detRansac::match(
                      *sameRandomObj_,
@@ -552,6 +585,7 @@ spatialVerifV2::spatWorker::operator() (uint32_t resInd, Result &result) const {
                      &result.second, NULL
                      );
 
+  // <docID, <score,#inliers>, H>
   result.first.first= docID;
   result.first.second.first= score;
   result.first.second.second= numInliers;

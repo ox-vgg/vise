@@ -20,7 +20,7 @@ if ! [ -d "${DEPSRC}" ]; then
   mkdir "${DEPSRC}"
 fi
 
-sudo apt install libssl-dev # required by cmake
+#sudo apt install libssl-dev # required by cmake
 
 ## cmake
 if ! [ -f "${DEPDIR}/bin/cmake" ]; then
@@ -44,12 +44,13 @@ fi
 
 # eigen
 if ! [ -d "${DEPDIR}/include/eigen3/Eigen" ]; then
-  cd $DEPSRC && wget -O eigen-3.3.7.tar.gz http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz && tar -zxvf eigen-3.3.7.tar.gz && mv eigen-eigen* eigen-3.3.7 && cd eigen-3.3.7/ && mkdir cmake_build && cd cmake_build && $DEPDIR"/bin/cmake" -DCMAKE_INSTALL_PREFIX=$DEPDIR ../ && make -j8 && make install
+  cd $DEPSRC && wget -O eigen-3.3.7.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz && tar -zxvf eigen-3.3.7.tar.gz && cd eigen-3.3.7/ && mkdir cmake_build && cd cmake_build && $DEPDIR"/bin/cmake" -DCMAKE_INSTALL_PREFIX=$DEPDIR ../ && make -j8 && make install
 fi
 
 # vlfeat
 if ! [ -d "${DEPDIR}/include/vl" ]; then
-  cd $DEPSRC && wget http://www.vlfeat.org/download/vlfeat-0.9.21-bin.tar.gz && tar -zxvf vlfeat-0.9.21-bin.tar.gz && cd vlfeat-0.9.21 && make -j16 && cp "${DEPSRC}/vlfeat-0.9.21/bin/glnxa64/libvl.so" "${DEPDIR}/lib/libvl.so" && mkdir "${DEPDIR}/include/vl" && cp -fr $DEPSRC/vlfeat-0.9.21/vl/*.* "${DEPDIR}/include/vl/"
+  #cd $DEPSRC && wget http://www.vlfeat.org/download/vlfeat-0.9.21-bin.tar.gz && tar -zxvf vlfeat-0.9.21-bin.tar.gz && cd vlfeat-0.9.21 && make -j16 && 
+  cp "${DEPSRC}/vlfeat-0.9.21/bin/glnxa64/libvl.so" "${DEPDIR}/lib/libvl.so" && mkdir "${DEPDIR}/include/vl" && cp -fr $DEPSRC/vlfeat-0.9.21/vl/*.* "${DEPDIR}/include/vl/"
 fi
 
 echo "****************************************************************"

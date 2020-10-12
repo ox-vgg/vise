@@ -51,6 +51,7 @@ var is_manual_toggle_mode = false;
 var is_toggle_active = true;
 var mouse_move_count = 0;
 var toggle_canvas_timer;
+var feature_type = 'matches'; // {matches, putative}
 
 // update the search result when browser is resized
 // this is required as the image size changes and hence the bounding box needs update
@@ -62,11 +63,11 @@ if( !_vise_self_check_is_ok()) {
 } else {
   var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/index.html');
+  home_link.setAttribute('href', '../index.html');
   home_link.appendChild(home_icon);
 
   var pname_link = document.createElement('a');
-  pname_link.setAttribute('href', '/' + _vise_data.PNAME + '/');
+  pname_link.setAttribute('href', 'filelist');
   pname_link.setAttribute('title', 'Home page of ' + _vise_data.PNAME);
   pname_link.innerHTML = _vise_data.PNAME;
 
@@ -91,8 +92,8 @@ function _vise_self_check_is_ok() {
 function _vise_init_show_match_ui() {
   _vise_querymatch_panel_show();
 
-  var query_img_uri = '/' + _vise_data.PNAME + '/' + _vise_data.QUERY['filename'];
-  var match_img_uri = '/' + _vise_data.PNAME + '/' + _vise_data.MATCH['filename'];
+  var query_img_uri = _vise_data.QUERY['filename'];
+  var match_img_uri = _vise_data.MATCH['filename'];
   var load_promise_list = [];
   load_promise_list.push( _vise_load_remote_img(query_img_uri) );
   load_promise_list.push( _vise_load_remote_img(match_img_uri) );
@@ -115,11 +116,11 @@ function _vise_querymatch_panel_show() {
   var qimgcontainer = document.createElement('div');
   qimgcontainer.setAttribute('class', 'img_with_region');
   var qimg = document.createElement('img');
-  qimg.setAttribute('src', '/' + _vise_data.PNAME + '/' + _vise_data.QUERY['filename']);
+  qimg.setAttribute('src', _vise_data.QUERY['filename']);
   qimg.addEventListener('load', _vise_on_img_load_show_query_rshape);
   var qlabel = document.createElement('a');
   qlabel.innerHTML = 'Query: ' + _vise_data.QUERY['filename'];
-  qlabel.setAttribute('href', '/' + _vise_data.PNAME + '/file?file_id=' + _vise_data.QUERY['file_id']);
+  qlabel.setAttribute('href', 'file?file_id=' + _vise_data.QUERY['file_id']);
   qimgcontainer.appendChild(qimg);
   query.appendChild(qimgcontainer);
   query.appendChild(qlabel);
@@ -129,11 +130,11 @@ function _vise_querymatch_panel_show() {
   var mimgcontainer = document.createElement('div');
   mimgcontainer.setAttribute('class', 'img_with_region');
   var mimg = document.createElement('img');
-  mimg.setAttribute('src', '/' + _vise_data.PNAME + '/' + _vise_data.MATCH['filename']);
+  mimg.setAttribute('src', _vise_data.MATCH['filename']);
   mimg.addEventListener('load', _vise_on_img_load_show_match_rshape);
   var mlabel = document.createElement('a');
   mlabel.innerHTML = 'Match: ' + _vise_data.MATCH['filename'];
-  mlabel.setAttribute('href', '/' + _vise_data.PNAME + '/file?file_id=' + _vise_data.MATCH['file_id']);
+  mlabel.setAttribute('href', 'file?file_id=' + _vise_data.MATCH['file_id']);
   mimgcontainer.appendChild(mimg);
   match.appendChild(mimgcontainer);
   match.appendChild(mlabel);
@@ -192,6 +193,11 @@ function _vise_on_img_load_show_match_rshape(e) {
   var ry1 = (H[3] * qx1 + H[4] * qy1 + H[5]) * scale;
   var rx2 = (H[0] * qx2 + H[1] * qy2 + H[2]) * scale;
   var ry2 = (H[3] * qx2 + H[4] * qy2 + H[5]) * scale;
+  var sane_rect = _vise_sanitize_rect(rx1, ry1, rx2, ry2);
+  rx1 = sane_rect[0];
+  ry1 = sane_rect[1];
+  rx2 = sane_rect[2];
+  ry2 = sane_rect[3];
 
   var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
   rshape.setAttribute('x', Math.floor(rx1));
@@ -230,6 +236,11 @@ function _vise_togglepanel_show() {
   var ry1 = (H[3] * qx1 + H[4] * qy1 + H[5]);
   var rx2 = (H[0] * qx2 + H[1] * qy2 + H[2]);
   var ry2 = (H[3] * qx2 + H[4] * qy2 + H[5]);
+  var sane_rect = _vise_sanitize_rect(rx1, ry1, rx2, ry2);
+  rx1 = sane_rect[0];
+  ry1 = sane_rect[1];
+  rx2 = sane_rect[2];
+  ry2 = sane_rect[3];
 
   var mcanvas = _vise_imregion_to_canvas(match_img,
                                          rx1,
@@ -258,7 +269,7 @@ function _vise_togglepanel_show() {
   tspeedlabel.setAttribute('for', 'toggle_speed');
   tspeedlabel.setAttribute('id', 'toggle_speed_label');
   tspeedlabel.innerHTML = '&nbsp;Delay&nbsp;';
-  
+
   var toggle_label = document.createElement('label');
   toggle_label.setAttribute('for', 'toggle_checkbox');
   toggle_label.innerHTML = 'Toggle';
@@ -291,7 +302,7 @@ function _vise_togglepanel_show() {
   toggle_panel.appendChild(mregion);
 
   var req = [];
-  req.push('/' + _vise_data.PNAME + '/register?file1_id=' + _vise_data.QUERY['file_id']);
+  req.push('register?file1_id=' + _vise_data.QUERY['file_id']);
   req.push('file2_id=' + _vise_data.MATCH['file_id']);
   req.push('x=' + _vise_data.QUERY['x']);
   req.push('y=' + _vise_data.QUERY['y']);
@@ -448,7 +459,7 @@ function _vise_matchpanel_show() {
 function _vise_matchpanel_update_region_count(e) {
   switch(e.target.value) {
   case 'drawall':
-    rand_pts_count = _vise_data.MATCH_DETAILS.matches.length;
+    rand_pts_count = _vise_data.MATCH_DETAILS[feature_type].length;
     break;
   case 'draw_random_regions':
     rand_pts_count = parseInt(document.getElementById('rand_pts_count_input').value);
@@ -479,13 +490,13 @@ function _vise_matchpanel_update_draw_property(e) {
 
 function _vise_matchpanel_update() {
   rand_selected_match_pts_index = [];
-  if(rand_pts_count === _vise_data.MATCH_DETAILS.matches.length) {
-    for(var i=0; i<_vise_data.MATCH_DETAILS.matches.length; ++i) {
+  if(rand_pts_count === _vise_data.MATCH_DETAILS[feature_type].length) {
+    for(var i=0; i<_vise_data.MATCH_DETAILS[feature_type].length; ++i) {
       rand_selected_match_pts_index.push(i);
     }
   } else {
     rand_selected_match_pts_index = _vise_get_rand_int_list(0,
-                                                            _vise_data.MATCH_DETAILS.matches.length,
+                                                            _vise_data.MATCH_DETAILS[feature_type].length,
                                                             rand_pts_count);
   }
   _vise_matchpanel_draw_correspondence(rand_selected_match_pts_index);
@@ -500,14 +511,14 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   if(typeof(selected_match_pts_index) === 'undefined' ||
      selected_match_pts_index.length === 0 ) {
     match_pts_index = [];
-    for(var i=0; i<_vise_data.MATCH_DETAILS.matches.length; ++i) {
+    for(var i=0; i<_vise_data.MATCH_DETAILS[feature_type].length; ++i) {
       match_pts_index.push(i);
     }
   }
 
   var vw_max = match_panel.offsetWidth;
   var vh_max = Math.floor((3/4) * document.documentElement.clientHeight);
-  var pad = 10;
+  var pad = 15;
 
   var qw = query_img.naturalWidth;
   var qh = query_img.naturalHeight;
@@ -523,9 +534,9 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   var vw = qsdim[0] + msdim[0] + 4*pad;
   var vh = Math.max(qsdim[1], msdim[1]) + 4*pad;
   var qoffsetx = pad;
-  var qoffsety = pad;
+  var qoffsety = 2*pad;
   var moffsetx = qsdim[0] + 3*pad;
-  var moffsety = pad;
+  var moffsety = 2*pad;
 
   feat_match_canvas.height = vh;
   feat_match_canvas.width = vw;
@@ -564,7 +575,7 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
     ctx.lineWidth = stroke_width;
     for(var i=0; i<match_pts_index.length; ++i) {
       var rand_index = match_pts_index[i];
-      var d = _vise_data.MATCH_DETAILS.matches[rand_index];
+      var d = _vise_data.MATCH_DETAILS[feature_type][rand_index];
       var ellipse1_param = _vise_matchpanel_get_ellipse_param(d[2], d[3], d[4]);
       ctx.beginPath();
       ctx.ellipse(qoffsetx + d[0]*qsdim[2], qoffsety + d[1]*qsdim[2],
@@ -578,7 +589,7 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
     ctx.lineWidth = stroke_width;
     for(var i=0; i<match_pts_index.length; ++i) {
       var rand_index = match_pts_index[i];
-      var d = _vise_data.MATCH_DETAILS.matches[rand_index];
+      var d = _vise_data.MATCH_DETAILS[feature_type][rand_index];
       var ellipse2_param = _vise_matchpanel_get_ellipse_param(d[7], d[8], d[9]);
       ctx.beginPath();
       ctx.ellipse(moffsetx + d[5]*msdim[2], moffsety + d[6]*msdim[2],
@@ -596,7 +607,7 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
     //ctx.setLineDash([10, 5]);
     for(var i=0; i<match_pts_index.length; ++i) {
       var rand_index = match_pts_index[i];
-      var d = _vise_data.MATCH_DETAILS.matches[rand_index];
+      var d = _vise_data.MATCH_DETAILS[feature_type][rand_index];
       ctx.moveTo(qoffsetx + d[0]*qsdim[2], qoffsety + d[1]*qsdim[2]);
       ctx.lineTo(moffsetx + d[5]*msdim[2], moffsety + d[6]*msdim[2]);
     }
@@ -606,22 +617,25 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   // draw label
   ctx.fillStyle = 'yellow';
   ctx.font = '14px Sans';
+  var qregion = 'Query Region: (x,y)=(' + _vise_data.QUERY['x'] + ',' + _vise_data.QUERY['y'] + ')  (width,height)=(' + _vise_data.QUERY['width'] + ',' + _vise_data.QUERY['height'] + ') | Putative matches = ' + _vise_data.MATCH_DETAILS['putative'].length + ' | Spatially verified matches = ' + _vise_data.MATCH_DETAILS['matches'].length;
+  ctx.fillText(qregion, qoffsetx, pad + 4);
+
   var charwidth = ctx.measureText('M').width;
-  var qlabel = _vise_data.QUERY['filename'];
+  var qlabel = 'Query: ' + _vise_data.QUERY['filename'];
   var qmeasure = ctx.measureText(qlabel);
   if(qmeasure.width > qsdim[0]) {
     var maxchar = qsdim[0] / charwidth;
     var qlabel = '...' + _vise_data.QUERY['filename'].substring(_vise_data.QUERY['filename'].length - maxchar);
   }
-  ctx.fillText(qlabel, qoffsetx, vh - pad);
+  ctx.fillText(qlabel, qoffsetx, vh - pad + 5);
 
-  var mlabel = _vise_data.MATCH['filename'];
+  var mlabel = 'Match: ' + _vise_data.MATCH['filename'];
   var mmeasure = ctx.measureText(mlabel);
   if(mmeasure.width > msdim[0]) {
     var maxchar = msdim[0] / charwidth;
     var mlabel = '...' + _vise_data.MATCH['filename'].substring(_vise_data.MATCH['filename'].length - maxchar);
   }
-  ctx.fillText(mlabel, moffsetx, vh - pad);
+  ctx.fillText(mlabel, moffsetx, vh - pad + 5);
 }
 
 function _vise_matchpanel_init_toolbar(toolbar) {
@@ -635,7 +649,7 @@ function _vise_matchpanel_init_toolbar(toolbar) {
   drawall.addEventListener('click', _vise_matchpanel_update_region_count);
   var drawall_label = document.createElement('label');
   drawall_label.setAttribute('for', 'drawall');
-  drawall_label.innerHTML = 'Draw all ' + _vise_data.MATCH_DETAILS.matches.length + ' regions';
+  drawall_label.innerHTML = 'Draw all ' + _vise_data.MATCH_DETAILS[feature_type].length + ' regions';
   region_sel.appendChild(drawall);
   region_sel.appendChild(drawall_label);
 
@@ -654,11 +668,15 @@ function _vise_matchpanel_init_toolbar(toolbar) {
   var rand_count = document.createElement('input');
   rand_count.setAttribute('id', 'rand_pts_count_input');
   rand_count.setAttribute('type', 'text');
+  rand_count.setAttribute('pattern', '[0-9]{1,10}');
   rand_count.setAttribute('value', rand_pts_count);
+  rand_count.setAttribute('title', 'Only numbers are allowed');
 
   rand_count.addEventListener('change', function(e) {
-    rand_pts_count = parseInt(this.value);
-    _vise_matchpanel_update();
+    if(this.validity.valid) {
+      rand_pts_count = parseInt(this.value);
+      _vise_matchpanel_update();
+    }
   });
 
   var redraw = document.createElement('button');
@@ -666,7 +684,6 @@ function _vise_matchpanel_init_toolbar(toolbar) {
   redraw.addEventListener('click', function(e) {
     _vise_matchpanel_update();
   });
-
   rand_label.appendChild(rand_label_text1);
   rand_label.appendChild(rand_count);
   rand_label.appendChild(rand_label_text2);
@@ -674,6 +691,7 @@ function _vise_matchpanel_init_toolbar(toolbar) {
   region_sel.appendChild(rand_label);
   region_sel.appendChild(redraw);
 
+  // Select what to draw (correspondences, features)
   var drawsel = document.createElement('p');
   var label = document.createElement('span');
   label.innerHTML = 'Draw:&nbsp;';
@@ -721,8 +739,51 @@ function _vise_matchpanel_init_toolbar(toolbar) {
   drawsel.appendChild(widthlabel);
   drawsel.appendChild(width);
 
+  // Feature type selection
+  var featsel = document.createElement('p');
+  var featlabel = document.createElement('span');
+  featlabel.innerHTML = 'Show:&nbsp;';
+  featsel.appendChild(featlabel);
+
+  var featlist = document.createElement('select');
+  var matches = document.createElement('option');
+  matches.setAttribute('value', 'matches');
+  matches.innerHTML = 'Show only correct matches (i.e. spatially verified matches)';
+  var putative = document.createElement('option');
+  putative.setAttribute('value', 'putative');
+  putative.innerHTML = 'Show all possible matches (i.e. putative matches)';
+  switch(feature_type) {
+  case 'matches':
+    matches.setAttribute('selected', '');
+    break;
+  case 'putative':
+    putative.setAttribute('selected', '');
+    break;
+  }
+  featlist.appendChild(matches);
+  featlist.appendChild(putative);
+  featsel.appendChild(featlist);
+  featlist.addEventListener('change', function(e) {
+    feature_type = this.options[this.selectedIndex].value;
+    _vise_matchpanel_update();
+  });
+
+  var download_icon = _vise_common_get_svg_button('micon_download', 'Download visualisation as a JPG file');
+  var download_link = document.createElement('a');
+  download_link.addEventListener('click', function() {
+    var a = document.createElement('a');
+    a.setAttribute('href', feat_match_canvas.toDataURL('image/png'));
+    var download_filename = 'vise-' + _vise_data.QUERY['filename'] + '-' + _vise_data.MATCH['filename'] + '-match.png';
+    a.setAttribute('download', download_filename);
+    a.click();
+  });
+  download_link.appendChild(download_icon);
+  featsel.appendChild(download_link);
+
+  // add everything to HTML DOM
   toolbar.appendChild(region_sel);
   toolbar.appendChild(drawsel);
+  toolbar.appendChild(featsel);
 }
 
 function _vise_get_rand_int_list(min, max, count) {

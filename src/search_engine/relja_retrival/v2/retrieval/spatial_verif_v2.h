@@ -35,6 +35,8 @@ Updates:
 #include "spatial_defs.h"
 #include "spatial_retriever.h"
 
+#include "vise/vise_util.h"
+
 // for kd-tree based nearest neighbour search
 #include <vl/generic.h>
 #include <vl/kdtree.h>
@@ -85,7 +87,9 @@ public:
                 uint32_t toReturn= 0 ) const {
     rr::indexEntry queryRep;
     getQueryRep(queryObj, queryRep);
-    spatialQueryExecute( queryRep, queryRes, &Hs, NULL, toReturn, true );
+    bool use_initial_results = true;
+    bool forget_initial_results = true;
+    spatialQueryExecute( queryRep, queryRes, &Hs, NULL, toReturn, use_initial_results, forget_initial_results );
   }
 
   void
@@ -138,12 +142,16 @@ private:
 
   class spatManager : public queueManager<Result> {
   public:
-    spatManager(std::vector<indScorePair> &queryRes,
+    spatManager(bool forget_initial_results,
+                std::vector<indScorePair> &initial_query_results,
+                std::vector<indScorePair> &queryRes,
                 spatParams const &spatParamsObj,
                 uint32_t spatialDepthEff,
                 std::map<uint32_t, homography> *Hs= NULL);
     void operator() (uint32_t resInd, Result &result);
   private:
+    bool d_forget_initial_results;
+    std::vector<indScorePair> *d_initial_query_results;
     std::vector<indScorePair> *queryRes_;
     spatParams const *spatParams_;
     uint32_t spatialDepthEff_;

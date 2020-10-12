@@ -63,4 +63,6 @@ body { font-family:sans; background-color:white; margin:0; padding:0 0.5em; font
 #content #about_container { text-align:center; }
 #content #about_container #vise_logo_large { height:5em; }
 #content #about_container #vise_name { font-size:1em; }
-#content #about_container #vise_info { font-size:0.8em; display:inline-block; max-width:40em; text-align:justify; }
+#content #about_container #vise_info { font-size:0.8em; display:inline-block; max-width:40em; text-align:justify; line-height:1.5em;}
+#content #about_container #vise_info ul { text-align:left;}
+#content #about_container #vise_links { margin:2em 0; font-size:0.6em; }

@@ -38,7 +38,7 @@ if( !_vise_self_check_is_ok()) {
   vise_logo.setAttributeNS(null, 'class', 'vise_logo');
 
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/home');
+  home_link.setAttribute('href', 'home');
   home_link.appendChild(vise_logo);
 
   pname.innerHTML = '';
@@ -66,17 +66,17 @@ function _vise_settings_init_toolbar() {
 
   var home_icon = _vise_common_get_svg_button('micon_home', 'Home');
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/home');
+  home_link.setAttribute('href', 'home');
   home_link.appendChild(home_icon);
 
   var settings_icon = _vise_common_get_svg_button('micon_settings', 'Settings');
   var settings_link = document.createElement('a');
-  settings_link.setAttribute('href', '/settings');
+  settings_link.setAttribute('href', 'settings');
   settings_link.appendChild(settings_icon);
 
   var help_icon = _vise_common_get_svg_button('micon_help', 'About');
   var help_link = document.createElement('a');
-  help_link.setAttribute('href', '/about');
+  help_link.setAttribute('href', 'about');
   help_link.appendChild(help_icon);
 
   pageinfo.appendChild(home_link);
@@ -213,6 +213,14 @@ function _vise_settings_get_var_desc(variable_name) {
       'VISE assets (e.g. data files, etc.) are stored in this folder.'
     ];
     break;
+
+  case 'http_uri_namespace':
+    desc = [
+      'HTTP URI Namespace',
+      'By default, VISE http resources are available under "/" namespace. Use this configuration parameter to make http resources availalbe under a new namespace like "/a/b/c/"'
+    ];
+    break;
+
   default:
     desc = [variable_name, ''];
   }
@@ -232,7 +240,7 @@ function _vise_show_admintool() {
 
   var form = document.createElement('form');
   form.setAttribute('method', 'POST');
-  form.setAttribute('action', '/_project_delete');
+  form.setAttribute('action', '_project_delete');
   for( var pname in _vise_data.PROJECT_LIST ) {
     var checkbox = document.createElement('input');
     checkbox.setAttribute('type', 'checkbox');
@@ -252,7 +260,7 @@ function _vise_show_admintool() {
   project_del_container.appendChild(form);
 
   var note = document.createElement('p');
-  note.innerHTML = 'Note: Windows locks the VISE project folders when the VISE application is running and therefore currently it is not possible to delete projects using this interface in Windows. For now, we advise you to manually delete the corresponding folder. For example, to delete a project named "ABC", open File Explorer in Windows and delete the following folder: <code>C:\\Users\\USERNAME\\vgg\\vise\\store\\ABC</code>';
+  note.innerHTML = 'Note: All projects are stored at <code>' + _vise_data.VISE_STORE + '</code>. To delete a project, you can delete the corresponding folder in this store. Windows locks the VISE project folders when the VISE application is running and therefore you should close the VISE application before manually deleting the project folder. Due to this constraint, it is <strong>not possible</strong> to delete projects using this interface in Windows.';
   project_del_container.appendChild(note);
 
   admintool_container.appendChild(title);

@@ -64,17 +64,17 @@ function _vise_home_init_toolbar() {
 
   var home_icon = _vise_common_get_svg_button('micon_home', 'Home');
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/home');
+  home_link.setAttribute('href', 'home');
   home_link.appendChild(home_icon);
 
   var settings_icon = _vise_common_get_svg_button('micon_settings', 'Settings');
   var settings_link = document.createElement('a');
-  settings_link.setAttribute('href', '/settings');
+  settings_link.setAttribute('href', 'settings');
   settings_link.appendChild(settings_icon);
 
   var help_icon = _vise_common_get_svg_button('micon_help', 'About');
   var help_link = document.createElement('a');
-  help_link.setAttribute('href', '/about');
+  help_link.setAttribute('href', 'about');
   help_link.appendChild(help_icon);
 
   pageinfo.appendChild(home_link);
@@ -88,18 +88,15 @@ function _vise_home_show_project_create_panel() {
 
   var form = document.createElement('form');
   form.setAttribute('method', 'POST');
-  form.setAttribute('action', '/_project_create');
+  form.setAttribute('action', '_project_create');
   var pname = document.createElement('input');
   pname.setAttribute('type', 'text');
   pname.setAttribute('name', 'pname');
+  pname.setAttribute('required', '');
+  pname.setAttribute('pattern', '[a-zA-Z0-9_\-]{1,24}');
   pname.setAttribute('placeholder', 'e.g. 15th-Century-Books');
+  pname.setAttribute('title', "Allowed characters are: {a-z, A-Z, 0-9, _, -}. Special characters and spaces are not allowed");
   form.appendChild(pname);
-
-  var test = document.createElement('input');
-  test.setAttribute('type', 'hidden');
-  test.setAttribute('name', 'test');
-  test.setAttribute('value', 'adutta');
-  form.appendChild(test);
 
   var create = document.createElement('button');
   create.setAttribute('type', 'submit');
@@ -125,11 +122,11 @@ function _vise_home_show_project_list() {
 
     for(var pname in _vise_data.PROJECT_LIST) {
       var a = document.createElement('a');
-      a.setAttribute('href', '/' + pname + '/');
+      a.setAttribute('href', pname + '/');
       var c = document.createElement('div');
       c.setAttribute('class', 'project');
       var img = document.createElement('img');
-      img.setAttribute('src', '/' + pname + '/_cover_image');
+      img.setAttribute('src', pname + '/_cover_image');
       var imgcontainer = document.createElement('div');
       imgcontainer.setAttribute('class', 'imgcontainer');
       imgcontainer.appendChild(img);

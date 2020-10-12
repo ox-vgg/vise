@@ -41,7 +41,9 @@ footer { display:block; text-align:center; margin-top:2em; padding:0.5em 0; font
 
 /* /{PNAME}/file: shows a file */
 #content .fileview_panel { display:block; text-align:center; margin-top:2em; }
-#content .fileview_panel .query_img_container { height:60vh; display:block; text-align:center; }
+#content .fileview_panel #img_toolbar { display:block; margin:0; }
+#content .fileview_panel #img_toolbar a { margin:0 0.2em; }
+#content .fileview_panel #query_img_container { border:1px solid red; height:70vh; display:block; text-align:center; position:relative; border:none; }
 #content .fileview_panel #search_query_form { display:block; padding:0.4em; }
 #content .fileview_panel #search_query_form input { font-size:inherit; }
 
@@ -56,7 +58,7 @@ footer { display:block; text-align:center; margin-top:2em; padding:0.5em 0; font
 #content .resultgrid::after { content:""; flex:auto; }
 #content .resultgrid a { position:relative; margin:0.1em 0.2em; padding:0; flex-grow:1; cursor:pointer; }
 #content .resultgrid a img { height:40vh; }
-#content .resultgrid a svg { position:absolute; top:0; left:0; fill:none; stroke:yellow; stroke-width:2; -webkit-user-select:none;-moz-user-select:none;user-select:none; padding:0; margin:0; }
+#content .resultgrid a svg { position:absolute; top:0; left:0; fill:none; stroke:yellow; stroke-width:4; -webkit-user-select:none;-moz-user-select:none;user-select:none; padding:0; margin:0; }
 #content .resultgrid a .result_index { position:absolute; left:0; top:0; font-size:0.8em; background-color:black; opacity:0.8; color:white; padding:0.2em 0.4em; margin:0; line-height:1em; }
 #content .resultgrid #showmore { display:block; text-align:center; }
 #content .resultgrid #nomatches { display:block; text-align:center; color:red; width:100vw; }
@@ -93,7 +95,7 @@ footer { display:block; text-align:center; margin-top:2em; padding:0.5em 0; font
 #content .match_panel input[type="radio"] { margin-left:1em; font-size:inherit; }
 #content .match_panel input[type="checkbox"] { margin-left:1em; font-size:inherit; }
 #content .match_panel button { margin-left:1em; font-size:inherit; }
-#content .match_panel label {  }
+#content .match_panel label { display:inline; vertical-align:middle;  }
 #content .match_panel span {  }
 
 /* /{PNAME}/configure: project configuration */

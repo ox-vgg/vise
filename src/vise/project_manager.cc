@@ -23,10 +23,29 @@ void project_manager::process_http_request(http_request const &request,
   std::ostringstream ss;
   ss << "project_manager: " << request.d_method << " " << request.d_uri;
 
+  // if http_uri_namespace is defined,
+  // we only respond to queries under that namespace
+  std::string request_uri_without_ns(request.d_uri);
+  if(d_conf.count("http_uri_namespace")) {
+    if(d_conf.at("http_uri_namespace") != "") {
+      std::string ns = d_conf.at("http_uri_namespace");
+      if(request.d_uri.size() < ns.size()) {
+        uri_namespace_mismatch_4xx_response(response);
+        return;
+      }
+      if(request.d_uri.substr(0,ns.size()) != ns) {
+        uri_namespace_mismatch_4xx_response(response);
+        return;
+      }
+      request_uri_without_ns = request.d_uri.substr(ns.size()-1); // retain the trailing slash
+    }
+  }
+
   std::vector<std::string> uri;
   std::map<std::string, std::string> param;
-  vise::decompose_uri(request.d_uri, uri, param);
-  std::cout << ss.str() << std::endl;
+  vise::decompose_uri(request_uri_without_ns, uri, param);
+  ss << " [without-ns=" << request_uri_without_ns << "]";
+  //std::cout << ss.str() << std::endl;
 
   //request.parse_urlencoded_form_data();
   //vise::print_vector("uri", uri);
@@ -111,7 +130,7 @@ void project_manager::handle_get(http_request const &request,
   }
   if(uri[1] == "" || uri[1] == "index.html") {
     // redirect localhost:port/ to localhost:port/_ui/index.html
-    response.redirect_to("/home");
+    response.redirect_to(d_conf.at("http_uri_namespace") + "home");
     return;
   }
 
@@ -557,7 +576,7 @@ void project_manager::project_index_create(std::string pname,
     d_projects.at(pname)->conf_reload();
     d_projects.at(pname)->index_create(success, message, block_until_done);
     std::ostringstream redirect_url;
-    redirect_url << "/" << pname << "/index_status";
+    redirect_url << d_conf.at("http_uri_namespace") << pname << "/index_status";
     response.redirect_to(redirect_url.str());
   } else {
     response.set_status(412);
@@ -653,11 +672,12 @@ void project_manager::project_index_search(std::string pname,
 
   vise::search_query query(param);
   if(query.d_max_result_count == 0) {
-    query.d_max_result_count = 256;
+    query.d_max_result_count = 1024;
   }
 
   query.d_filename = d_projects.at(pname)->filename(file_id);
   std::vector<vise::search_result> result;
+  std::cout << "query.d_max_result_count=" << query.d_max_result_count << std::endl;
   d_projects.at(pname)->index_search(query, result);
 
   std::ostringstream json;
@@ -686,8 +706,8 @@ void project_manager::project_index_search(std::string pname,
          << "// JS code generated automatically by src/vise/project_manager.cc::project_index_search()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"/vise_common.js\"></script>\n"
-         << "<script src=\"/project_search.js\"></script>\n"
+         << "<script src=\"../vise_common.js\"></script>\n"
+         << "<script src=\"../project_search.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -737,7 +757,8 @@ void project_manager::project_show_match(std::string pname,
   json << "{\"PNAME\":\"" << pname << "\""
        << ",\"QUERY\":" << query.to_json()
        << ",\"MATCH\":" << match.str()
-       << ",\"MATCH_DETAILS\":" << match_details.str() << "}";
+       << ",\"MATCH_DETAILS\":" << match_details.str()
+       << "}";
 
   if(param.count("response_format") == 1 &&
      param.at("response_format") == "json" ) {
@@ -752,8 +773,8 @@ void project_manager::project_show_match(std::string pname,
          << "// JS code generated automatically by src/vise/project_manager.cc::project_index_search()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"/vise_common.js\"></script>\n"
-         << "<script src=\"/project_showmatch.js\"></script>\n"
+         << "<script src=\"../vise_common.js\"></script>\n"
+         << "<script src=\"../project_showmatch.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -769,9 +790,9 @@ void project_manager::project_register_image(std::string pname,
   }
 
   if (!d_projects.at(pname)->index_is_loaded()) {
-      response.set_status(412);
-      response.set_payload("project index not loaded");
-      return;
+    response.set_status(412);
+    response.set_payload("project index not loaded");
+    return;
   }
 
   if (param.count("file1_id") == 0 ||
@@ -782,16 +803,16 @@ void project_manager::project_register_image(std::string pname,
       param.count("file2_id") == 0 ||
       param.count("H0") == 0
       ) {
-      response.set_status(412);
-      response.set_payload("register requests must contain: file1_id, file2_id, x, y, width, height [ and optionally H0 ]");
-      return;
+    response.set_status(412);
+    response.set_payload("register requests must contain: file1_id, file2_id, x, y, width, height [ and optionally H0 ]");
+    return;
   }
 
   std::string H0_str = param.at("H0");
   if (H0_str.front() != '[' && H0_str.back() != ']') {
-      response.set_status(412);
-      response.set_payload("H0 must be a JSON array like H0 = [0.92, 0, 21.92, ..., ]");
-      return;
+    response.set_status(412);
+    response.set_payload("H0 must be a JSON array like H0 = [0.92, 0, 21.92, ..., ]");
+    return;
   }
 
   uint32_t file1_id = std::atoi(param.at("file1_id").c_str());
@@ -807,8 +828,8 @@ void project_manager::project_register_image(std::string pname,
   char comma;
   // parse the comma separated values
   ss >> H0[0] >> comma >> H0[1] >> comma >> H0[2] >> comma
-      >> H0[3] >> comma >> H0[4] >> comma >> H0[5] >> comma
-      >> H0[6] >> comma >> H0[7] >> comma >> H0[8];
+     >> H0[3] >> comma >> H0[4] >> comma >> H0[5] >> comma
+     >> H0[6] >> comma >> H0[7] >> comma >> H0[8];
   std::array<double, 9> H = H0;
 
   // @todo
@@ -816,9 +837,9 @@ void project_manager::project_register_image(std::string pname,
   d_projects.at(pname)->register_image(file1_id, file2_id, x, y, width, height, H);
   std::ostringstream json;
   json << "{\"H\":["
-      << H[0] << "," << H[1] << "," << H[2] << ","
-      << H[3] << "," << H[4] << "," << H[5] << ","
-      << H[6] << "," << H[7] << "," << H[8] << "]}";
+       << H[0] << "," << H[1] << "," << H[2] << ","
+       << H[3] << "," << H[4] << "," << H[5] << ","
+       << H[6] << "," << H[7] << "," << H[8] << "]}";
   response.set_status(200);
   response.set_payload(json.str());
   response.set_field("Content-Type", "application/json");
@@ -826,53 +847,53 @@ void project_manager::project_register_image(std::string pname,
 }
 
 void project_manager::project_home(std::string pname,
-    http_response& response) const {
-    std::ostringstream ss;
+                                   http_response& response) const {
+  std::ostringstream ss;
 
-    switch (d_projects.at(pname)->state()) {
-    case vise::project_state::SET_CONFIG:
+  switch (d_projects.at(pname)->state()) {
+  case vise::project_state::SET_CONFIG:
     {
-        std::ostringstream redirect_url;
-        redirect_url << "/" << pname << "/configure";
-        response.redirect_to(redirect_url.str());
-        break;
+      std::ostringstream redirect_url;
+      redirect_url << d_conf.at("http_uri_namespace") << pname << "/configure";
+      response.redirect_to(redirect_url.str());
+      break;
     }
-    case vise::project_state::INDEX_ONGOING:
+  case vise::project_state::INDEX_ONGOING:
     {
-        std::ostringstream redirect_url;
-        redirect_url << "/" << pname << "/index_status";
-        response.redirect_to(redirect_url.str());
-        break;
+      std::ostringstream redirect_url;
+      redirect_url << d_conf.at("http_uri_namespace") << pname << "/index_status";
+      response.redirect_to(redirect_url.str());
+      break;
     }
-    case vise::project_state::BROKEN_INDEX:
-        ss << "<h1>Incomplete Visual Index</h1><p>Visual index files for project [" << pname << "] are broken and therefore cannot be loaded. This can happen if the indexing process gets terminated prematurely.</p>";
-        ss << "<p><form method=\"post\" action=\"/" << pname << "/_index_create\"><input type=\"submit\" value=\"Resume Process to Fix Broken Index\"></form></p><p>If you do not need this project any more, you can delete it from VISE settings panel in the home page.</p>";
-        response.set_html_payload(ss.str());
-        break;
-    case vise::project_state::SEARCH_READY:
+  case vise::project_state::BROKEN_INDEX:
+    ss << "<h1>Incomplete Visual Index</h1><p>Visual index files for project [" << pname << "] are broken and therefore cannot be loaded. This can happen if the indexing process gets terminated prematurely.</p>";
+    ss << "<p><form method=\"post\" action=\"" << d_conf.at("http_uri_namespace") << pname << "/_index_create\"><input type=\"submit\" value=\"Resume Process to Fix Broken Index\"></form></p><p>If you do not need this project any more, you can delete it from VISE settings panel in the home page.</p>";
+    response.set_html_payload(ss.str());
+    break;
+  case vise::project_state::SEARCH_READY:
     {
-        std::ostringstream redirect_url;
-        redirect_url << "/" << pname << "/filelist";
-        response.redirect_to(redirect_url.str());
-        break;
+      std::ostringstream redirect_url;
+      redirect_url << d_conf.at("http_uri_namespace") << pname << "/filelist";
+      response.redirect_to(redirect_url.str());
+      break;
     }
-    case vise::project_state::INIT_FAILED:
+  case vise::project_state::INIT_FAILED:
     {
       ss << "<h1>Failed to Initialize Project</h1><p>Failed to initialize project [" << pname << "]. This usually happens if the project data folder and its files are manually updated or the configuration file is invalid.</p>";
       response.set_html_payload(ss.str());
       break;
     }
 
-    default:
-        ss << "unknown project state: "
-            << d_projects.at(pname)->state_name() << std::endl;
-        response.set_html_payload(ss.str());
-    }
+  default:
+    ss << "unknown project state: "
+       << d_projects.at(pname)->state_name() << std::endl;
+    response.set_html_payload(ss.str());
+  }
 }
 
 void project_manager::project_filelist(std::string pname,
-    std::map<std::string, std::string> const& param,
-    http_response& response) const {
+                                       std::map<std::string, std::string> const& param,
+                                       http_response& response) const {
   // check if project is loaded
   if(!d_projects.at(pname)->index_is_loaded()) {
     std::ostringstream ss;
@@ -926,8 +947,8 @@ void project_manager::project_filelist(std::string pname,
          << "// JS code generated automatically by src/vise/project_manager.cc::project_filelist()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"/vise_common.js\"></script>\n"
-         << "<script src=\"/project_filelist.js\"></script>\n"
+         << "<script src=\"../vise_common.js\"></script>\n"
+         << "<script src=\"../project_filelist.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -971,9 +992,9 @@ void project_manager::project_file(std::string pname,
          << "// JS code generated automatically by src/vise/project_manager.cc::project_file()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"/vise_common.js\"></script>\n"
-         << "<script src=\"/via0.js\"></script>\n"
-         << "<script src=\"/project_file.js\"></script>\n"
+         << "<script src=\"../vise_common.js\"></script>\n"
+         << "<script src=\"../via0.js\"></script>\n"
+         << "<script src=\"../project_file.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -984,7 +1005,7 @@ void project_manager::project_configure(std::string pname,
                                         http_response &response) const {
   if(d_projects.at(pname)->index_is_done()) {
     std::ostringstream uri;
-    uri << "/" << pname << "/";
+    uri << d_conf.at("http_uri_namespace") << pname << "/";
     response.redirect_to(uri.str());
     return;
   }
@@ -1006,8 +1027,8 @@ void project_manager::project_configure(std::string pname,
        << "// JS code generated automatically by src/vise/project_manager.cc::project_configure()\n"
        << "var _vise_data = " << json.str() << ";\n"
        << "</script>\n"
-       << "<script src=\"/vise_common.js\"></script>\n"
-       << "<script src=\"/project_configure.js\"></script>\n"
+       << "<script src=\"../vise_common.js\"></script>\n"
+       << "<script src=\"../project_configure.js\"></script>\n"
        << vise::HTML_TAIL;
   response.set_html_payload(html.str());
 }
@@ -1026,7 +1047,7 @@ void project_manager::project_index_status(std::string pname,
   } else {
     if(d_projects.at(pname)->index_is_done()) {
       std::ostringstream uri;
-      uri << "/" << pname << "/";
+      uri << d_conf.at("http_uri_namespace") << pname << "/";
       response.redirect_to(uri.str());
       return;
     } else {
@@ -1039,8 +1060,8 @@ void project_manager::project_index_status(std::string pname,
            << "// JS code generated automatically by src/vise/project_manager.cc::project_index_status()\n"
            << "var _vise_data = " << json.str() << ";\n"
            << "</script>\n"
-           << "<script src=\"/vise_common.js\"></script>\n"
-           << "<script src=\"/project_index_status.js\"></script>\n"
+           << "<script src=\"../vise_common.js\"></script>\n"
+           << "<script src=\"../project_index_status.js\"></script>\n"
            << vise::HTML_TAIL;
       response.set_html_payload(html.str());
     }
@@ -1082,8 +1103,8 @@ void project_manager::vise_home(std::map<std::string, std::string> const &param,
          << "// JS code generated automatically by src/vise/project_manager.cc::vise_home()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"/vise_common.js\"></script>\n"
-         << "<script src=\"/vise_home.js\"></script>\n"
+         << "<script src=\"vise_common.js\"></script>\n"
+         << "<script src=\"vise_home.js\"></script>\n"
          << vise::HTML_EMPTY_TAIL;
     response.set_html_payload(html.str());
   }
@@ -1160,83 +1181,83 @@ void project_manager::vise_project_create(std::map<std::string, std::string> con
   }
 
   std::ostringstream json;
-  json << "/" << pname << "/";
+  json << d_conf.at("http_uri_namespace") << pname << "/";
   response.redirect_to(json.str());
   return;
 }
 
 void project_manager::vise_project_delete(std::map<std::string, std::string> const &param,
                                           http_response &response) {
-    try {
-        std::map<std::string, std::string>::const_iterator itr;
-        for (itr = param.begin(); itr != param.end(); ++itr) {
-            if (itr->second != "1") {
-                continue;
-            }
-            std::string pname;
-            vise::url_decode(itr->first, pname);
-            if (!project_exists(pname)) {
-                continue;
-            }
-
-            if (d_projects.count(pname)) {
-                bool success;
-                std::string message;
-                d_projects[pname]->index_unload(success, message);
-                if (!success) {
-                    std::cout << "index_unload() failed for project " << pname << std::endl;
-                    std::cout << message << std::endl;
-                }
-                d_projects[pname].reset(nullptr);
-                std::map<std::string, std::unique_ptr<vise::project> >::iterator pitr = d_projects.find(pname);
-                d_projects.erase(pitr);
-            }
-
-            boost::filesystem::path project_dir = boost::filesystem::path(d_conf.at("vise_store")) / pname;
-            uint32_t del_count = boost::filesystem::remove_all(project_dir);
-            std::cout << "deleted project " << pname << " ("
-                << del_count << " files)" << std::endl;
-        }
-
-        std::ostringstream redirect_url;
-        redirect_url << "/settings";
-        response.redirect_to(redirect_url.str());
-    }
-    catch (std::exception& ex) {
-        std::cout << "vise_project_delete(): exception: " << ex.what() << std::endl;
-    }
-}
-
-void project_manager::vise_project_unload(std::map<std::string, std::string> const& param,
-    http_response& response) {
+  try {
     std::map<std::string, std::string>::const_iterator itr;
     for (itr = param.begin(); itr != param.end(); ++itr) {
-        if (itr->second != "1") {
-            continue;
+      if (itr->second != "1") {
+        continue;
+      }
+      std::string pname;
+      vise::url_decode(itr->first, pname);
+      if (!project_exists(pname)) {
+        continue;
+      }
+
+      if (d_projects.count(pname)) {
+        bool success;
+        std::string message;
+        d_projects[pname]->index_unload(success, message);
+        if (!success) {
+          std::cout << "index_unload() failed for project " << pname << std::endl;
+          std::cout << message << std::endl;
         }
-        std::string pname;
-        vise::url_decode(itr->first, pname);
-        if (!project_exists(pname)) {
-            continue;
-        }
-        try {
-            if (d_projects.count(pname)) {
-                bool success;
-                std::string message;
-                d_projects[pname]->index_unload(success, message);
-                d_projects[pname].reset(nullptr);
-                std::map<std::string, std::unique_ptr<vise::project> >::iterator itr = d_projects.find(pname);
-                d_projects.erase(itr);
-            }
-        }
-        catch (std::exception & ex) {
-            std::cout << "exception: " << ex.what() << std::endl;
-        }
+        d_projects[pname].reset(nullptr);
+        std::map<std::string, std::unique_ptr<vise::project> >::iterator pitr = d_projects.find(pname);
+        d_projects.erase(pitr);
+      }
+
+      boost::filesystem::path project_dir = boost::filesystem::path(d_conf.at("vise_store")) / pname;
+      uint32_t del_count = boost::filesystem::remove_all(project_dir);
+      std::cout << "deleted project " << pname << " ("
+                << del_count << " files)" << std::endl;
     }
 
     std::ostringstream redirect_url;
-    redirect_url << "/settings";
+    redirect_url << d_conf.at("http_uri_namespace") << "settings";
     response.redirect_to(redirect_url.str());
+  }
+  catch (std::exception& ex) {
+    std::cout << "vise_project_delete(): exception: " << ex.what() << std::endl;
+  }
+}
+
+void project_manager::vise_project_unload(std::map<std::string, std::string> const& param,
+                                          http_response& response) {
+  std::map<std::string, std::string>::const_iterator itr;
+  for (itr = param.begin(); itr != param.end(); ++itr) {
+    if (itr->second != "1") {
+      continue;
+    }
+    std::string pname;
+    vise::url_decode(itr->first, pname);
+    if (!project_exists(pname)) {
+      continue;
+    }
+    try {
+      if (d_projects.count(pname)) {
+        bool success;
+        std::string message;
+        d_projects[pname]->index_unload(success, message);
+        d_projects[pname].reset(nullptr);
+        std::map<std::string, std::unique_ptr<vise::project> >::iterator itr = d_projects.find(pname);
+        d_projects.erase(itr);
+      }
+    }
+    catch (std::exception & ex) {
+      std::cout << "exception: " << ex.what() << std::endl;
+    }
+  }
+
+  std::ostringstream redirect_url;
+  redirect_url << d_conf.at("http_uri_namespace") << "settings";
+  response.redirect_to(redirect_url.str());
 }
 
 void project_manager::vise_settings(std::map<std::string, std::string> const &param,
@@ -1244,14 +1265,21 @@ void project_manager::vise_settings(std::map<std::string, std::string> const &pa
   std::ostringstream json;
   json << "{\"VISE_FULLNAME\":\"" << VISE_FULLNAME << "\""
        << ",\"VISE_NAME\":\"" << VISE_NAME << "\""
+       << ",\"VISE_STORE\":\"" << d_conf.at("vise_store") << "\""
        << ",\"VERSION\":\"" << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH << "\""
        << ",\"SETTINGS\":{";
 
-  std::map<std::string, std::string>::const_iterator itr = d_conf.begin();
-  json << "\"" << itr->first << "\":\"" << vise::json_escape_str(itr->second) << "\"";
-  ++itr;
-  for(; itr != d_conf.end(); ++itr) {
-    json << ",\"" << itr->first << "\":\"" << vise::json_escape_str(itr->second) << "\"";
+  std::map<std::string, std::string>::const_iterator itr;
+  bool is_first_item = true;
+  for(itr = d_conf.begin(); itr != d_conf.end(); ++itr) {
+    if(itr->first.front() != '#') {
+      if(is_first_item) {
+        is_first_item = false;
+      } else {
+        json << ",";
+      }
+      json << "\"" << itr->first << "\":\"" << vise::json_escape_str(itr->second) << "\"";
+    }
   }
   json << "},\"PROJECT_LIST\":{";
   std::vector<std::string> pname_list;
@@ -1287,8 +1315,8 @@ void project_manager::vise_settings(std::map<std::string, std::string> const &pa
          << "var _vise_data = " << json.str() << ";\n"
          << "console.log(_vise_data);\n"
          << "</script>\n"
-         << "<script src=\"/vise_common.js\"></script>\n"
-         << "<script src=\"/vise_settings.js\"></script>\n"
+         << "<script src=\"vise_common.js\"></script>\n"
+         << "<script src=\"vise_settings.js\"></script>\n"
          << vise::HTML_EMPTY_TAIL;
     response.set_html_payload(html.str());
   }
@@ -1309,6 +1337,7 @@ void project_manager::vise_settings_save(std::string &settings_formdata,
     }
   }
 
+  vise::init_vise_settings_comments(conf); // set the comments
   const boost::filesystem::path visehome = vise::vise_home();
   boost::filesystem::path vise_settings = visehome / "vise_settings.txt";
   bool result = vise::configuration_save(conf, vise_settings.string());
@@ -1344,8 +1373,8 @@ void project_manager::vise_about(std::map<std::string, std::string> const &param
          << "// JS code generated automatically by src/vise/project_manager.cc::vise_about()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"/vise_common.js\"></script>\n"
-         << "<script src=\"/vise_about.js\"></script>\n"
+         << "<script src=\"vise_common.js\"></script>\n"
+         << "<script src=\"vise_about.js\"></script>\n"
          << vise::HTML_EMPTY_TAIL;
     response.set_html_payload(html.str());
   }
@@ -1370,8 +1399,8 @@ void project_manager::vise_error_page(const std::string message,
          << "// JS code generated automatically by src/vise/project_manager.cc::vise_error_page()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"/vise_common.js\"></script>\n"
-         << "<script src=\"/vise_error.js\"></script>\n"
+         << "<script src=\"../vise_common.js\"></script>\n"
+         << "<script src=\"../vise_error.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -1395,8 +1424,8 @@ void project_manager::vise_wait_page(const std::string message,
          << "// JS code generated automatically by src/vise/project_manager.cc::vise_wait_page()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"/vise_common.js\"></script>\n"
-         << "<script src=\"/vise_wait.js\"></script>\n"
+         << "<script src=\"../vise_common.js\"></script>\n"
+         << "<script src=\"../vise_wait.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -1602,6 +1631,22 @@ void project_manager::serve_only_4xx_response(http_response &response) const {
     html << "<li><a href=\"/" << itr->first << "/\">" << itr->first << "</a></li>";
   }
   html << "</ul>"
+       << vise::HTML_EMPTY_TAIL;
+  response.set_html_payload(html.str());
+}
+
+//
+// http uri namespace
+//
+void project_manager::uri_namespace_mismatch_4xx_response(http_response &response) const {
+  std::ostringstream html;
+  std::ostringstream vise_home;
+  vise_home << "http://" << d_conf.at("address") << ":" << d_conf.at("port")
+            << d_conf.at("http_uri_namespace");
+  html << vise::VISE_HTML_HEAD
+       << "<body>\n"
+       << "<p>Resources hosted by VISE are available at: <a href=\""
+       << vise_home.str() << "\">" << vise_home.str() << "</a></p>"
        << vise::HTML_EMPTY_TAIL;
   response.set_html_payload(html.str());
 }

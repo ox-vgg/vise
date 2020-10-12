@@ -1,8 +1,18 @@
 ## [2.0.0] - not released
- * removed dependency on Python (added dependency on vlfeat for clustering)
- * upgraded user interface which is now based solely on HTML/CSS/Javascript and is managed by client's web browser
- * clustering of visual features done using vlfeat's kdtree implementation
+ * removed dependency on Python:
+    - clustering of visual features done using vlfeat's kdtree implementation (added dependency on vlfeat)
+    - frontend is based solely on HTML/CSS/Javascript (previously, it VISE used a python cherrypy based server for generating frontend)
+ * Simplified user interface based solely on HTML/CSS/Javascript
+    - Many work load transferred from backend server to user's web browser
+    - VISE server only generates basic HTML pages containing dynamic data stored as Javascript variable
+    - web browser renders the page based on dynamic data contained in Javascript variable
+    - VISE servers sends homography matrix and web browser uses Javascript and HTML canvas to generate registered images and required visualisations
  * upgraded code to support compilation in Linux (gcc) and Windows (Visual C++)
+ * added tests
+    - unit tests for validating basic functionality of modules
+    - performance validation test based on Oxford Buildings dataset and its available ground truth
+ * images get resized based on user defined max. size (defined in project configuration file)
+ * indexing process log saved to a file for reporting
  * ...
  
 ## [1.0.3] - September 28, 2017
