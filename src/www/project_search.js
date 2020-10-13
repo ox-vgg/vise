@@ -138,7 +138,6 @@ function _vise_show_search_result_nomatch_found() {
 function _vise_show_search_result_content() {
   results_panel.innerHTML = '';
   results.innerHTML = '';
-
   if(_vise_data.RESULT.length < 2) {
     // indicates only match to itself or no match at all
     _vise_show_search_result_nomatch_found();
@@ -146,18 +145,6 @@ function _vise_show_search_result_content() {
   }
 
   var best_norm_score = _vise_data.RESULT[1]['score'] / _vise_data.RESULT[0]['score'];
-
-  /*
-  showing_result_from = 1; // discard first result which corresponds to the query image
-  for( var i=showing_result_from; i<_vise_data.RESULT.length; ++i) {
-    var a = _vise_search_result_html_element(i);
-    results.appendChild(a);
-    showing_result_to = i;
-  }
-  results_panel.appendChild(results);
-  _vise_search_set_view_style();
-  */
-
   // allow users to reveal the low scoring results
   current_norm_score_threshold = 0.07;
   next_norm_score_threshold = 0.05;
@@ -171,9 +158,8 @@ function _vise_show_search_result_content() {
     current_norm_score_threshold = 0.07;
     next_norm_score_threshold = 0.03;
   } else {
-    // we discard very very low scoring results
-    _vise_show_search_result_nomatch_found();
-    return;
+    current_norm_score_threshold = 0.03;
+    next_norm_score_threshold = 0.01;
   }
 
   showing_result_from = 1; // discard first result which corresponds to the query image
@@ -186,10 +172,9 @@ function _vise_show_search_result_content() {
     results.appendChild(a);
     showing_result_to = i;
   }
-
   if(showing_result_to < (_vise_data.RESULT.length - 1)) {
     // more results remaining to show
-    var next_norm_score = _vise_data.RESULT[showing_result_to]['score'] / _vise_data.RESULT[0]['score'];
+    var next_norm_score = _vise_data.RESULT[showing_result_to + 1]['score'] / _vise_data.RESULT[0]['score'];
     if(next_norm_score >= next_norm_score_threshold) {
       var showmore = document.createElement('div');
       showmore.setAttribute('id', 'showmore');

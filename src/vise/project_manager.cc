@@ -20,8 +20,8 @@ project_manager::~project_manager() {
 void project_manager::process_http_request(http_request const &request,
                                            http_response &response)
 {
-  std::ostringstream ss;
-  ss << "project_manager: " << request.d_method << " " << request.d_uri;
+  //std::ostringstream ss;
+  //ss << "project_manager: " << request.d_method << " " << request.d_uri;
 
   // if http_uri_namespace is defined,
   // we only respond to queries under that namespace
@@ -44,7 +44,7 @@ void project_manager::process_http_request(http_request const &request,
   std::vector<std::string> uri;
   std::map<std::string, std::string> param;
   vise::decompose_uri(request_uri_without_ns, uri, param);
-  ss << " [without-ns=" << request_uri_without_ns << "]";
+  //ss << " [without-ns=" << request_uri_without_ns << "]";
   //std::cout << ss.str() << std::endl;
 
   //request.parse_urlencoded_form_data();
@@ -70,6 +70,7 @@ void project_manager::process_http_request(http_request const &request,
         if( uri[1] == "home" ||
             uri[1] == "settings" ||
             uri[1] == "about" ||
+            uri[1] == "index.html" ||
             uri[1] == "") {
           serve_only_4xx_response(response);
         } else {
@@ -677,7 +678,6 @@ void project_manager::project_index_search(std::string pname,
 
   query.d_filename = d_projects.at(pname)->filename(file_id);
   std::vector<vise::search_result> result;
-  std::cout << "query.d_max_result_count=" << query.d_max_result_count << std::endl;
   d_projects.at(pname)->index_search(query, result);
 
   std::ostringstream json;
@@ -1624,11 +1624,11 @@ void project_manager::serve_only_4xx_response(http_response &response) const {
   std::ostringstream html;
   html << vise::VISE_HTML_HEAD
        << "<body>\n"
-       << "<p>Only the following projects are available for search query because VISE is running in <code>serve_only</code> mode:</p>"
+       << "<p>The following VISE projects are available for search query:</p>"
        << "<ul>";
   std::map<std::string, std::unique_ptr<vise::project> >::const_iterator itr;
   for(itr=d_projects.begin(); itr!=d_projects.end(); ++itr) {
-    html << "<li><a href=\"/" << itr->first << "/\">" << itr->first << "</a></li>";
+    html << "<li><a href=\"" << d_conf.at("http_uri_namespace") << "/" << itr->first << "/\">" << itr->first << "</a></li>";
   }
   html << "</ul>"
        << vise::HTML_EMPTY_TAIL;

@@ -126,7 +126,6 @@ spatialVerifV2::spatialQueryExecute(rr::indexEntry &queryRep,
                                             spatialDepthEff);
   */
   uint32_t const numWorkerThreads = 1;
-  std::cout << "spatial_verif_v2.cpp:127:: numWorkerThreads=" << numWorkerThreads << std::endl;
   std::vector<queueWorker<Result> const *> workers;
   for (uint32_t iThread= 0; iThread < numWorkerThreads; ++iThread) {
     workers.push_back( new spatWorker(ellipses1, ue, daatIter, daatLock, uniqIndToInd, spatParams_, elUnquant_, sameRandomObj_) );
@@ -143,16 +142,6 @@ spatialVerifV2::spatialQueryExecute(rr::indexEntry &queryRep,
   util::delPointerVector(workers);
 
   retriever::sortResults( queryRes, spatialDepthEff, toReturn );
-
-  std::cout << "sorted spatially verified results=" << queryRes.size() << std::endl;
-  for(std::size_t i=0; i<queryRes.size(); ++i) {
-    uint32_t fid = queryRes[i].first;
-    std::cout << "  [" << i << "] fid=" << fid << ", score=" << queryRes[i].second
-              << ", H=[" << Hs->at(fid).H[0] << "," << Hs->at(fid).H[1] << "," <<  Hs->at(fid).H[2] << ","
-              << Hs->at(fid).H[3] << "," << Hs->at(fid).H[4] << "," << Hs->at(fid).H[5] << ","
-              << Hs->at(fid).H[6] << "," << Hs->at(fid).H[7] << "," << Hs->at(fid).H[8] << "]" << std::endl;
-  }
-
 }
 
 
