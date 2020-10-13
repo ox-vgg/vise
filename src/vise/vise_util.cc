@@ -360,12 +360,7 @@ bool vise::url_decode(const std::string& in, std::string& out)
       }
     }
     else {
-      if (in[i] == '+') {
-        out += ' ';
-      }
-      else {
-        out += in[i];
-      }
+      out += in[i];
     }
   }
   return true;
