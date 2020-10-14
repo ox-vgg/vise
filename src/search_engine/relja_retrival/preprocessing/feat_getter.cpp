@@ -32,20 +32,22 @@ No usage or redistribution is allowed without explicit permission.
 
 void
 featGetter::getFeats( const char fileName[], uint32_t xl, uint32_t xu, uint32_t yl, uint32_t yu, uint32_t &numFeats, std::vector<ellipse> &regions, float *&descs ) const {
-    
+
     std::string fileName_= util::expandUser( fileName );
     if (xl>xu) std::swap(xl,xu);
     if (yl>yu) std::swap(yl,yu);
-    
+
 #ifdef RR_MAGICK
     boost::filesystem::path tmpdir = boost::filesystem::temp_directory_path();
     boost::filesystem::path tmpfn = tmpdir / boost::filesystem::unique_path("vise_relja_retrival_%%%%%%%%%%%%%%%%.jpg");
     std::string tempCropImageFn= tmpfn.string();
     try {
         Magick::Image im;
+        im.quiet(true); // to supress warning
         im.read(fileName_);
         im.crop( Magick::Geometry(xu-xl, yu-yl, xl, yl) );
         im.write(tempCropImageFn);
+        im.quiet(false);
     } catch (std::exception &error) {
         std::cout<< "featGetter::getFeats: Exception= "<<error.what()<<"\n";
         numFeats= 0;
@@ -53,47 +55,47 @@ featGetter::getFeats( const char fileName[], uint32_t xl, uint32_t xu, uint32_t 
         descs= new float[0];
         return;
     }
-    
+
 #else
     // careful not to delete it later!
     std::string tempCropImageFn= fileName_;
 #endif
-    
+
     getFeats( tempCropImageFn.c_str(), numFeats, regions, descs );
 
 #ifdef RR_MAGICK
-    
+
     for (std::vector<ellipse>::iterator itR= regions.begin();
             itR!=regions.end();
             ++itR) {
-        
+
         itR->x+= xl;
         itR->y+= yl;
-        
+
     }
-    
+
     boost::filesystem::remove( tempCropImageFn );
-    
+
 #else
     // TODO: for split detector/descriptor (e.g. like hessian affine + RootSIFT like I use), it would be more efficient to detect then based on ROI, then extract descriptors
-    
+
     // do not delete tempCropImageFn here as it is the original image!
-    
+
     std::vector<ellipse> regionsAll;
     regionsAll.swap(regions);
     std::vector<uint32_t> keepInds;
-    
+
     uint32_t i= 0;
     for (std::vector<ellipse>::const_iterator itR= regionsAll.begin();
          itR!=regionsAll.end();
          ++itR, ++i) {
-        
+
         if (itR->x >= xl && itR->x <= xu && itR->y >= yl && itR->y <=yu ) {
             regions.push_back( *itR );
             keepInds.push_back(i);
         }
     }
-    
+
     uint32_t numFeats_old= regionsAll.size();
     numFeats= regions.size();
     // copy the descriptors
@@ -106,5 +108,5 @@ featGetter::getFeats( const char fileName[], uint32_t xl, uint32_t xu, uint32_t 
     descs= descs_new;
     // don't delete descs_new as descs point to the same thing, and will be thus freed later
 #endif
-    
+
 }

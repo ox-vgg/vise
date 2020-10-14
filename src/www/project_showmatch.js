@@ -316,9 +316,13 @@ function _vise_togglepanel_show() {
     switch(xhr.statusText) {
     case 'OK':
       register_response = JSON.parse(xhr.responseText);
+      if(register_response['status'] !== 'ok') {
+        _vise_toggle_canvas_show_error_msg(register_response['message']);
+        return;
+      }
       break;
     default:
-      console.log('error response');
+      _vise_toggle_canvas_show_error_msg('Malformed response from VISE server.');
       return;
     }
 
@@ -346,11 +350,11 @@ function _vise_togglepanel_show() {
       mouse_move_count = 0;
     });
     toggle_canvas.addEventListener('mouseout', function(e) {
-	  if(is_toggle_active) {
+	    if(is_toggle_active) {
         is_manual_toggle_mode = false;
         mouse_move_count = 0;
         _vise_toggle_canvas_toggle();
-	  }
+	    }
     });
     toggle_canvas.addEventListener('mousemove', function(e) {
       if(is_manual_toggle_mode) {
@@ -362,18 +366,49 @@ function _vise_togglepanel_show() {
         }
       }
     });
-	if(toggle_canvas_timer) {
-		clearTimeout(toggle_canvas_timer);
-	}
+	  if(toggle_canvas_timer) {
+		  clearTimeout(toggle_canvas_timer);
+	  }
     toggle_canvas_timer = setTimeout(_vise_toggle_canvas_toggle,
                                      parseInt(document.getElementById('toggle_speed').value));
   });
   xhr.addEventListener('timeout', function(e) {
-    console.log('timeout waiting for response from server');
+    _vise_toggle_canvas_show_error_msg('Timeout waiting for response from server');
   });
   xhr.addEventListener('error', function(e) {
-    console.log('error waiting for response from server');
+    _vise_toggle_canvas_show_error_msg('Error waiting for response from server');
   });
+}
+
+function _vise_toggle_canvas_show_error_msg(msg) {
+  toggle_canvas.height = _vise_data.QUERY['height'];
+  toggle_canvas.width = _vise_data.QUERY['width'];
+  var ctx = toggle_canvas.getContext('2d', { alpha: false });
+  ctx.fillStyle='red';
+  ctx.font = '16px Sans';
+  var lineheight = 20;
+  var words = msg.split(' ');
+  var line = '';
+  var y = 20;
+
+  for(var i = 0; i < words.length; i++) {
+    var testLine = line + words[i] + ' ';
+    var metrics = ctx.measureText(testLine);
+    var testWidth = metrics.width;
+    if (testWidth > (toggle_canvas.width - 12)  && i > 0) {
+      ctx.fillText(line, 10, y);
+      line = words[i] + ' ';
+      y += lineheight;
+      if(y >= toggle_canvas.height) {
+        break; // no more vertical space left to draw
+      }
+    } else {
+      line = testLine;
+    }
+  }
+  if(y < toggle_canvas.height) {
+    ctx.fillText(line, 10, y);
+  }
 }
 
 function _vise_toggle_canvas_get_expand_size() {

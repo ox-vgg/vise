@@ -834,15 +834,23 @@ void project_manager::project_register_image(std::string pname,
 
   // @todo
   // image registration module should be detached from relja_retrival search engine
-  d_projects.at(pname)->register_image(file1_id, file2_id, x, y, width, height, H);
-  std::ostringstream json;
-  json << "{\"H\":["
-       << H[0] << "," << H[1] << "," << H[2] << ","
-       << H[3] << "," << H[4] << "," << H[5] << ","
-       << H[6] << "," << H[7] << "," << H[8] << "]}";
-  response.set_status(200);
-  response.set_payload(json.str());
-  response.set_field("Content-Type", "application/json");
+  try {
+    d_projects.at(pname)->register_image(file1_id, file2_id, x, y, width, height, H);
+    std::ostringstream json;
+    json << "{\"status\":\"ok\",\"H\":["
+         << H[0] << "," << H[1] << "," << H[2] << ","
+         << H[3] << "," << H[4] << "," << H[5] << ","
+         << H[6] << "," << H[7] << "," << H[8] << "]}";
+    response.set_status(200);
+    response.set_payload(json.str());
+    response.set_field("Content-Type", "application/json");
+  } catch(std::exception &ex) {
+    std::ostringstream json;
+    json << "{\"status\":\"error\",\"message\":\"Exception occured during image registration: " << ex.what() << "\"}";
+    response.set_status(200);
+    response.set_payload(json.str());
+    response.set_field("Content-Type", "application/json");
+  }
   return;
 }
 

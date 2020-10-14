@@ -910,8 +910,12 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
 
   featGetter *featGetterObj= new featGetter_standard( "hesaff-rootsift" );
 
-  Magick::Image im1; im1.read(fn1.string());
-  Magick::Image im2; im2.read(fn2.string());
+  Magick::Image im1;
+  im1.quiet(true); // to supress warnings
+  im1.read(fn1.string());
+  Magick::Image im2;
+  im2.quiet(true); // to supress warnings
+  im2.read(fn2.string());
   Magick::Image im2t;
   homography Hi(H.data()); // initial estimate of homography matrix
   uint32_t numFeats1, numFeats2, bestNInliers;
@@ -998,6 +1002,7 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
 	  im2t.write(tmp_im2_fn.string().c_str());
 	  im2t.quiet(false);
   }
+
   delete[] descs1;
   delete[] descs2;
   boost::filesystem::remove(tmp_im2_fn);
