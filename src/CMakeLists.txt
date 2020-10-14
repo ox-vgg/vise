@@ -27,7 +27,7 @@ set (VISE_NAME "VISE")
 set (VISE_FULLNAME "VGG Image Search Engine")
 set (VISE_VERSION_MAJOR "2")
 set (VISE_VERSION_MINOR "0")
-set (VISE_VERSION_PATCH "0-beta3")
+set (VISE_VERSION_PATCH "0-beta4")
 configure_file (
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h.in"
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
@@ -38,8 +38,6 @@ if (WIN32)
   message("************ Compiling for Windows Platform ****************")
   message("************************************************************")
   SET(WINDOWS_RESOURCE_FILENAME "${CMAKE_CURRENT_SOURCE_DIR}/res/win/vise.rc")
-  add_definitions(-DVER_COMPANYNAME_STR="MyCompany")
-  add_definitions(-DVER_FILEVERSION_STR="1,1,0.0")
 
   SET (VLFEAT_LIB "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21\\bin\\win64\\vl.lib")
   SET (VLFEAT_INCLUDE_DIR "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21")
@@ -178,12 +176,12 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
 
   # NSIS specific settings
   SET(CPACK_NSIS_CONTACT "Abhishek Dutta <adutta@robots.ox.ac.uk>")
-  SET(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL "ON")
+  #SET(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL "ON")
   #SET(CPACK_NSIS_MUI_FINISHPAGE_RUN "$INSTDIR\\\\bin\\\\${VISE_NAME}.exe")
 
   SET(CPACK_NSIS_PACKAGE_NAME "${VISE_NAME}")
   SET(CPACK_NSIS_DISPLAY_NAME "${VISE_FULLNAME}")
-  SET(CPACK_NSIS_MODIFY_PATH "ON")
+  SET(CPACK_NSIS_MODIFY_PATH "OFF")
   SET(CPACK_NSIS_MANIFEST_DPI_AWARE "ON")
 
   SET(CPACK_NSIS_WELCOME_TITLE "Welcome to VGG Image Search Engine (VISE) Installer")
@@ -214,6 +212,10 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/CHANGELOG.txt" DESTINATION ".")
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE_3rd_party.txt" DESTINATION ".")
 
+  # Create Start menu shortcut
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\VISE.lnk' '$INSTDIR\\\\bin\\\\VISE.exe'")
+  set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\$START_MENU\\\\VISE.lnk'")
+
   # install dependencies (not required as we copy all the required DLLs)
   #list( APPEND  CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "  ExecWait \\\"$INSTDIR\\\\vcredist_x64.exe /install /quiet /norestart\\\"")
   #list( APPEND  CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "  ExecWait \\\"$INSTDIR\\\\VC_redist.x64.exe /install /quiet /norestart\\\"")
@@ -231,6 +233,14 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
   #list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  DetailPrint $LOCALAPPDATA") # for debug
   #list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  Sleep 50000") # for debug
   string (REPLACE ";" "\n" CPACK_NSIS_EXTRA_INSTALL_COMMANDS "${CPACK_NSIS_EXTRA_INSTALL_COMMANDS}")
+
+  # remove application files during uninstall
+  list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  SetShellVarContext current")
+  list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  RMDir /r \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\store\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  RMDir /r \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\asset\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  RMDir /r \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\www\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  RMDir /r \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\"")
+  string (REPLACE ";" "\n" CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "${CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS}")
 
   INCLUDE(CPack)
 endif()

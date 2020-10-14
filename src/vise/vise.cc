@@ -40,7 +40,9 @@ HICON h_vise_icon = NULL;
 
 std::string vise_name_version_str;
 std::map<std::string, std::string> vise_settings;
-std::string vise_access_info_str;
+std::string vise_info_1;
+std::string vise_info_2;
+std::string vise_ui_url;
 
 // Forward declarations of functions included in this code module:
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -60,10 +62,7 @@ int CALLBACK WinMain(
     char exec_path[MAX_PATH];
     GetModuleFileName(hInstance, exec_path, MAX_PATH);
     boost::filesystem::path exec_dir(exec_path);
-    //std::cout << "\nMagick::InitializeMagick = " << exec_dir.parent_path().string().c_str() << std::endl;
     Magick::InitializeMagick(exec_dir.parent_path().string().c_str());
-    //cout << "\nImageMagick Magick++ quantum depth = " << MAGICKCORE_QUANTUM_DEPTH << flush;
-    //Magick::InitializeMagick("");
 
     std::ostringstream ss;
     ss << VISE_FULLNAME << " (" << VISE_NAME << ") "
@@ -72,9 +71,18 @@ int CALLBACK WinMain(
 
     ss.clear();
     ss.str("");
-    ss << "To use the VISE application, visit http://" << ::vise_settings.at("address");
-    ss << ":" << ::vise_settings.at("port") << "/ in a web browser.";
-    vise_access_info_str = ss.str();
+    ss << "VISE server is running now. To shutdown the VISE server, close this application window.";
+    vise_info_1 = ss.str();
+
+    ss.clear();
+    ss.str("");
+    ss << "http://" << ::vise_settings.at("address") << ":" << ::vise_settings.at("port") << "/";
+    vise_ui_url = ss.str();
+
+    ss.clear();
+    ss.str("");
+    ss << "Click here to visit VISE application interface web page available at " << vise_ui_url;
+    vise_info_2 = ss.str();
 
     h_vise_icon = (HICON)LoadImage(hInstance, vise_icon_fn, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
 
@@ -94,45 +102,41 @@ int CALLBACK WinMain(
     //wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
     wcex.hIconSm = (HICON)LoadImage(NULL, "vise_icon_16x16.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED);
 
-    if (!RegisterClassEx(&wcex))
-    {
-        MessageBox(NULL,
-            _T("Call to RegisterClassEx failed!"),
-            _T(VISE_FULLNAME),
-            NULL);
+    if (!RegisterClassEx(&wcex)) {
+      MessageBox(NULL,
+                 _T("Call to RegisterClassEx failed!"),
+                 _T(VISE_FULLNAME),
+                 NULL);
 
-        return 1;
+      return 1;
     }
 
     // Store instance handle in our global variable
     hInst = hInstance;
-    HWND hWnd = CreateWindow(
-        szWindowClass,
-        szTitle,
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT,
-        800, 600,
-        NULL,
-        NULL,
-        hInstance,
-        NULL
-    );
+    HWND hWnd = CreateWindow(szWindowClass,
+                             szTitle,
+                             WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU,
+                             CW_USEDEFAULT, CW_USEDEFAULT,
+                             800, 600,
+                             NULL,
+                             NULL,
+                             hInstance,
+                             NULL
+                             );
 
-    if (!hWnd)
-    {
-        MessageBox(NULL,
-            _T("Call to CreateWindow failed!"),
-            _T(VISE_FULLNAME),
-            NULL);
-
-        return 1;
+    if (!hWnd) {
+      MessageBox(NULL,
+                 _T("Call to CreateWindow failed!"),
+                 _T(VISE_FULLNAME),
+                 NULL);
+      return 1;
     }
 
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
     // start http server to serve contents in a web browser
-	std::cout << "Initializing http_server ..." << std::endl;
+    std::cout << "Initializing http_server ..." << std::endl;
     vise::project_manager manager(vise_settings);
     vise::http_server server(::vise_settings, manager);
     std::thread server_thread(&vise::http_server::start, &server);
@@ -159,11 +163,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     PAINTSTRUCT ps;
     HDC hdc;
+    static HWND hOpenBrowserButton;
 
     switch (message)
     {
+    case WM_COMMAND:
+      {
+        ShellExecute(hWnd, _T("open"), _T(vise_ui_url.c_str()), 0, 0, SW_SHOW);
+        break;
+      }
     case WM_PAINT:
-    {
+      {
         BITMAP          bitmap;
         HDC             hdcMem;
         HGDIOBJ         oldBitmap;
@@ -176,7 +186,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         RECT win_size;
         GetWindowRect(hWnd, &win_size);
-
         GetObject(h_vise_logo, sizeof(bitmap), &bitmap);
         dest_x = (win_size.right - win_size.left) / 2 - bitmap.bmWidth / 2;
         //std::cout << "win: " << win_size.right << "," << win_size.left << std::endl;
@@ -189,7 +198,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         // show VISE name and version text
         HFONT hFont, hOldFont;
-        hFont = (HFONT)GetStockObject(ANSI_VAR_FONT);
+        hFont = CreateFont(16, 0, 0, 0, FW_DONTCARE,
+                           false, false, false, ANSI_CHARSET,
+                           OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH,
+                           TEXT("ANSI_VAR_FON"));
+        //hFont = (HFONT)GetStockObject(SYSTEM_FONT);
         hOldFont = (HFONT)SelectObject(hdc, hFont);
         SIZE tdim;
         RECT trect;
@@ -201,40 +214,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         trect.bottom = win_size.bottom;
         DrawText(hdc, vise_name_version_str.c_str(), vise_name_version_str.size(), &trect, 0);
 
-        // Show URL for VISE web based interface
-        GetTextExtentPoint32(hdc, vise_access_info_str.c_str(), vise_access_info_str.size(), &tdim);
+        // VISE info 1
+        GetTextExtentPoint32(hdc, vise_info_1.c_str(), vise_info_1.size(), &tdim);
         trect.left = (win_size.right - win_size.left) / 2 - tdim.cx / 2;
         trect.right = (win_size.right - win_size.left) / 2 + tdim.cx / 2;
         trect.top = 2*bitmap.bmHeight;
         trect.bottom = win_size.bottom;
-        DrawText(hdc, vise_access_info_str.c_str(), vise_access_info_str.size(), &trect, 0);
+        DrawText(hdc, vise_info_1.c_str(), vise_info_1.size(), &trect, 0);
+
+        SelectObject(hdc, hOldFont);
+        DeleteObject(hFont);
 
         EndPaint(hWnd, &ps);
         break;
-    }
+      }
     case WM_DESTROY:
-        DeleteObject(h_vise_logo);
-        PostQuitMessage(0);
-        break;
+      DeleteObject(h_vise_logo);
+      PostQuitMessage(0);
+      break;
     case WM_CREATE:
-    {
-        //h_vise_logo = (HBITMAP) LoadImage(hInst, vise_logo_fn, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+      {
         h_vise_logo = (HBITMAP)LoadImage(NULL, vise_logo_fn, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
         if (h_vise_logo == NULL) {
-            std::cout << "failed to load resource: " << vise_logo_fn << std::endl;
-            MessageBox(hWnd, "Could not load vise_logo.", "Error", MB_OK | MB_ICONEXCLAMATION);
+          std::cout << "failed to load resource: " << vise_logo_fn << std::endl;
+          MessageBox(hWnd, "Could not load vise_logo.", "Error", MB_OK | MB_ICONEXCLAMATION);
         }
 
-        std::ostringstream ss;
-        ss << "http://" << ::vise_settings.at("address") << ":" << ::vise_settings.at("port") << "/";
-        std::string vise_url(ss.str());
-        ShellExecute(hWnd, _T("open"), _T(vise_url.c_str()), 0, 0, SW_SHOW);
-
+        // add button to open VISE UI in web browser
+        hOpenBrowserButton = CreateWindow( _T("BUTTON"), _T(vise_info_2.c_str()),
+                                           WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+                                           80,
+                                           400,
+                                           640, 40,
+                                           hWnd,
+                                           NULL,
+                                           (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+                                           NULL);
         break;
-    }
+      }
     default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
-        break;
+      return DefWindowProc(hWnd, message, wParam, lParam);
+      break;
     }
 
     return 0;
