@@ -350,16 +350,41 @@ int main(int argc, char **argv) {
     }
 
     if(cmd == "serve-project") {
-      if(argc == 4) {
-        std::string pname(argv[2]);
-        boost::filesystem::path project_conf_fn(argv[3]);
-        if( !boost::filesystem::exists(project_conf_fn) ) {
-          std::cout << "project configuration file not found: "
-                    << project_conf_fn << std::endl;
+      if(argc > 2) {
+        std::map<std::string, std::string> pname_pconf_fn_map;
+
+        // EXPECTED: ./vise serve-project --port=9103 PNAME1:PCONF1 PNAME2:PCONF2 ...
+        for(std::size_t i=2; i<argc; ++i) {
+          std::string arg(argv[i]);
+          if(arg.size() < 3) {
+            continue;
+          }
+          if(arg[0] == '-' && arg[1] == '-') {
+            std::size_t eq_pos = arg.find('=');
+            if(eq_pos == std::string::npos) {
+              continue;
+            }
+            std::string key(arg.substr(2, eq_pos-2));
+            std::string val(arg.substr(eq_pos+1));
+            vise_settings[key] = val;
+          } else {
+            std::size_t colon_pos = arg.find(':');
+            if(colon_pos == std::string::npos) {
+              continue;
+            }
+            std::string pname(arg.substr(0, colon_pos));
+            boost::filesystem::path project_conf_fn(arg.substr(colon_pos+1));
+            if( !boost::filesystem::exists(project_conf_fn) ) {
+              std::cout << "not found configuration file [" << project_conf_fn << "] for project [" << pname << "]" << std::endl;
+              return 1;
+            }
+            pname_pconf_fn_map[pname] = project_conf_fn.string();
+          }
+        }
+        if(pname_pconf_fn_map.size() == 0) {
+          std::cout << "you must specify project using PNAME:PCONF format" << std::endl;
           return 1;
         }
-        std::map<std::string, std::string> pname_pconf_fn_map;
-        pname_pconf_fn_map[pname] = project_conf_fn.string();
         vise::project_manager manager(vise_settings);
         manager.serve_only(pname_pconf_fn_map);
         vise::http_server server(vise_settings, manager);

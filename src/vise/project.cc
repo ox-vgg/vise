@@ -187,9 +187,6 @@ void vise::project::state_update() {
   // check everything and ascertain the current state of a project
   bool success;
   std::string message;
-  std::cout << "index_is_done()=" << index_is_done() << std::endl;
-  std::cout << "index_is_ongoing()=" << index_is_ongoing() << std::endl;
-  std::cout << "index_is_incomplete()=" << index_is_incomplete() << std::endl;
   if(index_is_done()) {
     index_load(success, message);
     if(success) {

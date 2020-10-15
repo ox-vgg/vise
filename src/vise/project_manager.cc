@@ -1636,7 +1636,7 @@ void project_manager::serve_only_4xx_response(http_response &response) const {
        << "<ul>";
   std::map<std::string, std::unique_ptr<vise::project> >::const_iterator itr;
   for(itr=d_projects.begin(); itr!=d_projects.end(); ++itr) {
-    html << "<li><a href=\"" << d_conf.at("http_uri_namespace") << "/" << itr->first << "/\">" << itr->first << "</a></li>";
+    html << "<li><a href=\"" << d_conf.at("http_uri_namespace") << itr->first << "/\">" << itr->first << "</a></li>";
   }
   html << "</ul>"
        << vise::HTML_EMPTY_TAIL;
@@ -1648,13 +1648,10 @@ void project_manager::serve_only_4xx_response(http_response &response) const {
 //
 void project_manager::uri_namespace_mismatch_4xx_response(http_response &response) const {
   std::ostringstream html;
-  std::ostringstream vise_home;
-  vise_home << "http://" << d_conf.at("address") << ":" << d_conf.at("port")
-            << d_conf.at("http_uri_namespace");
   html << vise::VISE_HTML_HEAD
        << "<body>\n"
        << "<p>Resources hosted by VISE are available at: <a href=\""
-       << vise_home.str() << "\">" << vise_home.str() << "</a></p>"
+       << d_conf.at("http_uri_namespace") << "\">" << d_conf.at("http_uri_namespace") << "</a></p>"
        << vise::HTML_EMPTY_TAIL;
   response.set_html_payload(html.str());
 }
