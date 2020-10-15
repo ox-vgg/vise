@@ -29,6 +29,7 @@ int main(int argc, char** argv) {
   Magick::InitializeMagick(*argv);
 
   const boost::filesystem::path visehome = vise::vise_home();
+  std::cout << "visehome=" << visehome.string() << std::endl;
   boost::filesystem::path vise_settings = visehome / "vise_settings.txt";
   ASSERT(boost::filesystem::exists(vise_settings));
 

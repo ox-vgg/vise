@@ -22,7 +22,7 @@ void vise::init_vise_settings_comments(std::map<std::string, std::string> &vise_
 void vise::init_vise_settings(std::map<std::string, std::string> &vise_settings) {
   const boost::filesystem::path visehome = vise::vise_home();
   boost::filesystem::path vise_settings_fn = visehome / "vise_settings.txt";
-  std::cout << "Using VISE application configuration from: " << vise_settings_fn << std::endl;
+  //std::cout << "Using VISE application configuration from: " << vise_settings_fn << std::endl;
 
   if(!boost::filesystem::exists(vise_settings_fn)) {
     // use default configuration for VISE

@@ -7,6 +7,7 @@
 @ECHO ON
 cls
 
+call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat"
 SET CURRENT_PATH=%cd%
 
 SET BUILD_BASE_FOLDER="C:\Users\tlm\build\vise\release"

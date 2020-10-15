@@ -50,6 +50,12 @@ vise::relja_retrival::relja_retrival(boost::filesystem::path pconf_fn,
 
   d_index_log_fn   = d_data_dir / "index.log";
   d_log.open(d_index_log_fn.string(), std::fstream::app);
+  if(d_log.is_open()) {
+    std::cout << "Logging progress to file " << d_index_log_fn << std::endl;
+  } else {
+    std::cout << "Failed to open log file " << d_index_log_fn << std::endl;
+    return;
+  }
   d_log << "///// LOG START: " << vise::now_timestamp() << std::endl;
 
   d_task_progress_list.clear();
@@ -135,9 +141,7 @@ uint32_t vise::relja_retrival::image_src_count() const {
 }
 
 void vise::relja_retrival::preprocess_images() {
-  std::cout << "starting preprocess" << std::endl;
   d_task_progress_list.at("preprocess").start(0, image_src_count());
-  std::cout << "1" << std::endl;
   buildIndex::computeTrainResize(d_image_src_dir,
                                  d_image_dir,
                                  d_filelist_fn,

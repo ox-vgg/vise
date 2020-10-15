@@ -44,6 +44,9 @@ else(WIN32)
 	target_link_libraries(vise vise_util http_server ${ImageMagick_LIBRARIES})
 endif (WIN32)
 
+add_executable(vised vised.cc)
+target_link_libraries(vised vise_util http_server ${ImageMagick_LIBRARIES})
+
 #add_executable(unit_tests unit_tests.cc)
 #target_link_libraries(unit_tests vise_util ${Boost_LIBRARIES})
 
