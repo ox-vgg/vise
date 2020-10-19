@@ -10,7 +10,7 @@ Development and maintenance of VISE software has been supported by the following
 
 For more details, visit https://www.robots.ox.ac.uk/~vgg/software/vise/
 
-## Compiling from Source
+## Compiling from Source in Linux
 ```
 export VISE_DIR=$HOME/vise/code
 export VISE_DEP_DIR=$HOME/vise/dep
@@ -30,6 +30,7 @@ make -j8
 # run VISE
 cd $VISE_DIR/vise/cmake_build
 ./vise/vise # user interface available at http://localhost:9669
+```
 
 ## Command Line Mode (for Advanced Users)
 ```
