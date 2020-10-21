@@ -111,9 +111,9 @@ namespace buildIndex {
         trainDescsResult const &res= it->second;
         if (allDescs_) {
           if(d_progress != nullptr) {
-            d_progress->add(res.first);
+            d_progress->add(1);
           }
-          d_progress_print.inc(res.first);
+          d_progress_print.inc(1);
         }
 
         if (res.first>0) {
@@ -242,6 +242,12 @@ namespace buildIndex {
       std::string imageFn;
       while (std::getline(fImagelist, imageFn)) {
         imageFns.push_back(imageFn);
+      }
+      if(imageFns.size() == 0) {
+        logf << "traindesc:: empty filename list, exiting" << std::endl;
+        std::cout << "Error: image filename list is empty! trainImagelistFn="
+                  << trainImagelistFn << std::endl;
+        return;
       }
       sameRandomUint32 sr(100000, 43);
       sr.shuffle<std::string>(imageFns.begin(), imageFns.end());
