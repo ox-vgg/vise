@@ -402,3 +402,36 @@ int main(int argc, char **argv) {
   }
 }
 #endif // end of __linux__
+
+#ifdef __APPLE__
+#include "vise_version.h"
+#include "vise_util.h"
+#include "http_server.h"
+
+#include <boost/filesystem.hpp>
+#include <Magick++.h>
+
+#include <iostream>
+#include <memory>
+#include <cstdlib>
+
+int main(int argc, char **argv) {
+  std::cout << VISE_FULLNAME << " (" << VISE_NAME << ") "
+            << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH
+            << std::endl;
+  std::map<std::string, std::string> vise_settings;
+  vise::init_vise_settings(vise_settings);
+
+  boost::filesystem::path exec_dir(argv[0]);
+  //std::cout << "\nMagick::InitializeMagick = " << exec_dir.parent_path().string().c_str() << std::endl;
+  Magick::InitializeMagick(exec_dir.parent_path().string().c_str());
+  std::cout << "\nImageMagick Magick++ quantum depth = " << MAGICKCORE_QUANTUM_DEPTH << std::endl;
+
+  // start http server to serve contents in a web browser
+  std::cout << "Initializing http_server ..." << std::endl;
+  vise::project_manager manager(vise_settings);
+  vise::http_server server(vise_settings, manager);
+  server.start();
+  return 0;
+}
+#endif // end of __APPLE__

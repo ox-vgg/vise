@@ -3,7 +3,7 @@ float computMoment000(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment++;
       }
     }
@@ -15,7 +15,7 @@ float computMoment001(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=img->fel[rad+i][rad+j];
       }
     }
@@ -26,7 +26,7 @@ float computMoment002(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=img->fel[rad+i][rad+j]*img->fel[rad+i][rad+j];
       }
     }
@@ -38,7 +38,7 @@ float computMoment101(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=i*img->fel[rad+i][rad+j];
       }
     }
@@ -49,7 +49,7 @@ float computMoment011(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=j*img->fel[rad+i][rad+j];
       }
     }
@@ -61,7 +61,7 @@ float computMoment111(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=i*j*img->fel[rad+i][rad+j];
       }
     }
@@ -72,7 +72,7 @@ float computMoment102(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=i*img->fel[rad+i][rad+j]*img->fel[rad+i][rad+j];
       }
     }
@@ -83,7 +83,7 @@ float computMoment012(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=j*img->fel[rad+i][rad+j]*img->fel[rad+i][rad+j];
       }
     }
@@ -94,7 +94,7 @@ float computMoment201(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=i*i*img->fel[rad+i][rad+j];
       }
     }
@@ -105,7 +105,7 @@ float computMoment021(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=j*j*img->fel[rad+i][rad+j];
       }
     }
@@ -116,7 +116,7 @@ float computMoment121(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=i*j*j*img->fel[rad+i][rad+j];
       }
     }
@@ -127,7 +127,7 @@ float computMoment211(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=i*i*j*img->fel[rad+i][rad+j];
       }
     }
@@ -138,7 +138,7 @@ float computMoment301(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=i*i*i*img->fel[rad+i][rad+j];
       }
     }
@@ -150,7 +150,7 @@ float computMoment031(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=j*j*j*img->fel[rad+i][rad+j];
       }
     }
@@ -162,7 +162,7 @@ float computMoment112(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=i*j*img->fel[rad+i][rad+j]*img->fel[rad+i][rad+j];
       }
     }
@@ -173,7 +173,7 @@ float computMoment202(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=i*i*img->fel[rad+i][rad+j]*img->fel[rad+i][rad+j];
       }
     }
@@ -184,7 +184,7 @@ float computMoment022(DARY *img, int rad){
   float moment=0;
   for(int i=-rad;i<=rad;i++){
     for(int j=-rad;j<=rad;j++){
-      if(patch_mask>0){
+      if(patch_mask){
 	moment+=j*j*img->fel[rad+i][rad+j]*img->fel[rad+i][rad+j];
       }
     }

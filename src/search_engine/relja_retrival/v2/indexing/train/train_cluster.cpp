@@ -76,6 +76,9 @@ namespace buildIndex {
 #ifdef _WIN32
     _fseeki64(f, 0, SEEK_END);
     file_size = _ftelli64(f);
+#elif __APPLE__
+    fseeko(f, 0, SEEK_END);
+    file_size = ftello(f);
 #else
     fseeko64(f, 0, SEEK_END);
     file_size = ftello64(f);
@@ -99,6 +102,8 @@ namespace buildIndex {
     // read descriptors
 #ifdef _WIN32
     read_count = _fseeki64(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
+#elif __APPLE__
+    read_count = fseeko(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
 #else
     read_count = fseek(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
 #endif

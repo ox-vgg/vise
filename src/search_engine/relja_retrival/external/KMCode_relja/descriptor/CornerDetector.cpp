@@ -451,18 +451,20 @@ void removeNeighbours(vector<CornerDescriptor*> &corners){
     //corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[0]);
     corners.erase(corners.begin());
     for(int i=0;(uint)i<corners.size() && i>=0;i++){
-      if(cor->getCornerScale()==corners[i]->getCornerScale())
-	if(fabs(cor->getX()-corners[i]->getX())<rad && fabs(cor->getY()-corners[i]->getY())<rad)
+      if(cor->getCornerScale()==corners[i]->getCornerScale()) {
+	if(fabs(cor->getX()-corners[i]->getX())<rad && fabs(cor->getY()-corners[i]->getY())<rad) {
 	  if(cor->getCornerness()>corners[i]->getCornerness()){
 	    //corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[i]);
-          corners.erase(corners.begin() + i);
-          i--;
+	    corners.erase(corners.begin() + i);
+	    i--;
 	  }else {
 	    cor=corners[i];
 	    //corners.erase((std::vector<CornerDescriptor*>::iterator)&corners[i]);
-        corners.erase(corners.begin() + i);
-        i=-1;	    
-	  }  
+	    corners.erase(corners.begin() + i);
+	    i=-1;	    
+	  }
+	}
+      }
     }
     cors.push_back(cor);
   }while(corners.size()>0);

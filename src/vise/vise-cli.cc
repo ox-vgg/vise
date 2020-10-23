@@ -1,5 +1,5 @@
 //
-// VISE daemon (vised) is used to create and serve vise projects from command line
+// VISE Command Line Interface (vise-cli) is used to create and serve vise projects from command line
 //
 // Author: Abhishek Dutta <adutta _AT_ robots.ox.ac.uk>
 // Date: 15 Oct. 2020
@@ -26,20 +26,20 @@
 #include <memory>
 #include <cstdlib>
 
-void print_usage(std::string vised_exec="vised") {
+void print_usage(std::string visecli_exec="vise-cli") {
   std::cout << "Usage:" << std::endl
-            << "- " << vised_exec << " create-project PROJECT_NAME CONFIG_FILENAME" << std::endl
-            << "- " << vised_exec << " serve-project --port=9669 --nthread=4 --http_uri_namespace=/vise/demo/ PNAME1:PCONFIG1 PNAME2:PCONFIG2 ..." << std::endl;
+            << "- " << visecli_exec << " create-project PROJECT_NAME CONFIG_FILENAME" << std::endl
+            << "- " << visecli_exec << " serve-project --port=9669 --nthread=4 --http_uri_namespace=/vise/demo/ PNAME1:PCONFIG1 PNAME2:PCONFIG2 ..." << std::endl;
 }
 
 int main(int argc, char **argv) {
   std::cout << VISE_FULLNAME << " (" << VISE_NAME << ") "
             << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH
             << std::endl;
-  std::string vised_exec_name = boost::filesystem::path(argv[0]).filename().string();
+  std::string visecli_exec_name = boost::filesystem::path(argv[0]).filename().string();
 
   if(argc == 1) {
-    print_usage(vised_exec_name);
+    print_usage(visecli_exec_name);
     return 0;
   }
 
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
       std::cout << message << std::endl;
       return 0;
     } else {
-      print_usage(vised_exec_name);
+      print_usage(visecli_exec_name);
       return 1;
     }
   }
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
       std::cout << message << std::endl;
       return 0;
     } else {
-      print_usage(vised_exec_name);
+      print_usage(visecli_exec_name);
       return 1;
     }
   }
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
       }
       if(pname_pconf_fn_map.size() == 0) {
         std::cout << "Projects details must be provided in PNAME:PCONF format" << std::endl;
-        print_usage(vised_exec_name);
+        print_usage(visecli_exec_name);
         return 1;
       }
       vise::project_manager manager(vise_settings);
@@ -138,12 +138,12 @@ int main(int argc, char **argv) {
       server.start();
       return 0;
     } else {
-      print_usage(vised_exec_name);
+      print_usage(visecli_exec_name);
       return 1;
     }
   }
 
   std::cout << "Unknown command: " << argv[1] << std::endl;
-  print_usage(vised_exec_name);
+  print_usage(visecli_exec_name);
   return 1;
 }

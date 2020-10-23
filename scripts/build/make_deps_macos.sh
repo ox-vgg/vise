@@ -21,15 +21,14 @@ if ! [ -d "${DEPSRC}" ]; then
 fi
 
 #sudo apt install libssl-dev # required by cmake
-# brew install cmake
-# brew install libjpeg libpng
+brew install libjpeg libpng libomp
 
 ## cmake
 if ! [ -f "${DEPDIR}/bin/cmake" ]; then
   cd $DEPSRC && wget https://github.com/Kitware/CMake/releases/download/v3.18.0/cmake-3.18.4.tar.gz && tar -zxvf cmake-3.18.4.tar.gz && cd cmake-3.18.4 && ./configure --prefix=$DEPDIR && make -j 16 && make install
 fi
 
-## boost     
+## boost
 if ! [ -d "${DEPDIR}/include/boost" ]; then
   cd $DEPSRC && wget https://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.gz && tar -zxvf boost_1_73_0.tar.gz && cd boost_1_73_0 && ./bootstrap.sh --prefix=$DEPDIR --with-toolset=clang --with-libraries=filesystem,system,thread && ./b2 --with-filesystem --with-system --with-thread variant=release threading=multi toolset=clang install
 fi
@@ -44,14 +43,14 @@ if ! [ -d "${DEPDIR}/include/google/protobuf" ]; then
   cd $DEPSRC && wget https://github.com/protocolbuffers/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.gz && tar -zxvf protobuf-2.6.1.tar.gz && cd protobuf-2.6.1 && ./configure --prefix=$DEPDIR && make -j16 && make install
 fi
 
-# eigen 
+# eigen
 if ! [ -d "${DEPDIR}/include/eigen3/Eigen" ]; then
   cd $DEPSRC && wget -O eigen-3.3.7.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz && tar -zxvf eigen-3.3.7.tar.gz && cd eigen-3.3.7/ && mkdir cmake_build && cd cmake_build && $DEPDIR"/bin/cmake" -DCMAKE_INSTALL_PREFIX=$DEPDIR ../ && make -j8 && make install
 fi
 
 # vlfeat
 if ! [ -d "${DEPDIR}/include/vl" ]; then
-  cd $DEPSRC && wget http://www.vlfeat.org/download/vlfeat-0.9.21-bin.tar.gz && tar -zxvf vlfeat-0.9.21-bin.tar.gz && cd vlfeat-0.9.21 && make -j16 && cp "${DEPSRC}/vlfeat-0.9.21/bin/glnxa64/libvl.so" "${DEPDIR}/lib/libvl.so" && mkdir "${DEPDIR}/include/vl" && cp -fr $DEPSRC/vlfeat-0.9.21/vl/*.* "${DEPDIR}/include/vl/"
+  cd $DEPSRC && wget http://www.vlfeat.org/download/vlfeat-0.9.21-bin.tar.gz && tar -zxvf vlfeat-0.9.21-bin.tar.gz && cd vlfeat-0.9.21 && make -j16 && cp "${DEPSRC}/vlfeat-0.9.21/bin/maci64/libvl.dylib" "${DEPDIR}/lib/libvl.dylib" && mkdir "${DEPDIR}/include/vl" && cp -fr $DEPSRC/vlfeat-0.9.21/vl/*.* "${DEPDIR}/include/vl/"
 fi
 
 echo "****************************************************************"

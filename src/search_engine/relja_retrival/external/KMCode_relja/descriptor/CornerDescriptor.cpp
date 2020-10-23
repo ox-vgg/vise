@@ -319,7 +319,7 @@ void CornerDescriptor::pca(int dim, float *avg, float *base){
   for(int v=0;v<size;v++){
     vec[v]=outvec[v];
   }
-  delete outvec;
+  delete[] outvec;
 }
 
 /**********************************************/

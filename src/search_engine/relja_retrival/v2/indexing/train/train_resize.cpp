@@ -203,6 +203,7 @@ namespace buildIndex {
                 copied_img_count++;
               }
             } else {
+              filelist << dst_relpath << std::endl;
               skipped_img_count++;
             }
             if(progress) {

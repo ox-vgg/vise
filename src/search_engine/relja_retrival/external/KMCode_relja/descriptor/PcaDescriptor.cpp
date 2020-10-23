@@ -50,7 +50,8 @@ void PcaDescriptor::computeComponents(DARY *img){
     for (int x = 0; x < GPLEN; x++)
       vec[ldi] += eigs[ldi][x] * tvec[x];
   }
-  delete imgn;;delete tvec;
+  delete imgn;
+  delete[] tvec;
   state=1;
 } 
 

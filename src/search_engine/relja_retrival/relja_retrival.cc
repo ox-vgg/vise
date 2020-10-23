@@ -466,7 +466,8 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     d_is_indexing_ongoing = false;
     d_is_indexing_done = false;
     d_log << "Exception in index_run_all_stages(): " << e.what() << std::endl;
-    callback();
+    throw;
+    //callback();
   }
 }
 
@@ -1096,6 +1097,9 @@ int64_t vise::relja_retrival::get_traindesc_count(std::string train_desc_fn) {
 #ifdef _WIN32
   _fseeki64(f, 0, SEEK_END);
   file_size = _ftelli64(f);
+#elif __APPLE__
+  fseeko(f, 0, SEEK_END);
+  file_size = ftello(f);
 #else
   fseeko64(f, 0, SEEK_END);
   file_size = ftello64(f);

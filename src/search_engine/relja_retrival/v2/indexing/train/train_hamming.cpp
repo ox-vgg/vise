@@ -188,6 +188,10 @@ trainHammingWorker::operator() ( uint32_t jobID, trainHammingResult &result ) co
         _fseeki64(f_, static_cast<uint64_t>(iDescStart) * sizeof(uint32_t), SEEK_SET);
         std::size_t read_count = fread(clusterIDs, sizeof(uint32_t), (iDescEnd - iDescStart), f_);
         ASSERT(read_count > 0);
+#elif __APPLE__
+        ASSERT( pread(fd_, clusterIDs,
+                      (iDescEnd-iDescStart)*sizeof(uint32_t),
+                      static_cast<uint64_t>(iDescStart)*sizeof(uint32_t)) > 0 );
 #else
         ASSERT( pread64(fd_, clusterIDs,
                        (iDescEnd-iDescStart)*sizeof(uint32_t),
@@ -326,6 +330,10 @@ computeHamming(
             _fseeki64(f, static_cast<uint64_t>(iDescStart) * sizeof(uint32_t), SEEK_SET);
             std::size_t read_count = fread(clusterIDs, sizeof(uint32_t), blockSize, f);
             ASSERT(read_count > 0);
+#elif __APPLE__
+            ASSERT(pread(fd, clusterIDs,
+                blockSize * sizeof(uint32_t),
+                static_cast<uint64_t>(iDescStart) * sizeof(uint32_t)) > 0);
 #else
             ASSERT(pread64(fd, clusterIDs,
                 blockSize * sizeof(uint32_t),

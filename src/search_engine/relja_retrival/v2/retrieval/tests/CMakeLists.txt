@@ -16,7 +16,7 @@ if (WIN32)
 		tfidf_v2
 		image_util
 		${ImageMagick_LIBRARIES}
-	)
+)
 	install(TARGETS test_oxford_buildings DESTINATION bin)
 
 else(WIN32)
@@ -35,5 +35,6 @@ else(WIN32)
 		image_util
 		${ImageMagick_LIBRARIES}
 		${Boost_LIBRARIES}
+    OpenMP::OpenMP_CXX
 	)
 endif (WIN32)

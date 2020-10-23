@@ -253,12 +253,15 @@ namespace buildIndex {
 
     void
     finish(){
-      if (indexEntry_.id_size()>0)
+      if (indexEntry_.id_size()>0) {
         save();
+      }
+
       if (dbBuilder_!=NULL){
         ASSERT( indexBuilder_!= NULL );
         closeFile();
       }
+
       findexBuilder_.close();
       fImagelist_.close();
     }
@@ -362,20 +365,6 @@ namespace buildIndex {
       result.second = std::make_pair(0,0); // indicator for invalid image
       return;
     }
-    /*
-    // make sure the image exists and is readable
-    result.second= std::make_pair(0,0);
-    if (boost::filesystem::exists(imageFn) && boost::filesystem::is_regular_file(imageFn)){
-      result.second= imageUtil::getWidthHeight(imageFn);
-    } else {
-      std::cerr<<"buildWorkerSemiSorted::operator(): "<<imageFn<<" doesn't exist\n";
-      return;
-    }
-    if (result.second.first==0 && result.second.second==0){
-      std::cerr<<"buildWorkerSemiSorted::operator(): "<<imageFn<<" is corrupt or 0x0\n";
-      return;
-    }
-    */
 
     uint32_t numFeats;
     std::vector<ellipse> regions;
@@ -459,6 +448,7 @@ namespace buildIndex {
          ++it){
       fidxWordID->AddAlreadyReserved(*it);
     }
+
     findexBuilder_.addEntry(docID, fidxEntry);
   }
 
@@ -466,9 +456,8 @@ namespace buildIndex {
 
   void
   buildWorkerSemiSorted::save() const {
-
     // sort according to clusterID
-    std::vector<int> inds;
+    std::vector<unsigned int> inds;
     indexEntryUtil::argSort::sort(indexEntry_, inds);
 
     // apply the sort
@@ -1035,6 +1024,7 @@ namespace buildIndex {
     MPI_GLOBAL_ALL
       bool useThreads= detectUseThreads();
     uint32_t numWorkerThreads = vise::configuration_get_nthread();
+    //uint32_t numWorkerThreads = 4;
 
     ASSERT(tmpDir[tmpDir.length()-1]=='/' || tmpDir[tmpDir.length() - 1] == '\\');
     std::string indexingStatusFn= tmpDir+"indexingstatus.bin";
@@ -1111,7 +1101,9 @@ namespace buildIndex {
             emptyline= true;
         }
         fImagelist.close();
+        logf << "index:: numDocs = " << numDocs << std::endl;
       }
+
       if(progress != nullptr) {
         progress->start(0, numDocs);
       }
@@ -1140,21 +1132,24 @@ namespace buildIndex {
                                                        &clstCentres_obj,
                                                        embFactory) );
 
+        logf << "index:: workers count = " << workers.size() << std::endl;
+
         // start feature extraction + assignment
         threadQueue<buildResultSemiSorted>::start( numDocs, workers, *manager );
 
         // collect file names
         for (uint32_t i= 0; i<workers.size(); ++i){
           ((buildWorkerSemiSorted *)workers[i])->finish();
+
           fns.insert( fns.end(),
                       ((buildWorkerSemiSorted const *)workers[i])->fns_.begin(),
                       ((buildWorkerSemiSorted const *)workers[i])->fns_.end() );
+
           status.add_fidx_filename( ((buildWorkerSemiSorted const *)workers[i])->fidx_fn_ );
+
           totalFeats+= ((buildWorkerSemiSorted const *)workers[i])->totalFeats_;
         }
-
         util::delPointerVector(workers);
-
       } else {
 
 #ifdef RR_MPI

@@ -109,7 +109,7 @@ void Corner::computeAngleLowe(DARY *grad_im, DARY *angle_im){
     }
     if(max_i>=0)angle=(M_2PI*max_i)/72.0;
     state=1;
-    delete hist;
+    delete[] hist;
 }
 /**********************************************/
 void Corner::computeAngleSimple(DARY *grad_im, DARY *angle_im){
