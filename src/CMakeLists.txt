@@ -27,7 +27,7 @@ set (VISE_NAME "VISE")
 set (VISE_FULLNAME "VGG Image Search Engine")
 set (VISE_VERSION_MAJOR "2")
 set (VISE_VERSION_MINOR "0")
-set (VISE_VERSION_PATCH "0-beta4")
+set (VISE_VERSION_PATCH "0-beta5")
 configure_file (
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h.in"
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
@@ -69,6 +69,12 @@ if (WIN32)
   STRING(REPLACE "\\" "\\\\" VISE_ASSET_DIR_2SLASH ${VISE_ASSET_DIR})
   STRING(REPLACE "\\" "\\\\" VISE_ASSET_DIR_4SLASH ${VISE_ASSET_DIR_2SLASH})
 endif (WIN32)
+
+if (APPLE)
+  set(CMAKE_SKIP_BUILD_RPATH FALSE)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+  set(CMAKE_MACOSX_RPATH TRUE)
+endif(APPLE)
 
 ## Boost
 set(Boost_DEBUG 0)

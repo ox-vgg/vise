@@ -43,42 +43,42 @@ enum MPItags {
 
 
 namespace util {
-    
-    
-    
+
+
+
     inline void
         normTo0_1( std::vector<double>::iterator begin, std::vector<double>::iterator end ){
-            
+
             std::vector<double>::iterator itS;
-            
+
             // find min/max
-            
+
             double min= *begin;
             double max= min;
-            
+
             for (itS= begin; itS!=end; ++itS ){
                 min= std::min( min, *itS );
                 max= std::max( min, *itS );
             }
-            
+
             // normalize to [0,1)
-            
+
             double scale= 1.0/(max+0.1-min);
-            
+
             for (itS= begin; itS!=end; ++itS )
                 *itS= (*itS - min) * scale;
-            
+
         }
-    
-    
-    
+
+
+
     inline void
         normTo0_1( std::vector<double> &scores ){
             util::normTo0_1( scores.begin(), scores.end() );
         }
-    
-    
-    
+
+
+
     inline void
         l2normalize( float x[], uint32_t numDims ){
             float invnorm= 0;
@@ -88,9 +88,9 @@ namespace util {
             for (uint32_t iDim= 0; iDim<numDims; ++iDim)
                 x[iDim] *= invnorm;
         }
-    
-    
-    
+
+
+
     template <class itemType>
     void
         del( uint32_t N, itemType **&matrix ){
@@ -98,43 +98,43 @@ namespace util {
                 delete []matrix[i];
             delete []matrix;
         }
-    
-    
-    
+
+
+
     template <class itemType>
     void
         delPointerVector( std::vector<itemType> &v ){
             for (uint32_t i= 0; i<v.size(); ++i)
                 delete v[i];
         }
-    
-    
-    
+
+
+
     // only use for POD types!
     template <class itemType>
     void
         matrixToFlat( uint32_t N, uint32_t D, itemType **matrix, itemType *&matrixFlat){
-            
+
             matrixFlat= new itemType[N*D];
             itemType *thisMatrixFlat= matrixFlat;
             for (uint32_t i= 0; i<N; ++i){
                 std::memcpy( thisMatrixFlat, matrix[i], D * sizeof(itemType) );
                 thisMatrixFlat+= D;
             }
-            
+
         }
-    
+
     std::string getTempFileName(std::string tmpDir = "", std::string prefix = "", std::string suffix = "");
-    
+
     inline std::string
         expandUser( std::string path ){
             if (path.length()>0 && path[0]=='~')
                 return std::string(getenv("HOME")) + path.substr(1, std::string::npos);
             return path;
         }
-    
-    
-    
+
+
+
     inline std::string
         uintToShortStr(uint32_t const num){
             if (num<1000)
@@ -145,68 +145,75 @@ namespace util {
                     + ( num%divBy==0 ? "" : "."+boost::lexical_cast<std::string>( static_cast<uint32_t>(round( (div - round(div) )*10 ) ) ) )
                     + (divBy==1000 ? "k" : "M");
         }
-    
-    
-    
+
+
+
     inline uint64_t
         fileSize( std::string fn ){
-            
+
             FILE *f= fopen(fn.c_str(), "rb");
             ASSERT(f!=NULL);
 #ifdef _WIN32
             _fseeki64(f, 0, SEEK_END);
             uint64_t byteSize = _ftelli64(f);
+#elif __APPLE__
+            fseeko(f, 0, SEEK_END);
+            uint64_t byteSize = ftello(f);
 #else
             fseeko64(f, 0, SEEK_END);
             uint64_t byteSize = ftello64(f);
 #endif
             fclose(f);
-            
+
             return byteSize;
         }
-    
-    
-    
+
+
+
     inline void
         visitFile( std::string fn ){
-            
+
             std::cout<< "visitFile::Start\n";
-            
+
             // get file size
             FILE *f= fopen(fn.c_str(), "rb");
 #ifdef _WIN32
             _fseeki64(f, 0, SEEK_END);
             uint64_t byteSize = _ftelli64(f);
             _fseeki64(f, 0, SEEK_SET);
+#elif __APPLE__
+            fseeko(f, 0, SEEK_END);
+            uint64_t byteSize = ftello(f);
+            fseeko(f, 0, SEEK_SET);
 #else
             fseeko64(f, 0, SEEK_END);
             uint64_t byteSize = ftello64(f);
             fseeko64(f, 0, SEEK_SET);
 #endif
-            
+
             const uint32_t chunkSize= 128*1024*1024; // read 128 MB chunks
             char *buf= new char[chunkSize];
-            
+
             // read the entire file
             uint64_t numReads= byteSize / chunkSize;
-            
+
             uint32_t temp_;
             for (uint64_t iRead= 0; iRead < numReads; ++iRead)
                 temp_= fread(buf, 1, 1, f);
-            
+
             // last read
             uint64_t numLast= byteSize - numReads*chunkSize;
             if (numLast>0)
                 temp_= fread(buf, numLast, 1, f);
-            
+
             fclose(f);
             delete []buf;
-            
+
             if (false && temp_) {} // to avoid the warning about not checking temp_
-            
+
             std::cout<< "visitFile::Done\n";
         }
-    
+
 };
 
 #endif

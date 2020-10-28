@@ -131,6 +131,7 @@ spatialVerifV2::spatialQueryExecute(rr::indexEntry &queryRep,
     workers.push_back( new spatWorker(ellipses1, ue, daatIter, daatLock, uniqIndToInd, spatParams_, elUnquant_, sameRandomObj_) );
   }
 
+  std::cout << "spatial_verif_v2:: workers.size = " << workers.size() << std::endl;
   spatManager manager( forgetFirst, initial_query_results, queryRes, spatParams_, spatialDepthEff, Hs );
 
   // start the threads
@@ -490,12 +491,15 @@ spatialVerifV2::spatManager::operator() (uint32_t resInd, Result &result) {
     if(!d_forget_initial_results) {
       uint32_t docID= result.first.first;
       uint32_t i;
-      for (i= 0; i<spatialDepthEff_ && queryRes_->at(i).first!=docID; ++i);
-      ASSERT(i<spatialDepthEff_);
-      double score = d_initial_query_results->at(i).second;
-      queryRes_->push_back( std::make_pair(docID, score) );
-      if (Hs_!=NULL) {
-        (*Hs_)[docID]= result.second;
+      for (i= 0; i<spatialDepthEff_; ++i) {
+        if(d_initial_query_results->at(i).first == docID) {
+          double score = d_initial_query_results->at(i).second;
+          queryRes_->push_back( std::make_pair(docID, score) );
+          if (Hs_!=NULL) {
+            (*Hs_)[docID]= result.second;
+          }
+          break;
+        }
       }
     }
   }

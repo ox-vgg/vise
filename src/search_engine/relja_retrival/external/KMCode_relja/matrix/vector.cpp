@@ -224,11 +224,13 @@ double angle(const Vector& v1, const Vector& v2) // angle entre 2 vecteurs
   if (v1.nbRows() != v2.nbRows())
     v1.error("angle : vecteurs de tailles differentes");
 
-  if (v1.nbRows() == 2)
-    if (fabs(v1(1) * v2(2) - v1(2) * v2(1)) > 0)
+  if (v1.nbRows() == 2) {
+    if (fabs(v1(1) * v2(2) - v1(2) * v2(1)) > 0) {
       signe = 1;
-    else
+    } else {
       signe = -1;
+    }
+  }
 
   norme1 = v1.norm2();
   norme2 = v2.norm2();

@@ -98,7 +98,7 @@ namespace vise {
                               std::ostringstream &json) const override;
     void register_image(uint32_t file1_id, uint32_t file2_id,
                         uint32_t x, uint32_t y, uint32_t width, uint32_t height,
-                        std::array<double, 9> &H) const;
+                        std::array<double, 9> &H) const override;
 
     uint32_t fid_count() const override;
     uint32_t fid(std::string filename) const override;

@@ -8,7 +8,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
+//#include <malloc.h>
 #include <vector>
 #include "../ImageContent/imageContent.h"
 #include "../gauss_iir/gauss_iir.h"

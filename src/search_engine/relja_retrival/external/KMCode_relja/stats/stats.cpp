@@ -1,27 +1,27 @@
 /*
 Distance measures
-Krystian Mikolajczyk 
+Krystian Mikolajczyk
 04.01.2000
-* vec1 - first variable 
-** covMat - covariance matrix of the variable 
-* vec2 - second variable 
+* vec1 - first variable
+** covMat - covariance matrix of the variable
+* vec2 - second variable
 */
-// distMahalanovbis = (ux-uy)*(1/(Lx+Ly))*(ux-uy) 
+// distMahalanovbis = (ux-uy)*(1/(Lx+Ly))*(ux-uy)
 #include "stats.h"
 
 void GaussMixture::setCovariance(Matrix *mat_in){
     Matrix *mat=new Matrix();
     (*mat)=(*mat_in);
-    covMat[act_k++]=mat;    
+    covMat[act_k++]=mat;
 }
 void GaussMixture::setProportions(float *prop){
     for(int i=0;i<K;i++)
-	p[i]=prop[i];	
+	p[i]=prop[i];
 }
 
 void GaussMixture::setCenters(float **centers_in){
-    for(int j=0;j<K;j++) 
-	for(int i=0;i<size;i++) 
+    for(int j=0;j<K;j++)
+	for(int i=0;i<size;i++)
 	    centers[j][i]=centers_in[j][i];
 }
 
@@ -33,7 +33,7 @@ void GaussMixture::init(const int k, const int size_in){
     covMat = new Matrix*[K];
     centers= new float*[K];
     centers[0]= new float[K*size];
-    for(int i=1;i<K;i++)centers[i]=centers[0]+i*size;	    
+    for(int i=1;i<K;i++)centers[i]=centers[0]+i*size;
     act_k=0;
 }
 
@@ -57,11 +57,11 @@ void GaussMixture::loadCenters(const char *filename){
     centers= new float*[Kc];
     centers[0]= new float[Kc*sc];
     for(int i=1;i<Kc;i++)centers[i]=centers[0]+i*sc;
-	    
+
     for(int j=0;j<Kc;j++){
 	for(int i=0;i<sc;i++){
 	    centers[j][i]=cent->tabMat[i+1][j+1];
-	}	
+	}
     }
     delete cent;
 }
@@ -75,19 +75,19 @@ void GaussMixture::loadCovariances(const char *filename){
     int row=0;
     for(int j=0;j<Kv;j++){
       covMat[j]=new Matrix(sv,sv);
-      for(int i=1;i<=sv;i++){	    
+      for(int i=1;i<=sv;i++){
 	row++;
 	for(int l=1;l<=sv;l++){
-	  covMat[j]->tabMat[i][l]=cov->tabMat[row][l];	
+	  covMat[j]->tabMat[i][l]=cov->tabMat[row][l];
 	}
       }
       invCovMat[j]=new Matrix(covMat[j]->inverse());
       //cout << (*invCovMat[j])<< endl;
-    }    
-    fact=new float[Kv];
-    for(int j=0;j<Kv;j++){fact[j]=(1/(sqrt(pow((double)(2*M_PI),(double)size)*(covMat[j]->determinant()))));    
     }
-   
+    fact=new float[Kv];
+    for(int j=0;j<Kv;j++){fact[j]=(1/(sqrt(pow((double)(2*M_PI),(double)size)*(covMat[j]->determinant()))));
+    }
+
 }
 float GaussMixture::probMAP(float *var){
     float *prob=new float[K];
@@ -127,26 +127,27 @@ float GaussMixture::distMahal(float *var){
     act_dist=min;
     return min;
 }
-float GaussMixture::distMahal(float *var,int cluster){      
+float GaussMixture::distMahal(float *var,int cluster){
    float *A = new float[size+1];
    float *B = new float[size+1];
    for(int a=0;a<size;a++){
      A[a+1]=var[a]-centers[cluster][a];
-   }    
-      
+   }
+
    for(int row=1;row<=size;row++){
      B[row]=0;
      for(int col=1;col<=size;col++){
        B[row]+=invCovMat[cluster]->tabMat[row][col]*A[col];
      }
-   }   
+   }
    float dist=0;
    for(int col=1;col<=size;col++){
      dist+=A[col]*B[col];
    }
-   delete A; delete B;
-   
-   return (dist);    
+   delete[] A;
+   delete[] B;
+
+   return (dist);
 }
 
 void GaussMixture::loadMixture(const char *prop, const char *cent,
@@ -176,38 +177,38 @@ float densityMahalanobis(float *vec1,  float *mu_vec2, Matrix *covMat){
 
 float distMahalanobis(float *vec1, float *vec2, Matrix *covMat){
    float dist=0;
-   
+
    int n = covMat->nbCols();
-    
-  
+
+
    //     cout << "dOK1 " << endl;
    // A=(ux-uy)
    //Matrix A(n,1);
-   
+
    float *A = new float[n+1];
    float *B = new float[n+1];
    for(int a=0;a<n;a++){
      //cout << vec1[a] << " " << vec2[a]<< endl;
      A[a+1]=vec1[a]-vec2[a];
-   }    
+   }
    //getchar();
    // Sin = 1/CovMat
    //Matrix *Sin=new Matrix(covMat->inverse());
-   
+
    for(int row=1;row<=n;row++){
      B[row]=0;
      for(int col=1;col<=n;col++){
        B[row]+=covMat->tabMat[row][col]*A[col];
      }
    }
-   
+
    for(int col=1;col<=n;col++){
      dist+=A[col]*B[col];
    }
-   delete A; delete B;//delete Sin;
-   
-   return (dist);    
-} 
+   delete[] A; delete[] B;//delete Sin;
+
+   return (dist);
+}
 
 
 float distEuc(float* vec1,float* vec2,int size){
@@ -244,7 +245,7 @@ float distCSift1(float* vec1,float* vec2, int size){
      adist=(adist<M_PI)?adist:(M_2PI-fabs(vec1[i+1]-vec2[i+1]));
     adist/=M_PI;adist=1-adist;
     if(adist>1 || adist<0)cout << endl << "angle error in distCSift" << endl;
-    if(adist>0.8)tmp=square(vec1[i]-vec2[i]); 
+    if(adist>0.8)tmp=square(vec1[i]-vec2[i]);
     else tmp=(square(vec1[i])+square(vec2[i]));
     dist+=tmp;
   }
@@ -255,16 +256,16 @@ float distCSift1(float* vec1,float* vec2, int size){
 float distHistogram(float* histos1,float* histos2,int taillehisto){
 
   float distance;
- 
+
   distance = 0.0;
- 
+
   for(int i = 0 ; i < taillehisto ; ++i)
     {
       //  cerr << " histos1[i] " << histos1[i] << " histos2[i] " << histos2[i] << endl;
- 
+
       distance += (int)fabs(histos1[i] - histos2[i]);
     }
- 
+
   return distance;
 }
 
@@ -272,19 +273,19 @@ float distChi(float* histos1,float* histos2,int taillehisto){
 
   float somme;
   float distance;
- 
+
   distance = 0.0;
- 
+
   for(int i = 0 ; i < taillehisto ; ++i)
     {
       //  cerr << " histos1[i] " << histos1[i] << " histos2[i] " << histos2[i] << endl;
- 
+
       somme = (histos1[i] + histos2[i])*(histos1[i] + histos2[i]);
- 
+
       if(somme)
         distance += ((histos1[i] - histos2[i])*(histos1[i] - histos2[i]))/somme;
     }
- 
+
   return distance;
 }
 
@@ -292,7 +293,7 @@ float mean(vector<float> &vec){
   float mean=0;
   for(int i=0;i<(int)vec.size();i++)mean+=vec[i];
   return (mean/vec.size());
-  
+
 }
 
 float max(vector<float> &vec){
@@ -300,18 +301,18 @@ float max(vector<float> &vec){
   for(int i=1;i<(int)vec.size();i++){
     if(max<vec[i])max=vec[i];
   }
-  return (max); 
+  return (max);
 }
 float min(vector<float> &vec){
   float min=vec[0];
   for(int i=1;i<(int)vec.size();i++){
     if(min>vec[i])min=vec[i];
   }
-  return (min); 
+  return (min);
 }
 
 float median2(vector<float> &vec, float thres){
-  
+
   float med=thres*vec.size();
   float fl=vec[(int)floor(med)];
   float cl=vec[(int)ceil(med)];
@@ -329,8 +330,8 @@ float variance(vector<float> &vec, float center){
   for(int i=0;i<(int)vec.size();i++){
     tmp=(vec[i]-center);
     var+=(tmp*tmp);
-  }  
-  
+  }
+
   return (var/(vec.size()-1));
 }
 
@@ -342,7 +343,7 @@ void sort(vector<float> &vec){
     min=vec[0];imin=0;
     for(int i=1;i<(int)vec.size();i++){
       if(vec[i]<min){min=vec[i];imin=i;}
-    } 
+    }
     vec_out.push_back(min);
     //vec.erase((std::vector<float>::iterator)&vec[imin]);
     vec.erase(vec.begin() + imin);
@@ -354,7 +355,7 @@ float median(vector<float> &vec){
   float min;
   int imin;
   vector<float> vec_out;
-  int siz = (int)vec.size(); 
+  int siz = (int)vec.size();
   if(siz<2)return 0;
   do{
     min=vec[0];imin=0;
@@ -366,12 +367,12 @@ float median(vector<float> &vec){
     vec.erase(vec.begin() + imin);
   }while((int)vec.size()>(siz>>1));
   float out = (vec_out[vec_out.size()-1]+vec_out[vec_out.size()-2])/2.0;
-  vec=vec_out; 
-  return out; 
+  vec=vec_out;
+  return out;
 }
 
 
-float gamma(float n){    
+float gamma(float n){
     float tmp=0;
     n=rint(2*n)/2;
     if(rint(n)==n){
@@ -387,7 +388,7 @@ float gamma(float n){
 }
 
 float chi2(float x, float n){
-  float a = 1/(sqrt(pow((double)2,(double)n))*gamma(0.5*n));    
+  float a = 1/(sqrt(pow((double)2,(double)n))*gamma(0.5*n));
     return (a*pow((double)x,(double)(0.5*(n-2)))*exp(-0.5*x));
 }
 
@@ -431,4 +432,3 @@ vector<float> hist(vector<float> &vec,float min, float max, int bins){
   }
   return hist;
 }
-

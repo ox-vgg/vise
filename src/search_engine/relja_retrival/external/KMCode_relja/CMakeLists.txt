@@ -26,9 +26,22 @@ if (WIN32)
 	message("PNG_INCLUDE_DIRS: " ${PNG_INCLUDE_DIRS})
 	message("PNG_LIBRARIES: " ${PNG_LIBRARIES})
 
-    include_directories(${JPEG_INCLUDE_DIR})
+        include_directories(${JPEG_INCLUDE_DIR})
 	include_directories(${PNG_INCLUDE_DIRS})
 endif (WIN32)
+
+if (APPLE)
+	# @todo improve the way libpng and libjpeg are found
+	find_package(PNG REQUIRED)
+	find_package(JPEG REQUIRED)
+	message("JPEG_INCLUDE_DIR: " ${JPEG_INCLUDE_DIR})
+	message("JPEG_LIBRARIES: " ${JPEG_LIBRARIES})
+	message("PNG_INCLUDE_DIRS: " ${PNG_INCLUDE_DIRS})
+	message("PNG_LIBRARIES: " ${PNG_LIBRARIES})
+
+        include_directories(${JPEG_INCLUDE_DIR})
+	include_directories(${PNG_INCLUDE_DIRS})
+endif (APPLE)
 
 
 file(GLOB matrix_src "matrix/*.cpp")

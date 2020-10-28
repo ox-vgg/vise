@@ -78,11 +78,14 @@ int main(int argc, char **argv) {
   spatialVerifV2 spatVerifTfidf(tfidfObj, &iidx, &fidx, true);
   spatialVerifV2 spatVerifHamm(hammingObj, &iidx, &fidx, true);
 
-  double mAP_hamm= evalObj.computeMAP( hammingObj, NULL, false, true );
+  std::cout << "A" << std::endl;
+  double mAP_hamm= evalObj.computeMAP( hammingObj, NULL, true, true, 1 );
   printf("mAP_hamm= %.4f\n", mAP_hamm);
 
-  double mAP_hammsp= evalObj.computeMAP( spatVerifHamm, NULL, false, true );
+  std::cout << "B" << std::endl;
+  double mAP_hammsp= evalObj.computeMAP( spatVerifHamm, NULL, true, true, 1 );
   printf("mAP_hamm+sp= %.4f\n", mAP_hammsp);
+  std::cout << "C" << std::endl;
 
   std::ofstream outf(out_fn);
   outf << "mAP_hamm=" << std::setprecision(5) << mAP_hamm << std::endl;

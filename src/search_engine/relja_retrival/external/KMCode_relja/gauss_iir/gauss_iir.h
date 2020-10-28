@@ -20,7 +20,7 @@ typedef unsigned int uint;
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
+//#include <malloc.h>
 #include "../ImageContent/imageContent.h"
 
 /************************************************************************
