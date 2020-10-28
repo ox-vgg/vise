@@ -1,6 +1,5 @@
 *.*~
 cmake_build/
 src/out/*
-src/res/*
 .vs/*
 data/*
