@@ -1,0 +1,127 @@
+#+TITLE:  Accessing VISE using HTTP Requests
+#+AUTHOR: Abhishek Dutta
+#+DATE:   11-11-2020
+#+EMAIL:  adutta@robots.ox.ac.uk
+#+OPTIONS: ^:nil
+
+* Create New Project
+
+** POST /_project_create?pname=PROJECT_NAME
+ - Example
+#+BEGIN_SRC bash
+$ curl -X POST -d "pname=oxford-buildings&response_format=json" http://localhost:9669/_project_create
+{
+   "STATUS" : "ok",
+   "PROJECT_URI" : "/oxford-buildings/"
+}
+
+$ curl -X POST -d "pname=oxford-buildings&response_format=json" http://localhost:9669/_project_create
+{
+   "STATUS" : "error",
+   "MESSAGE" : "project [oxford-buildings] already exists."
+}
+#+END_SRC
+
+** @todo : see the basic html application inside src/www/
+
+
+* Visual Search Project
+
+** GET /PROJECT_NAME/filelist
+ - Example
+#+BEGIN_SRC bash
+$ curl -X GET "http://localhost:9669/oxford-buildings/filelist?start=0&end=10&response_format=json"
+{
+   "FLIST_END" : 10,
+   "FLIST" : [
+      "oxford_003045.jpg",
+      "oxford_001169.jpg",
+      "christ_church_000831.jpg",
+      "all_souls_000048.jpg",
+      "oxford_002198.jpg",
+      "new_000285.jpg",
+      "keble_000234.jpg",
+      "radcliffe_camera_000543.jpg",
+      "pitt_rivers_000135.jpg",
+      "oxford_003292.jpg"
+   ],
+   "FLIST_START" : 0,
+   "PNAME" : "Oxford-Buildings",
+   "FLIST_SIZE" : 5063
+}
+#+END_SRC
+
+** GET /PROJECT_NAME/file
+ - Example
+#+BEGIN_SRC bash
+$ curl -X GET "http://localhost:9669/oxford-buildings/file?file_id=97&response_format=json"
+{
+   "FILE_ID" : 97,
+   "FILENAME" : "all_souls_000091.jpg",
+   "FLIST_SIZE" : 5063,
+   "PNAME" : "Oxford-Buildings"
+}
+#+END_SRC
+
+** GET /PROJECT_NAME/search
+ - Example
+#+BEGIN_SRC bash
+$ curl -X GET "http://localhost:9669/oxford-buildings/search?x=403&y=323&width=318&height=374&file_id=97&response_format=json"
+{
+   "QUERY" : {
+      "height" : 374,
+      "file_id" : 97,
+      "filename" : "all_souls_000091.jpg",
+      "width" : 318,
+      "x" : 403,
+      "y" : 323
+   },
+   "RESULT_SIZE" : 200,
+   "PNAME" : "oxford-buildings",
+   "RESULT" : [
+      {
+         "H" : [ 1, 0, 0, 0, 1, 0, 0, 0, 1 ],
+         "score" : 972.006,
+         "filename" : "all_souls_000091.jpg",
+         "file_id" : 97
+      },
+      {
+         "file_id" : 2634,
+         "H" : [0.96121,-0.0275838,-330.974,0.0181567,0.947207,86.4865,0,0,1],
+         "score" : 136.001,
+         "filename" : "oxford_003056.jpg"
+      },
+      {
+         "file_id" : 5006,
+         "filename" : "all_souls_000140.jpg",
+         "H" : [0.950404,-0.0148194,-104.869,0.0197258,0.943805,251.029,0,0,1],
+         "score" : 129.001
+      },
+      ...
+      ...
+      {
+         "file_id" : 2232,
+         "filename" : "oxford_000705.jpg",
+         "score" : 7.00045,
+         "H" : [1.20817,0,-144.45,0.116242,2.31262,-411.255,0,0,1]
+      }
+   ]
+}
+#+END_SRC
+
+
+* Metadata Search
+
+** GET /PROJECT_NAME/metadata_search?q=SEARCH_QUERY
+ - Example
+#+BEGIN_SRC bash
+$ curl -X GET http://localhost:9669/oxford-buildings/metadata_search?q="cr"
+// shows all files whose metadata values (discarding keys) that starts with "cr"
+
+$ curl -X GET http://localhost:9669/oxford-buildings/metadata_search?q="istc=ia1001"
+// show all files which contains file metadata "istc":"cr..."
+
+$ curl -X GET http://localhost:9669/oxford-buildings/metadata_search?q="year=1500,1587"
+// show all files which contains file metadata "year" field between "1500" and "1587"
+
+#+END_SRC

@@ -837,7 +837,7 @@ void project_manager::project_register_image(std::string pname,
   try {
     d_projects.at(pname)->register_image(file1_id, file2_id, x, y, width, height, H);
     std::ostringstream json;
-    json << "{\"status\":\"ok\",\"H\":["
+    json << "{\"STATUS\":\"ok\",\"H\":["
          << H[0] << "," << H[1] << "," << H[2] << ","
          << H[3] << "," << H[4] << "," << H[5] << ","
          << H[6] << "," << H[7] << "," << H[8] << "]}";
@@ -846,7 +846,7 @@ void project_manager::project_register_image(std::string pname,
     response.set_field("Content-Type", "application/json");
   } catch(std::exception &ex) {
     std::ostringstream json;
-    json << "{\"status\":\"error\",\"message\":\"Exception occured during image registration: " << ex.what() << "\"}";
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":\"Exception occured during image registration: " << ex.what() << "\"}";
     response.set_status(200);
     response.set_payload(json.str());
     response.set_field("Content-Type", "application/json");
@@ -1189,8 +1189,15 @@ void project_manager::vise_project_create(std::map<std::string, std::string> con
   }
 
   std::ostringstream json;
-  json << d_conf.at("http_uri_namespace") << pname << "/";
-  response.redirect_to(json.str());
+
+  if(response_format == "json") {
+    json << "{\"STATUS\":\"ok\","
+         << "\"PROJECT_URI\":\"" << d_conf.at("http_uri_namespace") << pname << "/" << "\"}";
+    response.set_json_payload(json.str());
+  } else {
+    json << d_conf.at("http_uri_namespace") << pname << "/";
+    response.redirect_to(json.str());
+  }
   return;
 }
 
@@ -1393,7 +1400,7 @@ void project_manager::vise_error_page(const std::string message,
                                       const std::string response_format,
                                       http_response &response) const {
   std::ostringstream json;
-  json << "{\"STATUS\":\"Error\""
+  json << "{\"STATUS\":\"error\""
        << ",\"MESSAGE\":\"" << message << "\"}";
   if(response_format == "json" ) {
     response.set_json_payload(json.str());

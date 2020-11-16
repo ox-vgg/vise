@@ -1,6 +1,0 @@
-We follow the coding conventions of gnuradio.
-See https://github.com/gnuradio/gnuradio/blob/master/README.hacking
-
-## TODO
-- relja_retrival/external/KMCode_relja does not support 8-bit Grayscale JPG images (28 Nov. 2019)
-  ./external/KMCode_relja/ImageContent/ImageContent.cpp:47: abort__("[read_jpeg_file] Only RGB is supported

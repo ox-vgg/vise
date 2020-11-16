@@ -62,5 +62,8 @@ rm oxbuild_images.tgz        # no longer needed
 ./vise/vise serve-project --port=9670 --nthread=4 --http_uri_namespace=/vise/demo/ oxford-buildings:/data/oxford-buildings/data/conf.txt
 ```
 
+## HTTP API
+See [[doc/vise_http_api.txt]]
+
 ## Contact
 Contact [Abhishek Dutta](mailto:adutta _at_ robots.ox.ac.uk) for any queries or feedback related to this software application.
