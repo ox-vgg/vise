@@ -181,7 +181,6 @@ namespace buildIndex {
             boost::filesystem::create_directories(dst_dir);
           }
 
-          std::string dst_str;
           boost::filesystem::path dst = dst_dir / it->path().filename();
           std::string dst_relpath(boost::filesystem::relative(dst, image_dir).string());
           std::string src_relpath(boost::filesystem::relative(it->path(), image_src_dir).string());
@@ -218,11 +217,11 @@ namespace buildIndex {
               resize_src_rel_image_fn_list.push_back(src_relpath);
             } else {
               // add ".jpg" extension because all files will get converted to JPG
-              boost::filesystem::path dst = dst_dir / it->path().stem();
-              dst_str = dst.string() + ".jpg";
-              dst_relpath = boost::filesystem::relative(dst, image_dir).stem().string() + ".jpg";
+              std::string jpg_filename = it->path().stem().string() + ".jpg";
+              boost::filesystem::path dst = dst_dir / jpg_filename;
+              dst_relpath = boost::filesystem::relative(dst, image_dir).string();
               resize_src_image_fn_list.push_back(it->path().string());
-              resize_dst_image_fn_list.push_back(dst_str);
+              resize_dst_image_fn_list.push_back(dst.string());
               resize_dst_rel_image_fn_list.push_back(dst_relpath);
               resize_src_rel_image_fn_list.push_back(src_relpath);
               type_conv_img_count++;

@@ -20,8 +20,8 @@ project_manager::~project_manager() {
 void project_manager::process_http_request(http_request const &request,
                                            http_response &response)
 {
-  //std::ostringstream ss;
-  //ss << "project_manager: " << request.d_method << " " << request.d_uri;
+  std::ostringstream ss;
+  ss << "project_manager: " << request.d_method << " " << request.d_uri;
 
   // if http_uri_namespace is defined,
   // we only respond to queries under that namespace
@@ -45,7 +45,7 @@ void project_manager::process_http_request(http_request const &request,
   std::map<std::string, std::string> param;
   vise::decompose_uri(request_uri_without_ns, uri, param);
   //ss << " [without-ns=" << request_uri_without_ns << "]";
-  //std::cout << ss.str() << std::endl;
+  std::cout << ss.str() << std::endl;
 
   //request.parse_urlencoded_form_data();
   //vise::print_vector("uri", uri);
@@ -176,9 +176,9 @@ void project_manager::handle_get(http_request const &request,
           return;
         }
 
-        boost::filesystem::directory_iterator end_itr;
+        boost::filesystem::recursive_directory_iterator end_itr;
         std::vector<std::string> img_fn_list;
-        for (boost::filesystem::directory_iterator it(image_dir); it!=end_itr; ++it) {
+        for (boost::filesystem::recursive_directory_iterator it(image_dir); it!=end_itr; ++it) {
           if (boost::filesystem::is_regular_file(it->path())) {
             img_fn_list.push_back(it->path().string());
             if(img_fn_list.size() > 3) {
