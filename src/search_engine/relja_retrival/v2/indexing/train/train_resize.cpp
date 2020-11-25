@@ -70,8 +70,8 @@ namespace buildIndex {
     if(result.first == 0) {
       // indicates success
       d_filelist_f << d_resize_dst_rel_image_fn_list->at(jobID) << std::endl;
-      ss << d_resize_src_rel_image_fn_list->at(jobID) << ","
-         << d_resize_dst_rel_image_fn_list->at(jobID) << "," << result.second << std::endl;
+      ss << "\"" << d_resize_src_rel_image_fn_list->at(jobID) << "\",\""
+         << d_resize_dst_rel_image_fn_list->at(jobID) << "\"," << result.second << std::endl;
       d_filestat_f << ss.str();
     } else {
       ss << "preprocess:: DISCARD=" << d_resize_dst_rel_image_fn_list->at(jobID)
@@ -130,7 +130,7 @@ namespace buildIndex {
 
       Magick::Image src(srcfn);
       src.quiet(true); // to supress warnings
-      resize_stat << src.rows() << "," << src.columns(); // old size
+      resize_stat << src.columns() << "," << src.rows(); // old size
       src.magick("JPEG");
       src.colorSpace(Magick::RGBColorspace);
       if (resize_image) {
@@ -140,7 +140,7 @@ namespace buildIndex {
 
       src.write(dstfn);
       src.quiet(false);
-      resize_stat << "," << src.rows() << "," << src.columns(); // new size
+      resize_stat << "," << src.columns() << "," << src.rows(); // new size
       result = std::make_pair(0, resize_stat.str());
     } catch(std::exception &ex) {
       result = std::make_pair(1, ex.what());
