@@ -327,6 +327,7 @@ tfidfV2::externalQuery_computeData( std::string imageFn, query const &queryObj )
 
   // cleanup
   delete []descs;
+  vl_kdforestsearcher_delete(kd_forest_searcher);
 
   // sort IDs
   std::vector<uint32_t> inds;

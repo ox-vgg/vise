@@ -16,6 +16,7 @@
 #include "html_resources.h"
 
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <iostream>
 #include <utility>
@@ -30,7 +31,7 @@ namespace vise {
     ~project_manager();
 
     // limit serving
-    void serve_only(std::map<std::string, std::string> const pname_pconf_fn_map);
+    void serve_only(std::unordered_map<std::string, std::string> const pname_pconf_fn_map);
     void serve_only_4xx_response(http_response &response) const;
 
     // http uri namespace
@@ -65,6 +66,11 @@ namespace vise {
                                     std::vector<std::string> const &uri,
                                     std::map<std::string, std::string> const &param,
                                     http_response& response) const;
+    void handle_project_post_request(std::string const pname,
+                                     http_request const &request,
+                                     std::vector<std::string> const &uri,
+                                     std::map<std::string, std::string> const &param,
+                                     http_response& response) const;
 
     void payload_save(http_request const &request,
                       boost::filesystem::path fn,
@@ -90,6 +96,10 @@ namespace vise {
     void vise_error_page(const std::string message,
                          const std::string response_format,
                          http_response &response) const;
+    void vise_project_error_page(const std::string pname,
+                                 const std::string message,
+                                 const std::string response_format,
+                                 http_response &response) const;
     void vise_wait_page(const std::string message,
                         const std::string response_format,
                         http_response &response) const;
@@ -102,18 +112,46 @@ namespace vise {
     void project_filelist(std::string pname,
                           std::map<std::string, std::string> const &param,
                           http_response &response) const;
+    void project_filelist_set_range(std::map<std::string, std::string> const &param,
+                                    uint32_t flist_size,
+                                    uint32_t &flist_start,
+                                    uint32_t &flist_end) const;
+
     void project_file(std::string pname,
                       std::map<std::string, std::string> const &param,
                       http_response &response) const;
     void project_show_match(std::string pname,
                             std::map<std::string, std::string> const &param,
                             http_response &response) const;
+    void project_get_feature_match_details(const std::string pname,
+                                           const std::string &image_features,
+                                           std::map<std::string, std::string> const &param,
+                                           http_response &response) const;
     void project_index_search(std::string pname,
                               std::map<std::string, std::string> const &param,
                               http_response &response) const;
+
+    void project_external_search(std::string pname,
+                                 std::map<std::string, std::string> const &param,
+                                 http_response &response) const;
+
+    void project_extract_image_features(const std::string pname,
+                                        const std::string &image_data,
+                                        std::map<std::string, std::string> const &param,
+                                        http_response &response) const;
+    void project_index_search_using_features(const std::string pname,
+                                             const std::string &image_features,
+                                             std::map<std::string, std::string> const &param,
+                                             http_response &response) const;
+
     void project_register_image(std::string pname,
                                 std::map<std::string, std::string> const &param,
                                 http_response &response) const;
+    void project_register_external_image(const std::string pname,
+                                         const std::string &image_data,
+                                         std::map<std::string, std::string> const &param,
+                                         http_response &response) const;
+
     void project_configure(std::string pname,
                            std::map<std::string, std::string> const &param,
                            http_response &response) const;
@@ -148,6 +186,7 @@ namespace vise {
 
     void project_pname_list(std::vector<std::string> &pname_list) const;
     uint32_t project_image_src_count(std::string pname) const;
+
   private:
     bool is_serve_only_active;
     std::mutex d_project_load_mutex;

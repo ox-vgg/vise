@@ -1,8 +1,8 @@
 /**
  *
- * @desc code to create VISE error page
+ * @desc code to create VISE project error page
  * @author Abhishek Dutta <adutta@robots.ox.ac.uk>
- * @date 20 Feb. 2020
+ * @date 30 Nov. 2020
  *
  */
 'use strict'
@@ -28,13 +28,19 @@ if( !_vise_self_check_is_ok()) {
 } else {
   var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/home');
+  home_link.setAttribute('href', '../index.html');
   home_link.appendChild(home_icon);
+
+  var pname_link = document.createElement('a');
+  pname_link.setAttribute('href', 'filelist');
+  pname_link.setAttribute('title', 'Home of ' + _vise_data.PNAME + ' project');
+  pname_link.innerHTML = _vise_data.PNAME;
 
   pname.innerHTML = '';
   pname.appendChild(home_link);
+  pname.appendChild(pname_link);
 
-  document.title = 'VISE';
+  document.title = _vise_data.PNAME;
   _vise_error_init();
 }
 
@@ -66,5 +72,12 @@ function _vise_error_init_message() {
   message.innerHTML = _vise_data.MESSAGE;
   error.appendChild(message);
 
+  var tools = document.createElement('p');
+  var back = document.createElement('button');
+  back.innerHTML = 'Back';
+  back.setAttribute('onclick', 'history.back();');
+  tools.appendChild(back);
+
   content.appendChild(error);
+  content.appendChild(tools);
 }

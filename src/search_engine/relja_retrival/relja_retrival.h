@@ -93,12 +93,22 @@ namespace vise {
 
     void index_search(vise::search_query const &q,
                       std::vector<vise::search_result> &r) const override;
+    void index_search_using_features(const std::string &image_features,
+                                     std::vector<vise::search_result> &r) const override;
+
     void index_internal_match(vise::search_query const &q,
                               uint32_t match_file_id,
                               std::ostringstream &json) const override;
+    void index_feature_match(const std::string &image_features,
+                             uint32_t match_file_id,
+                             std::ostringstream &json) const override;
+
     void register_image(uint32_t file1_id, uint32_t file2_id,
                         uint32_t x, uint32_t y, uint32_t width, uint32_t height,
                         std::array<double, 9> &H) const override;
+    void register_external_image(const std::string &image_data,
+                                 const uint32_t file2_id,
+                                 std::array<double, 9> &H) const;
 
     uint32_t fid_count() const override;
     uint32_t fid(std::string filename) const override;
@@ -106,6 +116,9 @@ namespace vise {
 
     void conf(std::map<std::string, std::string> conf_data) override;
     std::map<std::string, std::string> conf() const override;
+
+    void extract_image_features(const std::string &image_data,
+                                std::string &image_features) const override;
   private:
     void index_run_all_stages(std::function<void(void)> callback);
     uint32_t image_src_count() const;

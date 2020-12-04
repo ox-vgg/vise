@@ -53,5 +53,10 @@ if ! [ -d "${DEPDIR}/include/vl" ]; then
   cp "${DEPSRC}/vlfeat-0.9.21/bin/glnxa64/libvl.so" "${DEPDIR}/lib/libvl.so" && mkdir "${DEPDIR}/include/vl" && cp -fr $DEPSRC/vlfeat-0.9.21/vl/*.* "${DEPDIR}/include/vl/"
 fi
 
+# sqlite
+if ! [ -f "${DEPDIR}/include/sqlite3.h" ]; then
+  cd $DEPSRC && wget https://www.sqlite.org/2020/sqlite-autoconf-3330000.tar.gz && tar -zxvf sqlite-autoconf-3330000.tar.gz && cd sqlite-autoconf-3330000 && ./configure --prefix=$DEPDIR && make -j8 && make install
+fi
+
 echo "****************************************************************"
 echo "All dependencies downloaded, compiled and installed to ${DEPDIR}"

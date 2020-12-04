@@ -12,15 +12,30 @@ toolbar.setAttribute('id', 'toolbar');
 var pname = document.createElement('div');
 pname.setAttribute('class', 'pname');
 toolbar.appendChild(pname);
+
+var pagetools = document.createElement('div');
+pagetools.setAttribute('class', 'pagetools');
+toolbar.appendChild(pagetools);
+
 var pageinfo = document.createElement('div');
 pageinfo.setAttribute('class', 'pageinfo');
 toolbar.appendChild(pageinfo);
 
 var content = document.createElement('div');
 content.setAttribute('id', 'content');
-var fileview_panel = document.createElement('div');
-fileview_panel.setAttribute('class', 'fileview_panel');
-content.appendChild(fileview_panel);
+var file_panel = document.createElement('div');
+file_panel.setAttribute('class', 'file_panel');
+var file_metadata = document.createElement('div');
+file_metadata.setAttribute('class', 'file_metadata');
+var file_content = document.createElement('div');
+file_content.setAttribute('class', 'file_content');
+var region_metadata = document.createElement('div');
+region_metadata.setAttribute('class', 'region_metadata');
+
+file_panel.appendChild(file_metadata);
+file_panel.appendChild(file_content);
+file_panel.appendChild(region_metadata);
+content.appendChild(file_panel);
 
 document.body.appendChild(toolbar);
 document.body.appendChild(content);
@@ -34,28 +49,22 @@ var query_img_container_height = 65;
 
 // update the search result when browser is resized
 // this is required as the image size changes and hence the bounding box needs update
-window.addEventListener('resize', _vise_show_query_ui);
+window.addEventListener('resize', _vise_init_file_panel);
 
 // check existence of everything we need
 if( !_vise_self_check_is_ok()) {
   console.log('self check failed');
 } else {
-  var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
-  var home_link = document.createElement('a');
-  home_link.setAttribute('href', '../index.html');
-  home_link.appendChild(home_icon);
-
   var pname_link = document.createElement('a');
   pname_link.setAttribute('href', 'filelist');
   pname_link.setAttribute('title', 'Home of ' + _vise_data.PNAME + ' project');
   pname_link.innerHTML = _vise_data.PNAME;
 
   pname.innerHTML = '';
-  pname.appendChild(home_link);
   pname.appendChild(pname_link);
 
   document.title = _vise_data.PNAME;
-  _vise_show_query_ui();
+  _vise_init_file_panel();
 }
 
 function _vise_self_check_is_ok() {
@@ -65,9 +74,12 @@ function _vise_self_check_is_ok() {
   return false;
 }
 
-function _vise_show_query_ui() {
+function _vise_init_file_panel() {
+  _vise_set_project_pagetools(pagetools);
   _vise_init_query_toolbar();
-  _vise_init_query_content();
+  _vise_init_query_file_metadata();
+  _vise_init_query_file_content();
+  _vise_init_query_region_metadata();
 }
 
 function _vise_init_query_toolbar() {
@@ -107,13 +119,64 @@ function _vise_init_query_toolbar() {
   nav.appendChild(next);
 
   pageinfo.innerHTML = '';
-  pageinfo.appendChild(fileinfo);
-  pageinfo.appendChild(sep.cloneNode(true));
   pageinfo.appendChild(nav);
+  pageinfo.appendChild(sep.cloneNode(true));
+  pageinfo.appendChild(fileinfo);
 }
 
-function _vise_init_query_content() {
-  fileview_panel.innerHTML = '';
+//
+// file content
+//
+function _vise_init_query_file_metadata() {
+  file_metadata.innerHTML = '';
+  var table = document.createElement('table');
+  if(_vise_data.hasOwnProperty('METADATA_CONF')) {
+    for(var aindex in _vise_data['METADATA_CONF']['file_attributes_id_list']) {
+      var aid = _vise_data['METADATA_CONF']['file_attributes_id_list'][aindex];
+      var tr = document.createElement('tr');
+      var key = document.createElement('td');
+      key.innerHTML = _vise_data['METADATA_CONF']['file_attributes'][aid]['aname'];
+      var value_col = document.createElement('td');
+      var avalue = _vise_data['FILE_METADATA'][aid];
+      if(_vise_data['METADATA_CONF']['file_attributes'][aid].hasOwnProperty('href')) {
+        var href_tokens = _vise_data['METADATA_CONF']['file_attributes'][aid]['href'].split('$');
+        var tx_href = [];
+        for(var i=0; i<href_tokens.length; ++i) {
+          if(_vise_data['FILE_METADATA'].hasOwnProperty(href_tokens[i])) {
+            tx_href.push(_vise_data['FILE_METADATA'][ href_tokens[i] ]);
+          } else {
+            tx_href.push(href_tokens[i]);
+          }
+        }
+        if(_vise_data['FILE_METADATA'][aid] !== '') {
+          avalue = '<a target="_blank" href="' + tx_href.join('') + '">' + _vise_data['FILE_METADATA'][aid] + '</a>';
+        }
+      }
+      if(avalue === '') {
+        continue; // do not show empty attributes
+      }
+      value_col.innerHTML = avalue;
+      tr.appendChild(key);
+      tr.appendChild(value_col);
+      table.appendChild(tr);
+    }
+  } else {
+    for(var aid in _vise_data['FILE_METADATA']) {
+      var tr = document.createElement('tr');
+      var key = document.createElement('td');
+      key.innerHTML = aid;
+      var value = document.createElement('td');
+      value.innerHTML = _vise_data['FILE_METADATA'][aid];
+      tr.appendChild(key);
+      tr.appendChild(value);
+      table.appendChild(tr);
+    }
+  }
+  file_metadata.appendChild(table);
+}
+
+function _vise_init_query_file_content() {
+  file_content.innerHTML = '';
   var toolbar = document.createElement('div');
   toolbar.setAttribute('id', 'img_toolbar');
   var zoomin_icon = _vise_common_get_svg_button('micon_zoomin', 'Zoom In');
@@ -139,9 +202,13 @@ function _vise_init_query_content() {
       via_img_annotator.add_hook('region_add', _vise_query_on_region_add, formdata);
     }
   });
+  var instruction = document.createElement('span');
+  instruction.innerHTML = 'Draw a region on the image to define the search query. <br/>To zoom the image, use '
+  toolbar.appendChild(instruction);
   toolbar.appendChild(zoomin_link);
   toolbar.appendChild(zoomout_link);
 
+  query_img_container.innerHTML = '';
   var formdata = {'file_id':_vise_data.FILE_ID};
   query_img_container.style.height = query_img_container_height + 'vh';
   via_img_annotator = new _via0(query_img_container, _vise_data.FILENAME);
@@ -149,13 +216,9 @@ function _vise_init_query_content() {
 
   var search_query_form = _vise_query_init_form(formdata);
 
-  var info = document.createElement('p');
-  info.innerHTML = 'Draw a region to define the search query.'
-
-  fileview_panel.appendChild(toolbar);
-  fileview_panel.appendChild(query_img_container);
-  fileview_panel.appendChild(search_query_form);
-  fileview_panel.appendChild(info);
+  file_content.appendChild(query_img_container);
+  file_content.appendChild(search_query_form);
+  file_content.appendChild(toolbar);
 }
 
 function _vise_query_init_form(formdata) {
@@ -187,5 +250,99 @@ function _vise_query_init_form(formdata) {
 function _vise_query_on_region_add(region) {
   var old_search_query_form = document.getElementById('search_query_form');
   var search_query_form = _vise_query_init_form(region);
-  fileview_panel.replaceChild(search_query_form, old_search_query_form)
+  file_content.replaceChild(search_query_form, old_search_query_form)
+}
+
+function _vise_init_query_region_metadata() {
+  region_metadata.innerHTML = '';
+  if(_vise_data['REGION_METADATA'].length === 0) {
+    region_metadata.innerHTML = '<p>No image regions defined for this image.</p>';
+    return;
+  }
+  var title = document.createElement('h3');
+  title.innerHTML = 'Image Regions';
+  region_metadata.appendChild(title);
+
+  for(var rindex in _vise_data['REGION_METADATA']) {
+    var region_metadata_container = document.createElement('div');
+    region_metadata_container.setAttribute('class', 'region_metadata_container');
+    var table = document.createElement('table');
+
+    var region_attribute_id_list = _vise_data['METADATA_CONF']['region_attributes_id_list'];
+    for(var aindex in region_attribute_id_list) {
+      var aid = region_attribute_id_list[aindex];
+      if(_vise_data['REGION_METADATA'][rindex].hasOwnProperty(aid)) {
+        var tr = document.createElement('tr');
+        var key = document.createElement('td');
+        if(_vise_data['METADATA_CONF']['region_attributes'].hasOwnProperty(aid)) {
+          key.innerHTML = _vise_data['METADATA_CONF']['region_attributes'][aid]['aname'];
+        } else {
+          key.innerHTML = aid;
+        }
+        var value = document.createElement('td');
+        value.innerHTML = _vise_data['REGION_METADATA'][rindex][aid];
+        tr.appendChild(key);
+        tr.appendChild(value);
+        table.appendChild(tr);
+      }
+    }
+
+    var region_content_container = document.createElement('div');
+    var imgcontainer = document.createElement('div');
+    imgcontainer.setAttribute('class', 'img_with_region');
+    var img = document.createElement('img');
+    img.setAttribute('src', 'image/' + _vise_data.FILENAME);
+    img.setAttribute('data-rindex', rindex);
+    img.addEventListener('load', _vise_on_region_content_load);
+    imgcontainer.appendChild(img);
+    region_content_container.appendChild(imgcontainer);
+
+    region_metadata_container.appendChild(table);
+    region_metadata_container.appendChild(region_content_container);
+    region_metadata.appendChild(region_metadata_container);
+  }
+}
+
+function _vise_on_region_content_load(e) {
+  var rindex = e.target.dataset.rindex;
+  var scale = e.target.height / e.target.naturalHeight;
+  var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
+  var svg_css = [];
+  svg_css.push('position:absolute');
+  svg_css.push('-webkit-user-select:none;-moz-user-select:none;user-select:none');
+  svg_css.push('top:0');
+  svg_css.push('left:0');
+  svg_css.push('height:' + e.target.height + 'px');
+  svg_css.push('width:' + e.target.width + 'px');
+  svg_css.push('fill:none');
+  svg_css.push('stroke:yellow');
+  svg_css.push('stroke-width:2');
+  svg.setAttribute('style', svg_css.join(';'));
+
+  var region_shape = _vise_data.REGION_METADATA[rindex]['region_shape'];
+  var region_points = _vise_data.REGION_METADATA[rindex]['region_points'];
+  switch(region_shape) {
+  case 'rect':
+    var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+    rshape.setAttribute('x', Math.floor(region_points[0] * scale));
+    rshape.setAttribute('y', Math.floor(region_points[1] * scale));
+    rshape.setAttribute('width', Math.floor(region_points[2] * scale));
+    rshape.setAttribute('height', Math.floor(region_points[3] * scale));
+    svg.appendChild(rshape);
+    break;
+  case 'polygon':
+    var rshape = document.createElementNS(_VISE_SVG_NS, 'polygon');
+    var pts_array = [];
+    for(var i=0; i<region_points.length; i=i+2) {
+      var x = Math.floor(region_points[i]*scale);
+      var y = Math.floor(region_points[i+1]*scale);
+      pts_array.push( x + ',' + y );
+    }
+    rshape.setAttribute('points', pts_array.join(' '));
+    svg.appendChild(rshape);
+    break;
+  default:
+    console.log('unknown region shape: ' + region_shape);
+  }
+  e.target.parentNode.appendChild(svg);
 }

@@ -39,6 +39,7 @@ vise::relja_retrival::relja_retrival(boost::filesystem::path pconf_fn,
   d_index_dset_fn  = d_data_dir / "index_dset.bin";
   d_index_iidx_fn  = d_data_dir / "index_iidx.bin";
   d_index_fidx_fn  = d_data_dir / "index_fidx.bin";
+
   d_index_tmp_dir  = d_data_dir / "_tmp/";
   d_index_tmp_dir.make_preferred(); // convert the trailing path-separator to platform specific character
   d_index_status_fn= d_data_dir / "index_status.txt";
@@ -407,8 +408,8 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
 
     if (!boost::filesystem::exists(d_filelist_fn)) {
       preprocess_images();
-      index_status_f << ",filelist" << std::flush;
     }
+    index_status_f << ",filelist" << std::flush;
 
     if(boost::filesystem::exists(d_bowcluster_fn) &&
        boost::filesystem::exists(d_trainhamm_fn)) {
@@ -423,31 +424,31 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     } else {
       if (!boost::filesystem::exists(d_traindesc_fn)) {
         extract_train_descriptors();
-        index_status_f << ",traindesc" << std::flush;
       }
+      index_status_f << ",traindesc" << std::flush;
 
       if (!boost::filesystem::exists(d_bowcluster_fn)) {
         cluster_train_descriptors();
-        index_status_f << ",cluster" << std::flush;
       }
+      index_status_f << ",cluster" << std::flush;
 
       if (!boost::filesystem::exists(d_trainassign_fn)) {
         assign_train_descriptors();
-        index_status_f << ",assign" << std::flush;
       }
+      index_status_f << ",assign" << std::flush;
 
       if (!boost::filesystem::exists(d_trainhamm_fn)) {
         hamm_train_descriptors();
-        index_status_f << ",hamm" << std::flush;
       }
+      index_status_f << ",hamm" << std::flush;
     }
 
     if (!boost::filesystem::exists(d_index_dset_fn) ||
         !boost::filesystem::exists(d_index_iidx_fn) ||
         !boost::filesystem::exists(d_index_fidx_fn)) {
       create_index();
-      index_status_f << ",index" << std::flush;
     }
+    index_status_f << ",index" << std::flush;
 
     d_log << "relja_retrival::index_run_all_stages(): end, "
           << "thread_id=" << std::this_thread::get_id()
@@ -458,7 +459,7 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     index_status_f.close();
 
     // delete d_traindesc_fn as it is no longer needed, @todo: review this action in future
-	std::cout << "deleting traindesc file: " << d_traindesc_fn << std::endl;
+    std::cout << "deleting traindesc file: " << d_traindesc_fn << std::endl;
     boost::filesystem::remove(d_traindesc_fn);
 
     callback();
@@ -786,28 +787,14 @@ void vise::relja_retrival::index_unload(bool &success,
 
 void vise::relja_retrival::index_search(vise::search_query const &q,
                                         std::vector<vise::search_result> &r) const {
-  query qobj(q.d_file_id, true, "");
+  bool is_internal_query = true; // indicates that query image is a part of the indexed dataset
+  query qobj(q.d_file_id, is_internal_query, "");
   if(q.is_region_query) {
-    /*
-    std::cout << "query: fid=" << q.d_file_id << ", "
-              << "; region(x,y,width,height)="
-              << q.d_x << "," << q.d_y << ","
-              << q.d_width << "," << q.d_height << std::endl;
-    */
-    qobj = query(q.d_file_id, true, "", q.d_x, q.d_x + q.d_width, q.d_y, q.d_y + q.d_height);
+    qobj = query(q.d_file_id, is_internal_query, "", q.d_x, q.d_x + q.d_width, q.d_y, q.d_y + q.d_height);
   }
 
   std::vector<indScorePair> all_result;
   std::map<uint32_t, homography> H_list;
-  /*
-  try {
-    std::cout << "DEBUG: relja_retrival.cc:800 : using try catch block" << std::endl;
-    std::cout << "q.d_max_result_count=" << q.d_max_result_count << std::endl;
-    d_spatial_retriever->spatialQuery(qobj, all_result, H_list, q.d_max_result_count);
-  } catch(std::exception &e) {
-    std::cout << "exception: " << e.what() << std::endl;
-  }
-  */
 
   d_spatial_retriever->spatialQuery(qobj, all_result, H_list, q.d_max_result_count);
 
@@ -836,8 +823,83 @@ void vise::relja_retrival::index_internal_match(vise::search_query const &q,
   if(q.is_region_query) {
     qobj = query(q.d_file_id, true, "", q.d_x, q.d_x + q.d_width, q.d_y, q.d_y + q.d_height);
   }
-  d_spatial_retriever->getMatches(qobj, match_file_id, H, matches);
-  d_spatial_retriever->getPutativeMatches(qobj, match_file_id, putative);
+  d_spatial_retriever->get_matches_using_query(qobj, match_file_id, H, matches);
+  d_spatial_retriever->get_putative_matches_using_query(qobj, match_file_id, putative);
+
+  json.str("");
+  json.clear();
+  json << "{\"H\":[" << H.H[0] << "," << H.H[1] << "," << H.H[2] << ","
+       << H.H[3] << "," << H.H[4] << "," << H.H[5] << ","
+       << H.H[6] << "," << H.H[7] << "," << H.H[8] << "]";
+  if(matches.size()) {
+    json << ",\"matches\":[["
+         << matches.at(0).first.x << ","
+         << matches.at(0).first.y << ","
+         << matches.at(0).first.a << ","
+         << matches.at(0).first.b << ","
+         << matches.at(0).first.c << ","
+         << matches.at(0).second.x << ","
+         << matches.at(0).second.y << ","
+         << matches.at(0).second.a << ","
+         << matches.at(0).second.b << ","
+         << matches.at(0).second.c << "]";
+
+    for(uint32_t i=1; i < matches.size(); ++i) {
+      json << ",["
+           << matches.at(i).first.x << ","
+           << matches.at(i).first.y << ","
+           << matches.at(i).first.a << ","
+           << matches.at(i).first.b << ","
+           << matches.at(i).first.c << ","
+           << matches.at(i).second.x << ","
+           << matches.at(i).second.y << ","
+           << matches.at(i).second.a << ","
+           << matches.at(i).second.b << ","
+           << matches.at(i).second.c << "]";
+    }
+    json << "]";
+  }
+
+  if(putative.size()) {
+    json << ",\"putative\":[["
+         << putative.at(0).first.x << ","
+         << putative.at(0).first.y << ","
+         << putative.at(0).first.a << ","
+         << putative.at(0).first.b << ","
+         << putative.at(0).first.c << ","
+         << putative.at(0).second.x << ","
+         << putative.at(0).second.y << ","
+         << putative.at(0).second.a << ","
+         << putative.at(0).second.b << ","
+         << putative.at(0).second.c << "]";
+
+    for(uint32_t i=1; i < putative.size(); ++i) {
+      json << ",["
+           << putative.at(i).first.x << ","
+           << putative.at(i).first.y << ","
+           << putative.at(i).first.a << ","
+           << putative.at(i).first.b << ","
+           << putative.at(i).first.c << ","
+           << putative.at(i).second.x << ","
+           << putative.at(i).second.y << ","
+           << putative.at(i).second.a << ","
+           << putative.at(i).second.b << ","
+           << putative.at(i).second.c << "]";
+    }
+    json << "]";
+  }
+  json << "}";
+}
+
+void vise::relja_retrival::index_feature_match(const std::string &image_features,
+                                               uint32_t match_file_id,
+                                               std::ostringstream &json) const {
+  homography H;
+  std::vector< std::pair<ellipse, ellipse> > matches;
+  std::vector< std::pair<ellipse, ellipse> > putative;
+
+  d_spatial_retriever->get_matches_using_features(image_features, match_file_id, H, matches);
+  d_spatial_retriever->get_putative_matches_using_features(image_features, match_file_id, putative);
 
   json.str("");
   json.clear();
@@ -1018,6 +1080,126 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
   homography::normLast(H.data());
 }
 
+void vise::relja_retrival::register_external_image(const std::string &image_data,
+                                                   const uint32_t file2_id,
+                                                   std::array<double, 9> &H) const {
+  if(!d_is_search_engine_loaded) {
+    return;
+  }
+  boost::filesystem::path fn2 = d_image_dir / d_dataset->getInternalFn(file2_id);
+
+  featGetter *featGetterObj= new featGetter_standard( "hesaff-rootsift" );
+
+  Magick::Blob image_blob(static_cast<const void *>(image_data.c_str()), image_data.size());
+  Magick::Image im1(image_blob);
+  im1.quiet(true); // to supress warnings
+  im1.magick("JPEG");
+  // save image to temporary store
+  boost::filesystem::path tmp_im1_fn = boost::filesystem::temp_directory_path();
+  tmp_im1_fn = tmp_im1_fn / boost::filesystem::unique_path("vise_register_%%%%-%%%%-%%%%-%%%%.jpg");
+  im1.write(tmp_im1_fn.string());
+
+  Magick::Image im2;
+  im2.quiet(true); // to supress warnings
+  im2.read(fn2.string());
+  Magick::Image im2t;
+  homography Hi(H.data()); // initial estimate of homography matrix
+  uint32_t numFeats1, numFeats2, bestNInliers;
+  float* descs1;
+  float* descs2;
+  std::vector<ellipse> regions1, regions2;
+
+  double xl = 0;
+  double yl = 0;
+  double xu = im1.columns();
+  double yu = im1.rows();
+
+  // compute RootSIFT: image 1
+  featGetterObj->getFeats(tmp_im1_fn.string().c_str(),
+                          static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
+                          static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
+                          numFeats1, regions1, descs1);
+  bool firstGo = true;
+  uint32_t loopNum_ = 0;
+
+  boost::filesystem::path tmp_im2_fn = boost::filesystem::temp_directory_path();
+  tmp_im2_fn = tmp_im2_fn / boost::filesystem::unique_path("vise_register_%%%%-%%%%-%%%%-%%%%.jpg");
+  matchesType inlierInds;
+  while (1) {
+	  if (!firstGo) {
+		  // compute RootSIFT: image 2
+		  featGetterObj->getFeats(tmp_im2_fn.string().c_str(),
+                              static_cast<uint32_t>(xl), static_cast<uint32_t>(xu),
+                              static_cast<uint32_t>(yl), static_cast<uint32_t>(yu),
+                              numFeats2, regions2, descs2);
+
+		  // run RANSAC
+		  homography Hnew;
+		  detRansac::matchDesc(*(d_spatial_retriever->getSameRandom()),
+			  bestNInliers,
+			  descs1, regions1,
+			  descs2, regions2,
+			  featGetterObj->numDims(),
+			  loopNum_ > 1 ? 1.0 : 5.0, 0.0, 1000.0, static_cast<uint32_t>(4),
+			  true, 0.81f, 100.0f,
+			  &Hnew, &inlierInds
+			  );
+		  if (! (bestNInliers > 9)) {
+			  // good alignment cannot be obtained, so be happy with the initial H
+			  break;
+		  }
+
+		  // apply new H to current H (i.e. H= H * Hnew)
+		  {
+			  double Happlied[9];
+			  for (int i = 0; i < 3; ++i) {
+				  for (int j = 0; j < 3; ++j) {
+					  Happlied[i * 3 + j] = Hi.H[i * 3] * Hnew.H[j] +
+						  Hi.H[i * 3 + 1] * Hnew.H[3 + j] +
+						  Hi.H[i * 3 + 2] * Hnew.H[6 + j];
+				  }
+			  }
+			  Hi.set(Happlied);
+		  }
+	  }
+
+	  Hi.normLast();
+
+	  // im2 -> im1 transformation
+	  double Hinv[9];
+	  Hi.getInverse(Hinv);
+	  homography::normLast(Hinv);
+
+	  firstGo = false;
+	  ++loopNum_;
+	  if (loopNum_ > 1) {
+		  break;
+	  }
+
+	  // warp image 2 into image 1
+	  im2t = im2;
+	  // source: https://gitlab.com/vgg/imcomp/-/blob/master/src/imreg_sift/imreg_sift.cc#L850
+	  Magick::DrawableAffine hinv_affine(Hinv[0], Hinv[4], Hinv[3], Hinv[1], 0, 0);
+	  std::ostringstream offset;
+	  offset << im2.columns() << "x" << im2.rows() << "-" << ((int)Hinv[2]) << "-" << ((int)Hinv[5]);
+	  im2t.artifact("distort:viewport", offset.str());
+	  im2t.affineTransform(hinv_affine);
+	  im2t.quiet(true);
+	  im2t.write(tmp_im2_fn.string().c_str());
+	  im2t.quiet(false);
+  }
+
+  delete[] descs1;
+  delete[] descs2;
+  boost::filesystem::remove(tmp_im2_fn);
+  boost::filesystem::remove(tmp_im1_fn);
+  delete featGetterObj;
+
+  // return the final computed Homography matrix
+  Hi.getInverse(H.data());
+  homography::normLast(H.data());
+}
+
 bool vise::relja_retrival::index_is_loaded() const {
   return d_is_search_engine_loaded;
 }
@@ -1155,5 +1337,43 @@ bool vise::relja_retrival::pconf_validate_data_dir() {
     return false;
   } else {
     return true;
+  }
+}
+
+//
+// search using image features (e.g. using external image)
+//
+void vise::relja_retrival::extract_image_features(const std::string &image_data,
+                                                  std::string &image_features) const {
+  d_spatial_retriever->extract_image_features( image_data, image_features );
+}
+
+void vise::relja_retrival::index_search_using_features(const std::string &image_features,
+                                                       std::vector<vise::search_result> &r) const {
+  std::vector<indScorePair> all_result;
+  std::map<uint32_t, homography> H_list;
+  uint32_t max_result_count = 256;
+  bool success = d_spatial_retriever->search_using_features(image_features,
+                                                            all_result,
+                                                            H_list,
+                                                            max_result_count);
+  if(!success) {
+    std::cout << "relja_retrival::index_search_using_image_features(): failed to search using image features."
+              << std::endl;
+    r.clear();
+    return;
+  }
+
+  for ( uint32_t i = 0; i < all_result.size(); ++i ) {
+    uint32_t file_id = all_result[i].first;
+    float score = (float) all_result[i].second;
+    std::array<double, 9> H = {{H_list[file_id].H[0], H_list[file_id].H[1], H_list[file_id].H[2],
+                                H_list[file_id].H[3], H_list[file_id].H[4], H_list[file_id].H[5],
+                                H_list[file_id].H[6], H_list[file_id].H[7], H_list[file_id].H[8]}};
+    r.push_back(vise::search_result(file_id,
+                                    d_dataset->getInternalFn(file_id),
+                                    score,
+                                    H)
+                );
   }
 }

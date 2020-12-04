@@ -12,6 +12,11 @@ toolbar.setAttribute('id', 'toolbar');
 var pname = document.createElement('div');
 pname.setAttribute('class', 'pname');
 toolbar.appendChild(pname);
+
+var pagetools = document.createElement('div');
+pagetools.setAttribute('class', 'pagetools');
+toolbar.appendChild(pagetools);
+
 var pageinfo = document.createElement('div');
 pageinfo.setAttribute('class', 'pageinfo');
 toolbar.appendChild(pageinfo);
@@ -30,6 +35,7 @@ document.body.appendChild(content);
 
 var showing_result_from = 0;
 var showing_result_to = 0;
+const SHOW_SIZE = 5;
 var current_score_threshold = 0;
 var current_norm_score_threshold = 0.07;
 var next_norm_score_threshold = 0.05;
@@ -46,18 +52,12 @@ window.addEventListener('resize', _vise_init_search_result_ui);
 if( !_vise_self_check_is_ok()) {
   console.log('self check failed');
 } else {
-  var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
-  var home_link = document.createElement('a');
-  home_link.setAttribute('href', '../index.html');
-  home_link.appendChild(home_icon);
-
   var pname_link = document.createElement('a');
   pname_link.setAttribute('href', 'filelist');
   pname_link.setAttribute('title', 'Home page of ' + _vise_data.PNAME);
   pname_link.innerHTML = _vise_data.PNAME;
 
   pname.innerHTML = '';
-  pname.appendChild(home_link);
   pname.appendChild(pname_link);
 
   document.title = _vise_data.PNAME;
@@ -72,6 +72,7 @@ function _vise_self_check_is_ok() {
 }
 
 function _vise_init_search_result_ui() {
+  _vise_set_project_pagetools(pagetools);
   _vise_show_search_result_toolbar();
   _vise_show_search_query_content();
   _vise_show_search_result_content();
@@ -87,7 +88,7 @@ function _vise_show_search_query_content() {
   var qimgcontainer = document.createElement('div');
   qimgcontainer.setAttribute('class', 'img_with_region');
   var qimg = document.createElement('img');
-  qimg.setAttribute('src', _vise_data.QUERY['filename']);
+  qimg.setAttribute('src', 'image/' + _vise_data.QUERY['filename']);
   qimg.addEventListener('load', _vise_on_img_load_show_query_rshape);
   var qlabel = document.createElement('p');
   var qhref = '<a href="file?file_id=' + _vise_data.QUERY['file_id'] + '">' + _vise_data.QUERY['filename'] + '</a>'
@@ -137,6 +138,10 @@ function _vise_show_search_result_nomatch_found() {
 
 function _vise_show_search_result_content() {
   results_panel.innerHTML = '';
+  var result_title = document.createElement('h3');
+  result_title.innerHTML = 'Search Results';
+  results_panel.appendChild(result_title);
+
   results.innerHTML = '';
   if(_vise_data.RESULT.length < 2) {
     // indicates only match to itself or no match at all
@@ -172,21 +177,18 @@ function _vise_show_search_result_content() {
     results.appendChild(a);
     showing_result_to = i;
   }
-  if(showing_result_to < (_vise_data.RESULT.length - 1)) {
-    // more results remaining to show
-    var next_norm_score = _vise_data.RESULT[showing_result_to + 1]['score'] / _vise_data.RESULT[0]['score'];
-    if(next_norm_score >= next_norm_score_threshold) {
-      var showmore = document.createElement('div');
-      showmore.setAttribute('id', 'showmore');
-      var info = document.createElement('p');
-      info.innerHTML = 'Low scoring matches not shown.';
+  showing_result_to = showing_result_to + 1;
+  if(showing_result_to < _vise_data.RESULT.length) {
+    var showmore = document.createElement('div');
+    showmore.setAttribute('id', 'showmore');
+    var info = document.createElement('p');
+    info.innerHTML = 'Low scoring matches not shown.';
 
-      var more = document.createElement('p');
-      more.innerHTML = '<span class="text_button" onclick="_vise_show_more_search_results()">Show more</span>';
-      showmore.appendChild(info);
-      showmore.appendChild(more);
-      results.appendChild(showmore);
-    }
+    var more = document.createElement('p');
+    more.innerHTML = '<span class="text_button" onclick="_vise_show_more_search_results()">Show more</span>';
+    showmore.appendChild(info);
+    showmore.appendChild(more);
+    results.appendChild(showmore);
   }
 
   results_panel.appendChild(results);
@@ -208,7 +210,7 @@ function _vise_search_result_html_element(result_index) {
   a.setAttribute('href', matchview_uri.join('&'));
 
   var img = document.createElement('img');
-  img.setAttribute('src', _vise_data.RESULT[result_index]['filename']);
+  img.setAttribute('src', 'image/' + _vise_data.RESULT[result_index]['filename']);
   img.setAttribute('data-rindex', result_index);
   img.addEventListener('load', _vise_on_img_load_show_result_rshape);
   a.appendChild(img);
@@ -259,8 +261,9 @@ function _vise_show_more_search_results() {
   var showmore = document.getElementById('showmore');
   results.removeChild(showmore);
 
-  showing_result_from = showing_result_to + 1;
-  for( var i=showing_result_from; i<_vise_data.RESULT.length; ++i) {
+  showing_result_from = showing_result_to;
+  showing_result_to = Math.min(showing_result_from+SHOW_SIZE, _vise_data.RESULT.length);
+  for( var i=showing_result_from; i<showing_result_to; ++i) {
     var norm_score = _vise_data.RESULT[i]['score'] / _vise_data.RESULT[0]['score'];
     if(norm_score > next_norm_score_threshold) {
       var a = _vise_search_result_html_element(i);
@@ -268,6 +271,19 @@ function _vise_show_more_search_results() {
     } else {
       break;
     }
+  }
+
+  if(showing_result_to < (_vise_data.RESULT.length - 1)) {
+    var showmore = document.createElement('div');
+    showmore.setAttribute('id', 'showmore');
+    var info = document.createElement('p');
+    info.innerHTML = 'Showing results from 1 to ' + (showing_result_to - 1) + ' (of ' + _vise_data.RESULT.length + ').';
+
+    var more = document.createElement('p');
+    more.innerHTML = '<span class="text_button" onclick="_vise_show_more_search_results()">Show ' + SHOW_SIZE + ' more</span>';
+    showmore.appendChild(info);
+    showmore.appendChild(more);
+    results.appendChild(showmore);
   }
 }
 

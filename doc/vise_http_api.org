@@ -1,6 +1,6 @@
 #+TITLE:  Accessing VISE using HTTP Requests
 #+AUTHOR: Abhishek Dutta
-#+DATE:   11-11-2020
+#+DATE:   11-Nov-2020 (Last Updated: 01-Dec-2020)
 #+EMAIL:  adutta@robots.ox.ac.uk
 #+OPTIONS: ^:nil
 
@@ -25,7 +25,7 @@ $ curl -X POST -d "pname=oxford-buildings&response_format=json" http://localhost
 ** @todo : see the basic html application inside src/www/
 
 
-* Visual Search Project
+* Search a Project
 
 ** GET /PROJECT_NAME/filelist
  - Example
@@ -49,6 +49,35 @@ $ curl -X GET "http://localhost:9669/oxford-buildings/filelist?start=0&end=10&re
    "PNAME" : "Oxford-Buildings",
    "FLIST_SIZE" : 5063
 }
+#+END_SRC
+
+** GET /PROJECT_NAME/filelist?mode={all,fts}&query=KEYWORD&groupby=ATTRIBUTE_ID&group=METADATA
+ - Example
+#+BEGIN_SRC bash
+$ curl -X GET http://localhost:9669/oxford-buildings/filelist?mode=all
+// functionality is same as /PROJECT_NAME/filelist endpoint
+// shows a list of all files contained in the project
+
+$ curl -X GET http://localhost:9669/oxford-buildings/filelist?mode=fts&query=Apple
+// full text search (fts) mode
+// finds all files whose file or region metadata contains words starting with "Apple"
+
+$ curl -X GET http://localhost:9669/oxford-buildings/filelist?mode=fts&query=Apple*
+// finds all files whose file or region metadata starting with "Apple"
+// (e.g. Appleton, Appleby, etc.)
+
+$ curl -X GET http://localhost:9669/oxford-buildings/filelist?mode=fts&query=year=1450
+// search for exact value of attribute
+// finds all files whose file or region attribute "year" has the value 1450
+
+$ curl -X GET http://localhost:9669/oxford-buildings/filelist?mode=fts&query=year=(1470,1495)
+// search for a range of values contained in an attribute
+// finds all files whose file or region attribute "year" has the value between 1470 and 1495
+
+$ curl -X GET http://localhost:9669/oxford-buildings/filelist?mode=fts&query=&group=name
+// group metadata based on an attribute id
+// groups the unique values contained in "name" file or region attribute
+
 #+END_SRC
 
 ** GET /PROJECT_NAME/file
@@ -109,6 +138,27 @@ $ curl -X GET "http://localhost:9669/oxford-buildings/search?x=403&y=323&width=3
 }
 #+END_SRC
 
+** GET /PROJECT_NAME/_register
+ - Example
+#+BEGIN_SRC bash
+curl -X GET http://localhost:9669/1516/register?file1_id=10&file2_id=4&x=2&y=10&width=100&height=200&h0=[1,0,0,0,1,0,0,0,1]
+#+END_SRC
+
+** GET /PROJECT_NAME/_extract_image_features
+ - Example
+#+BEGIN_SRC bash
+curl -X GET --data-binary @/home/tlm/pub/02_15ci/images/unknown.jpg --output unknown_features.bin http://localhost:9669/1516/_extract_image_features
+// for next step, see POST /PROJECT_NAME/_search_using_features
+#+END_SRC
+
+** GET /PROJECT_NAME/_search_using_features
+ - Example
+#+BEGIN_SRC bash
+curl -X GET -d @filename_fetures.bin http://localhost:9669/1516/_extract_image_features
+// for previous step, see POST /PROJECT_NAME/_extract_imge_features
+#+END_SRC
+
+** GET /PROJECT_NAME/_get_feature_match_details
 
 * Metadata Search
 

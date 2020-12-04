@@ -6,6 +6,7 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 
+#include "metadata.h"
 #include "search_engine.h"
 #include "search_query.h"
 #include "search_result.h"
@@ -16,6 +17,7 @@
 #include <thread>
 #include <exception>
 #include <functional>
+#include <unordered_map>
 
 #include <boost/filesystem.hpp>
 
@@ -42,6 +44,7 @@ namespace vise {
 
     void index_search(vise::search_query const &query,
                       std::vector<vise::search_result> &result) const;
+
     void index_internal_match(vise::search_query const &q,
                               uint32_t match_file_id,
                               std::ostringstream &json) const;
@@ -49,13 +52,38 @@ namespace vise {
     void register_image(uint32_t file1_id, uint32_t file2_id,
                         uint32_t x, uint32_t y, uint32_t width, uint32_t height,
                         std::array<double, 9> &H) const;
+    void register_external_image(const std::string &image_data,
+                                 const uint32_t file2_id,
+                                 std::array<double, 9> &H) const;
 
     project_state state() const;
     std::string state_name() const;
 
     uint32_t fid_count() const;
-    uint32_t fid(std::string filename) const;
-    std::string filename(uint32_t fid) const;
+    uint32_t fid(const std::string filename) const;
+    std::string filename(const uint32_t fid) const;
+
+    // metadata
+    bool is_metadata_available() const;
+    void file_metadata_full_text_search(const std::string query,
+                                        std::vector<uint32_t> &fid_list) const;
+    void file_metadata_full_text_search_group_stat(const std::string query,
+                                                   const std::string groupby,
+                                                   std::map<std::string, uint32_t> &group_stat) const;
+
+    void file_attribute_name_list(std::vector<std::string> &file_attribute_name_list) const;
+    void metadata_group_stat(const std::string groupby,
+                             std::map<std::string, uint32_t> &group_stat) const;
+    void metadata_groupby(const std::string groupby,
+                          const std::string group,
+                          std::vector<uint32_t> &flist) const;
+
+    void file_metadata_as_json(const uint32_t file_id,
+                               std::ostringstream &json) const;
+    void region_metadata_as_json(const uint32_t file_id,
+                                 std::ostringstream &json) const;
+    void metadata_conf_as_json(std::ostringstream &json) const;
+    void error_metadata_not_available() const;
 
     uint32_t image_src_count() const;
 
@@ -63,6 +91,7 @@ namespace vise {
     void conf_to_json(std::ostringstream &json);
     bool conf_from_plaintext(std::string plaintext);
     std::string pconf(std::string key);
+    bool pconf_is_set(std::string key);
     bool use_preset_conf(std::string preset_conf_id);
     bool use_preset_conf_1();
     void use_preset_conf_2();
@@ -70,21 +99,37 @@ namespace vise {
     void use_preset_conf_manual();
     void remove_existing_visual_vocabulary();
     void preset_conf_to_json(std::ostringstream &json);
+    inline bool app_dir_exists() {
+      return d_app_dir_exists;
+    }
 
+    // for search using image features
+    void extract_image_features(const std::string &image_data,
+                                std::string &image_features) const;
+    void index_search_using_features(const std::string &image_features,
+                                     std::vector<vise::search_result> &result) const;
+    void index_get_feature_match_details(const std::string &image_features,
+                                         const uint32_t match_file_id,
+                                         std::ostringstream &json) const;
   private:
     std::string d_pname;
     boost::filesystem::path d_project_dir;
     boost::filesystem::path d_data_dir;
     boost::filesystem::path d_image_dir;
     boost::filesystem::path d_image_src_dir;
+    boost::filesystem::path d_image_small_dir;
+    boost::filesystem::path d_app_dir;
     boost::filesystem::path d_tmp_dir;
 
     bool d_is_index_load_ongoing;
+    bool d_is_metadata_ready;
+    bool d_app_dir_exists;
 
     boost::filesystem::path d_pconf_fn;
     const std::map<std::string, std::string> d_conf;  // VISE application configuration
     std::map<std::string, std::string> d_pconf;       // project configuration
     std::unique_ptr<vise::search_engine> d_search_engine;
+    std::unique_ptr<vise::metadata> d_metadata;
 
     std::mutex d_index_mutex;
     std::mutex d_index_load_mutex;

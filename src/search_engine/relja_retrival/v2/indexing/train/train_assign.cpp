@@ -146,6 +146,7 @@ namespace buildIndex {
       result[i] = cluster.index;
     }
     delete []descs;
+    vl_kdforestsearcher_delete(kd_forest_searcher);
   }
 
 

@@ -13,7 +13,8 @@
 
 Updates:
  - 2 Aug. 2019: removed dependency on fastann for nearest neighbour search (Abhishek Dutta)
-
+ - 3 Dec. 2020: added methods for matching using query and image features
+                get_matches(), get_matches_using_query(), get_matches_using_features(), ...
 */
 
 #include "spatial_verif_v2.h"
@@ -145,22 +146,84 @@ spatialVerifV2::spatialQueryExecute(rr::indexEntry &queryRep,
   retriever::sortResults( queryRes, spatialDepthEff, toReturn );
 }
 
+void spatialVerifV2::get_matches_using_features(const std::string &image_features,
+                                                const uint32_t match_file_id,
+                                                homography &H,
+                                                std::vector< std::pair<ellipse,ellipse> > &matches ) const {
+  std::vector<ellipse> ellipses1, ellipses2;
+  matchesType putativeMatches;
 
+  rr::indexEntry queryRep;
+  bool parse_success = queryRep.ParseFromString(image_features);
+  if(!parse_success) {
+    return;
+  }
 
-void
-spatialVerifV2::getMatchesCore(
-                               query const &queryObj,
-                               uint32_t docID2,
-                               std::vector<ellipse> &ellipses1,
-                               std::vector<ellipse> &ellipses2,
-                               matchesType &putativeMatches) const{
+  // get matches
+  get_matches(queryRep, match_file_id, ellipses1, ellipses2, putativeMatches);
 
+  std::vector< std::pair<uint32_t,uint32_t> > inlierInds;
+  H.setIdentity();
+  uint32_t numInliers= 0;
+
+  // do matching
+  numInliers= 0;
+  detRansac::match(
+                   sameRandomObj_,
+                   numInliers,
+                   ellipses1, ellipses2,
+                   putativeMatches,
+                   NULL,
+                   spatParams_.errorThr,
+                   spatParams_.lowAreaChange, spatParams_.highAreaChange,
+                   spatParams_.maxReest,
+                   &H, &inlierInds
+                   );
+
+  convertMatchesToEllipses(ellipses1, ellipses2, inlierInds, matches);
+
+}
+
+void spatialVerifV2::get_matches_using_query(query const &queryObj,
+                                             const uint32_t match_file_id,
+                                             homography &H,
+                                             std::vector< std::pair<ellipse,ellipse> > &matches ) const {
+  rr::indexEntry queryRep;
+  getQueryRep(queryObj, queryRep);
+
+  std::vector<ellipse> ellipses1, ellipses2;
+  matchesType putativeMatches;
+  get_matches(queryRep, match_file_id, ellipses1, ellipses2, putativeMatches );
+
+  std::vector< std::pair<uint32_t,uint32_t> > inlierInds;
+  H.setIdentity();
+  uint32_t numInliers= 0;
+
+  // do matching
+  numInliers= 0;
+  detRansac::match(
+                   sameRandomObj_,
+                   numInliers,
+                   ellipses1, ellipses2,
+                   putativeMatches,
+                   NULL,
+                   spatParams_.errorThr,
+                   spatParams_.lowAreaChange, spatParams_.highAreaChange,
+                   spatParams_.maxReest,
+                   &H, &inlierInds
+                   );
+
+  convertMatchesToEllipses(ellipses1, ellipses2, inlierInds, matches);
+}
+
+void spatialVerifV2::get_matches(rr::indexEntry &queryRep,
+                                 const uint32_t match_file_id,
+                                 std::vector<ellipse> &ellipses1,
+                                 std::vector<ellipse> &ellipses2,
+                                 matchesType &putativeMatches) const{
   ellipses1.clear();
   ellipses2.clear();
   putativeMatches.clear();
-
-  rr::indexEntry queryRep;
-  getQueryRep(queryObj, queryRep);
 
   // following spatialQueryExecute and spatWorker::operator()
 
@@ -193,7 +256,7 @@ spatialVerifV2::getMatchesCore(
     docIDtoVerify.resize(spatialDepthEff);
     bool docID2InResults= false;
     for (uint32_t i= 0; i<spatialDepthEff; ++i){
-      docID2InResults= docID2InResults || (queryRes[i].first == docID2);
+      docID2InResults= docID2InResults || (queryRes[i].first == match_file_id);
       docIDtoVerify[i]= queryRes[i].first;
     }
     if (docID2InResults)
@@ -203,7 +266,7 @@ spatialVerifV2::getMatchesCore(
       // Include this block to force DAAT to visit the image
       // Note that this can happen when manually tweeking the query ROI in the details web page.
       docIDtoVerify.clear();
-      docIDtoVerify.push_back(docID2);
+      docIDtoVerify.push_back(match_file_id);
     }
   }
 
@@ -222,7 +285,7 @@ spatialVerifV2::getMatchesCore(
 
   // create DAAT iterator
   ueIter.reset();
-  daat daatIter(&ueIter, NULL, &docID2);
+  daat daatIter(&ueIter, NULL, &match_file_id);
 
 #endif
 
@@ -236,7 +299,7 @@ spatialVerifV2::getMatchesCore(
     if (!daatIter.getMatches(entryInd, nonEmptyEntryInd))
       continue;
 
-    if (daatIter.getDocID()==docID2){
+    if (daatIter.getDocID()==match_file_id){
       foundEntry= true;
       break;
     }
@@ -280,56 +343,35 @@ spatialVerifV2::convertMatchesToEllipses(
   }
 }
 
-
-
-void
-spatialVerifV2::getPutativeMatches(
-                                   query const &queryObj,
-                                   uint32_t docID2,
-                                   std::vector< std::pair<ellipse,ellipse> > &matches ) const {
-
+void spatialVerifV2::get_putative_matches_using_query(query const &queryObj,
+                                                      const uint32_t match_file_id,
+                                                      std::vector< std::pair<ellipse,ellipse> > &matches ) const {
   std::vector<ellipse> ellipses1, ellipses2;
   matchesType putativeMatches;
-  getMatchesCore(queryObj, docID2, ellipses1, ellipses2, putativeMatches );
 
+  rr::indexEntry queryRep;
+  getQueryRep(queryObj, queryRep);
+
+  get_matches(queryRep, match_file_id, ellipses1, ellipses2, putativeMatches );
   convertMatchesToEllipses(ellipses1, ellipses2, putativeMatches, matches);
 }
 
 
-
-void
-spatialVerifV2::getMatches(
-                           query const &queryObj,
-                           uint32_t docID2,
-                           homography &H,
-                           std::vector< std::pair<ellipse,ellipse> > &matches ) const {
-
+void spatialVerifV2::get_putative_matches_using_features(const std::string &image_features,
+                                                         const uint32_t match_file_id,
+                                                         std::vector< std::pair<ellipse,ellipse> > &matches ) const {
   std::vector<ellipse> ellipses1, ellipses2;
   matchesType putativeMatches;
-  getMatchesCore(queryObj, docID2, ellipses1, ellipses2, putativeMatches );
 
-  std::vector< std::pair<uint32_t,uint32_t> > inlierInds;
-  H.setIdentity();
-  uint32_t numInliers= 0;
+  rr::indexEntry queryRep;
+  bool parse_success = queryRep.ParseFromString(image_features);
+  if(!parse_success) {
+    return;
+  }
 
-  // do matching
-  numInliers= 0;
-  detRansac::match(
-                   sameRandomObj_,
-                   numInliers,
-                   ellipses1, ellipses2,
-                   putativeMatches,
-                   NULL,
-                   spatParams_.errorThr,
-                   spatParams_.lowAreaChange, spatParams_.highAreaChange,
-                   spatParams_.maxReest,
-                   &H, &inlierInds
-                   );
-
-  convertMatchesToEllipses(ellipses1, ellipses2, inlierInds, matches);
+  get_matches(queryRep, match_file_id, ellipses1, ellipses2, putativeMatches );
+  convertMatchesToEllipses(ellipses1, ellipses2, putativeMatches, matches);
 }
-
-
 
 void
 spatialVerifV2::createEllipses(rr::indexEntry &queryRep, std::vector<ellipse> &ellipses) const {

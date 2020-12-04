@@ -38,7 +38,6 @@ _via0.prototype._on_img_load = function(e) {
   container_css.push('border:none');
   this.c.setAttribute('style', container_css.join(';'));
   */
-  console.log('container.clientSize=' + this.c.clientWidth + 'x' + this.c.clientHeight)
   if(this.img.naturalHeight > this.c.clientHeight) {
     this.scale = this.img.naturalHeight / this.c.clientHeight;
     this.sheight = this.c.clientHeight;

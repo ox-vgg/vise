@@ -10,18 +10,22 @@ const std::vector<std::string> vise::project::d_preset_name_list = {
 //                                                                    "preset_conf_auto",
                                                                     "preset_conf_manual" };
 
+// used by vise-cli and others to initialize a new project using the
+// provided configuration filename
 vise::project::project(std::string pname,
                        std::string pconf_fn)
   : d_pname(pname),
     d_pconf_fn(pconf_fn),
     d_state(project_state::UNKNOWN),
-    d_is_index_load_ongoing(false)
+    d_is_index_load_ongoing(false),
+    d_is_metadata_ready(false),
+    d_app_dir_exists(false)
 {
   d_project_dir = boost::filesystem::path(d_pconf_fn).parent_path().parent_path();
   std::cout << "PRECONDITION: " << std::endl
-	    << "- the project configuration file is saved as $PROJECT_DIR/data/conf.txt" << std::endl
-	    << "- $PROJECT_DIR is the folder in which VISE will store all the project's data" << std::endl
-	    << "- $PROJECT_DIR=" << d_project_dir.string() << std::endl;
+            << "- the project configuration file is saved as $PROJECT_DIR/data/conf.txt" << std::endl
+            << "- $PROJECT_DIR=" << d_project_dir.string() << std::endl
+            << "- $PROJECT_DIR is the folder in which VISE will store all the project's data" << std::endl;
   if(d_pconf_fn.filename() != "conf.txt") {
     std::cout << "PRECONDITION FAILED: configuration filename must be conf.txt" << std::endl;
     d_state = project_state::INIT_FAILED;
@@ -60,12 +64,22 @@ vise::project::project(std::string pname,
     return;
   }
   state_update();
+
+  if(d_state == vise::project_state::SEARCH_READY) {
+    d_metadata = std::unique_ptr<vise::metadata>(new vise::metadata(d_pname, d_data_dir));
+    if(d_metadata->is_metadata_available()) {
+      d_is_metadata_ready = true;
+    }
+  }
 }
 
+// used by the web-ui to create a new project based only on name of the
+// project supplied by the user
 vise::project::project(std::string pname,
                        std::map<std::string, std::string> const &vise_conf)
   : d_pname(pname), d_conf(vise_conf), d_state(project_state::UNKNOWN),
-    d_is_index_load_ongoing(false)
+    d_is_index_load_ongoing(false),
+    d_app_dir_exists(false)
 {
   std::cout << "project(): constructing " << pname << " ..."
             << std::endl;
@@ -437,6 +451,8 @@ bool vise::project::init_project_data_dir(bool create_data_dir_if_missing) {
   d_image_dir     = d_project_dir / "image/";
   d_image_src_dir = d_project_dir / "image_src/";
   d_tmp_dir       = d_project_dir / "tmp/";
+  d_app_dir       = d_project_dir / "app/";
+  d_image_small_dir = d_project_dir / "image_small/";
 
   if(d_pconf.count("data_dir") == 1) {
     d_data_dir = boost::filesystem::path(d_pconf.at("data_dir"));
@@ -450,12 +466,28 @@ bool vise::project::init_project_data_dir(bool create_data_dir_if_missing) {
   if(d_pconf.count("tmp_dir") == 1) {
     d_tmp_dir = boost::filesystem::path(d_pconf.at("tmp_dir"));
   }
+  if(d_pconf.count("app_dir") == 1) {
+    d_app_dir = boost::filesystem::path(d_pconf.at("app_dir"));
+  }
+  if(d_pconf.count("image_small_dir") == 1) {
+    d_image_small_dir = boost::filesystem::path(d_pconf.at("image_small_dir"));
+  }
 
   // convert the trailing path-separator to platform specific character
   d_data_dir.make_preferred();
   d_image_dir.make_preferred();
   d_image_src_dir.make_preferred();
   d_tmp_dir.make_preferred();
+
+  // handle missing dirs
+  if(!boost::filesystem::exists(d_image_small_dir)) {
+    d_image_small_dir = d_image_dir;
+  }
+  if(boost::filesystem::exists(d_app_dir)) {
+    d_app_dir_exists = true;
+  }
+  d_image_small_dir.make_preferred();
+  d_app_dir.make_preferred();
 
   if(create_data_dir_if_missing) {
     try {
@@ -465,7 +497,8 @@ bool vise::project::init_project_data_dir(bool create_data_dir_if_missing) {
       boost::filesystem::create_directories(d_tmp_dir);
       return true;
     } catch(std::exception &ex) {
-      std::cout << "project(): failed to create project data directories: " << ex.what() << std::endl;
+      std::cout << "project(): failed to create project data directories: "
+                << ex.what() << std::endl;
       return false;
     }
   } else {
@@ -637,7 +670,7 @@ uint32_t vise::project::fid_count() const {
   }
 }
 
-uint32_t vise::project::fid(std::string filename) const {
+uint32_t vise::project::fid(const std::string filename) const {
   if(d_search_engine) {
     return d_search_engine->fid(filename);
   } else {
@@ -645,7 +678,7 @@ uint32_t vise::project::fid(std::string filename) const {
   }
 }
 
-std::string vise::project::filename(uint32_t fid) const {
+std::string vise::project::filename(const uint32_t fid) const {
   if(d_search_engine) {
     return d_search_engine->filename(fid);
   } else {
@@ -664,6 +697,14 @@ uint32_t vise::project::image_src_count() const {
   return count;
 }
 
+bool vise::project::pconf_is_set(std::string key) {
+  if(d_pconf.count(key)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 std::string vise::project::pconf(std::string key) {
   if(d_pconf.count(key)) {
     return d_pconf.at(key);
@@ -680,8 +721,110 @@ std::string vise::project::pconf(std::string key) {
     if(key == "tmp_dir") {
       return d_tmp_dir.string();
     }
+    if(key == "image_small_dir") {
+      return d_image_small_dir.string();
+    }
+    if(key == "app_dir") {
+      return d_app_dir.string();
+    }
+
     std::ostringstream ss;
     ss << "_UNKNOWN_" << key;
     return ss.str();
+  }
+}
+
+//
+// filelist search
+//
+void vise::project::file_metadata_full_text_search(const std::string query, std::vector<uint32_t> &flist) const {
+  if(d_is_metadata_ready) {
+    d_metadata->file_metadata_full_text_search(query, flist);
+  }
+}
+
+void vise::project::file_metadata_full_text_search_group_stat(const std::string query,
+                                                              const std::string groupby,
+                                                              std::map<std::string, uint32_t> &group_stat) const {
+  if(d_is_metadata_ready) {
+    d_metadata->file_metadata_full_text_search_group_stat(query, groupby, group_stat);
+  }
+}
+
+void vise::project::file_metadata_as_json(const uint32_t file_id,
+                                          std::ostringstream &json) const {
+  if(d_is_metadata_ready) {
+    d_metadata->file_metadata_as_json(file_id, json);
+  }
+}
+
+void vise::project::region_metadata_as_json(const uint32_t file_id,
+                                            std::ostringstream &json) const {
+  if(d_is_metadata_ready) {
+    d_metadata->region_metadata_as_json(file_id, json);
+  }
+}
+
+void vise::project::metadata_conf_as_json(std::ostringstream &json) const {
+  if(d_is_metadata_ready) {
+    d_metadata->metadata_conf_as_json(json);
+  }
+}
+
+void vise::project::error_metadata_not_available() const {
+  std::cout << "vise::metadata is not available" << std::endl;
+}
+
+void vise::project::file_attribute_name_list(std::vector<std::string> &file_attribute_name_list) const {
+  if(d_is_metadata_ready) {
+    d_metadata->file_attribute_name_list(file_attribute_name_list);
+  }
+}
+
+void vise::project::metadata_group_stat(const std::string groupby,
+                                        std::map<std::string, uint32_t> &group_stat) const {
+  if(d_is_metadata_ready) {
+    d_metadata->metadata_group_stat(groupby, group_stat);
+  }
+}
+
+void vise::project::metadata_groupby(const std::string groupby,
+                                     const std::string group,
+                                     std::vector<uint32_t> &flist) const {
+  if(d_is_metadata_ready) {
+    d_metadata->metadata_groupby(groupby, group, flist);
+  }
+}
+
+//
+// search using image features (e.g. using external image)
+//
+void vise::project::extract_image_features(const std::string &image_data,
+                                           std::string &image_features) const {
+  if(index_is_loaded()) {
+    return d_search_engine->extract_image_features(image_data, image_features);
+  }
+}
+void vise::project::index_search_using_features(const std::string &image_features,
+                                                      std::vector<vise::search_result> &r) const {
+  if (d_search_engine) {
+    d_search_engine->index_search_using_features(image_features, r);
+  }
+}
+
+
+void vise::project::index_get_feature_match_details(const std::string &image_features,
+                                                    const uint32_t match_file_id,
+                                                    std::ostringstream &json) const {
+  if (d_search_engine) {
+    d_search_engine->index_feature_match(image_features, match_file_id, json);
+  }
+}
+
+void vise::project::register_external_image(const std::string &image_data,
+                                            uint32_t file2_id,
+                                            std::array<double, 9> &H) const {
+  if (d_search_engine) {
+    d_search_engine->register_external_image(image_data, file2_id, H);
   }
 }

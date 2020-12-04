@@ -16,9 +16,12 @@ include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/retriev
 add_library(vise_util STATIC vise_util.cc)
 add_library(task_progress STATIC task_progress.cc)
 
+add_library(metadata STATIC metadata.cc)
+target_link_libraries(metadata SQLite::SQLite3)
+
 add_library(search_engine STATIC search_engine.cc)
 add_library(project STATIC project.cc)
-target_link_libraries(project search_engine vise_util relja_retrival)
+target_link_libraries(project search_engine vise_util relja_retrival metadata)
 
 add_library(http_request STATIC http_request.cc)
 add_library(http_response STATIC http_response.cc)

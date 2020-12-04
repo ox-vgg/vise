@@ -185,7 +185,10 @@ namespace buildIndex {
   class buildManagerSemiSorted : public managerWithTiming<buildResultSemiSorted> {
   public:
 
-    buildManagerSemiSorted(uint32_t numDocs, std::string const dsetFn, std::ofstream &logf, vise::task_progress *progress)
+    buildManagerSemiSorted(uint32_t numDocs,
+                           std::string const dsetFn,
+                           std::ofstream &logf,
+                           vise::task_progress *progress)
       : managerWithTiming<buildResultSemiSorted>(numDocs, "index::buildManagerSemiSorted", &logf),
         dsetBuilder_(dsetFn),
         nextID_(0),
@@ -193,8 +196,7 @@ namespace buildIndex {
         d_progress(progress)
     {}
 
-    void
-    compute( uint32_t jobID, buildResultSemiSorted &result );
+    void compute( uint32_t jobID, buildResultSemiSorted &result );
 
   private:
     datasetBuilder dsetBuilder_;
@@ -213,7 +215,7 @@ namespace buildIndex {
     // make sure results are saved sorted by job/docID!
     results_[jobID]= result;
     if(result.second.first == 0 && result.second.second == 0) {
-      (*d_logf) << "index:: DISCARD=" << result.first << ", REASON=invalid image" << std::endl;
+      (*d_logf) << "index:: SKIPPED=" << result.first << ", REASON=either image is malformed (i.e. widht or height is 0) or there are no features." << std::endl;
     }
 
     if (jobID==nextID_){
@@ -431,6 +433,7 @@ namespace buildIndex {
 
     // cleanup
     delete []descs;
+    vl_kdforestsearcher_delete(kd_forest_searcher);
 
     // protobufs are not designed for more
     if (indexEntry_.ByteSize() + static_cast<int>(emb_->getByteSize()) > semiSortedProtoByteSizeLim)

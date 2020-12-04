@@ -28,6 +28,8 @@ No usage or redistribution is allowed without explicit permission.
 #include <vl/generic.h>
 #include <vl/kdtree.h>
 
+#include <boost/filesystem.hpp>
+#include <Magick++.h>
 
 class retrieverV2 : public retriever {
     
@@ -67,6 +69,8 @@ class retrieverV2 : public retriever {
         virtual void
             externalQuery_computeData( std::string imageFn, query const &queryObj ) const;
         
+        virtual void extract_image_features(const std::string &image_data, std::string &image_features) const;
+
         virtual uint32_t
             numDocs() const =0;
         

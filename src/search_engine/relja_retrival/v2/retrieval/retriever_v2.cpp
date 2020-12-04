@@ -120,6 +120,149 @@ retrieverV2::getQueryRep( query const &queryObj, rr::indexEntry &queryRep ) cons
 }
 
 
+void retrieverV2::extract_image_features(const std::string &image_data, std::string &image_features) const {
+  ASSERT( featGetter_!=NULL );
+
+  // write image to temporary file because featGetter_->getFeats()
+  // only works on image files
+  // @todo: to speed up, upgrade featGetter_->getFeats() to operate on image data instead
+  boost::filesystem::path tmpdir = boost::filesystem::temp_directory_path();
+  boost::filesystem::path tmpfn = tmpdir / boost::filesystem::unique_path("vise_upload_image_%%%%%%%%%%%%%%%%.jpg");
+  std::string upload_tmp_fn = tmpfn.string();
+
+  // compute features
+  uint32_t numFeats;
+  std::vector<ellipse> regions;
+  float *descs;
+
+  try {
+    Magick::Blob image_blob(static_cast<const void *>(image_data.c_str()), image_data.size());
+    Magick::Image im(image_blob);
+    im.quiet(true); // to supress warnings
+    im.magick("JPEG");
+    // image resize cannot be done because the user displays everything in original image space
+    //Magick::Geometry img_size("800x800+0+0>"); // resize to ensure max. size 800x800
+    //im.resize(img_size);
+    im.write(upload_tmp_fn);
+    im.quiet(false);
+
+    featGetter_->getFeats(upload_tmp_fn.c_str(), numFeats, regions, descs);
+
+    // cleanup
+    if(boost::filesystem::exists(tmpfn)) {
+      boost::filesystem::remove(tmpfn);
+    }
+    if (numFeats==0){
+      delete []descs;
+      return;
+    }
+  } catch(std::exception &ex) {
+    std::cout << "retrieverV2::extract_image_features() : failed to save user uploaded image file" << std::endl;
+
+    // cleanup
+    if(boost::filesystem::exists(tmpfn)) {
+      boost::filesystem::remove(tmpfn);
+    }
+    return;
+  }
+
+  // get visual words
+  static const unsigned int KNN= 3;
+
+  // prepare memory
+  rr::indexEntry queryRep0;
+  google::protobuf::RepeatedField<uint32_t> *wordIDs0= queryRep0.mutable_id();
+  google::protobuf::RepeatedField<float> *x0= queryRep0.mutable_x();
+  google::protobuf::RepeatedField<float> *y0= queryRep0.mutable_y();
+  google::protobuf::RepeatedField<float> *a0= queryRep0.mutable_a();
+  google::protobuf::RepeatedField<float> *b0= queryRep0.mutable_b();
+  google::protobuf::RepeatedField<float> *c0= queryRep0.mutable_c();
+  wordIDs0->Reserve( numFeats * KNN );
+  x0->Reserve( numFeats * KNN );
+  y0->Reserve( numFeats * KNN );
+  a0->Reserve( numFeats * KNN );
+  b0->Reserve( numFeats * KNN );
+  c0->Reserve( numFeats * KNN );
+  embedder *emb0= embFactory_->getEmbedder();
+  emb0->reserve( numFeats * KNN );
+
+  VlKDForestSearcher* kd_forest_searcher = vl_kdforest_new_searcher(kd_forest_);
+  std::vector<VlKDForestNeighbor> cluster(KNN);
+  uint32_t const numDims= featGetter_->numDims();
+  float *residual= new float[numDims];
+
+
+  for (uint32_t iFeat=0; iFeat<numFeats; ++iFeat){
+
+    // assign to clusters
+    vl_kdforestsearcher_query(kd_forest_searcher, cluster.data(), KNN, (descs + iFeat*numDims));
+
+    ellipse const &region= regions[iFeat];
+
+    for (uint32_t i= 0; i<KNN; ++i){
+      wordIDs0->AddAlreadyReserved( cluster[i].index );
+      x0->AddAlreadyReserved( region.x );
+      y0->AddAlreadyReserved( region.y );
+      a0->AddAlreadyReserved( region.a );
+      b0->AddAlreadyReserved( region.b );
+      c0->AddAlreadyReserved( region.c );
+
+      if (emb0->doesSomething()){
+        // due to KNN need to make a copy
+        float const *itD= descs+iFeat*numDims;
+        float const *itC= clstCentres_->clstC_flat + cluster[i].index * numDims;
+        float const *endC= itC + numDims;
+        float *itResidual= residual;
+        for (; itC!=endC; ++itC, ++itD, ++itResidual)
+          *itResidual= *itD - *itC;
+        emb0->add(residual, cluster[i].index);
+      }
+    }
+
+  }
+
+  // cleanup
+  cluster.clear();
+  delete []descs;
+  delete []residual;
+  vl_kdforestsearcher_delete(kd_forest_searcher);
+
+  // sort IDs
+  std::vector<uint32_t> inds;
+  argSortArray<uint32_t>::sort( queryRep0.id().data(), numFeats * KNN, inds );
+
+  // apply the sort
+  rr::indexEntry queryRep= queryRep0; // to get all repeated field sizes correctly
+  uint32_t *wordIDs= queryRep.mutable_id()->mutable_data();
+  float *x= queryRep.mutable_x()->mutable_data();
+  float *y= queryRep.mutable_y()->mutable_data();
+  float *a= queryRep.mutable_a()->mutable_data();
+  float *b= queryRep.mutable_b()->mutable_data();
+  float *c= queryRep.mutable_c()->mutable_data();
+  uint32_t size= wordIDs0->size();
+  embedder *emb= embFactory_->getEmbedder();
+  emb->reserve(numFeats * KNN);
+
+  for (uint32_t i= 0; i<size; ++i, ++wordIDs, ++x, ++y, ++a, ++b, ++c){
+    uint32_t ind= inds[i];
+    *wordIDs= wordIDs0->Get(ind);
+    *x= x0->Get(ind);
+    *y= y0->Get(ind);
+    *a= a0->Get(ind);
+    *b= b0->Get(ind);
+    *c= c0->Get(ind);
+    emb->copyFrom(*emb0, ind);
+  }
+  delete emb0;
+
+  // dump extra data into indexEntry_
+  if (emb->getByteSize()>0)
+    queryRep.set_data( emb->getEncoding() );
+  delete emb;
+
+  // save features to string
+  queryRep.SerializeToString(&image_features);
+}
 
 void
 retrieverV2::externalQuery_computeData( std::string imageFn, query const &queryObj ) const {
@@ -216,6 +359,7 @@ retrieverV2::externalQuery_computeData( std::string imageFn, query const &queryO
   cluster.clear();
   delete []descs;
   delete []residual;
+  vl_kdforestsearcher_delete(kd_forest_searcher);
 
   // sort IDs
   std::vector<uint32_t> inds;

@@ -9,6 +9,7 @@
 
 #include <string>
 #include <map>
+#include <unordered_map>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -29,9 +30,17 @@
 */
 
 namespace vise {
+  // command line interface (CLI)
+  bool parse_cli_args(int argc, char **argv,
+                      std::unordered_map<std::string, std::string> &cli_args,
+                      std::unordered_map<std::string, std::string> &pname_pconf_list);
+
   // VISE settings
   void init_vise_settings_comments(std::map<std::string, std::string> &vise_settings);
   void init_vise_settings(std::map<std::string, std::string> &vise_settings);
+  bool does_vise_home_and_store_exist(std::map<std::string, std::string> &vise_settings);
+  bool create_vise_home_and_store(std::map<std::string, std::string> &vise_settings);
+  void init_default_vise_settings(std::map<std::string, std::string> &vise_settings);
 
   // VISE configuration
   bool configuration_load(std::string filename,
@@ -58,6 +67,7 @@ namespace vise {
                      std::map<std::string, std::string>& uri_param);
   void parse_urlencoded_form(const std::string &formdata_str,
                              std::map<std::string, std::string>& formdata);
+  void escape_string(std::string &in, char match_char, std::string replace_match_with);
 
   // file
   bool file_load(const boost::filesystem::path fn,
@@ -69,7 +79,7 @@ namespace vise {
   // URI decoding
   // e.g. "http%3A%2F%2Ffoo%20bar%2F" -> "http://foo bar/"
   bool url_decode(const std::string& in, std::string& out);
-
+  bool decode_uri_query_param(const std::string& in, std::string& out); // '+' is decoded as space ' '
   std::string json_escape_str(const std::string &in);
 
   // print

@@ -144,7 +144,8 @@ namespace indexEntryUtil {
   public:
     static void sort( rr::indexEntry const &toSort, std::vector<unsigned int> &inds ){
       inds.clear(); inds.reserve( toSort.id_size() );
-      for (unsigned int i=0; i < toSort.id_size(); ++i) {
+      unsigned int toSort_id_size = (unsigned int) toSort.id_size();
+      for (unsigned int i=0; i < toSort_id_size; ++i) {
         inds.push_back( i );
       }
       argSort argSorter( toSort );

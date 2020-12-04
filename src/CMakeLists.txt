@@ -6,7 +6,7 @@
 ## 12 Nov. 2019
 ##
 
-cmake_minimum_required( VERSION 3.10 )
+cmake_minimum_required( VERSION 3.14 )
 
 project(vise)
 
@@ -116,6 +116,9 @@ include_directories( ${EIGEN3_INCLUDE_DIR} )
 # @todo: remove dependency on absolute path
 include_directories( ${VLFEAT_INCLUDE_DIR})
 
+## sqlite
+find_package(SQLite3)
+
 message("Boost_LIBRARY_DIRS: " ${Boost_LIBRARY_DIRS})
 message("Boost_INCLUDE_DIRS: " ${Boost_INCLUDE_DIRS})
 message("ImageMagick_LIBRARIES: " ${ImageMagick_LIBRARIES})
@@ -125,6 +128,8 @@ message("Protobuf_LIBRARIES: " ${Protobuf_LIBRARIES} )
 message("EIGEN3_INCLUDE_DIR: " ${EIGEN3_INCLUDE_DIR} )
 message("VLFEAT_LIB: " ${VLFEAT_LIB} )
 message("VLFEAT_INCLUDE_DIR: " ${VLFEAT_INCLUDE_DIR} )
+message("SQLite3_INCLUDE_DIRS: " ${SQLite3_INCLUDE_DIRS} )
+message("SQLite3_LIBRARIES: " ${SQLite3_LIBRARIES} )
 message("CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
 message("VISE_SOURCE_ROOT_DIR: " ${VISE_SOURCE_ROOT_DIR} )
 

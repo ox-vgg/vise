@@ -36,3 +36,19 @@ function _vise_sanitize_rect(x0, y0, x1, y1) {
     }
   }
 }
+
+function _vise_set_project_pagetools(container, pagename) {
+  var filelist_icon = _vise_common_get_svg_button('micon_grid', 'View list of all files in this project');
+  var filelist_link = document.createElement('a');
+  filelist_link.setAttribute('href', 'filelist');
+  filelist_link.appendChild(filelist_icon);
+
+  var external_search_icon = _vise_common_get_svg_button('micon_image_search', 'Search using your image');
+  var external_search_link = document.createElement('a');
+  external_search_link.setAttribute('href', 'external_search');
+  external_search_link.appendChild(external_search_icon);
+
+  container.innerHTML = '';
+  container.appendChild(filelist_link);
+  container.appendChild(external_search_link);
+}

@@ -241,7 +241,7 @@ registerImages::registerFromQuery(
         const char *fullSizeFn1, const char *fullSizeFn2 ) {
     homography H;
     std::vector< std::pair<ellipse,ellipse> > matches;
-    spatialRetriever_obj.getMatches( query_obj, docID2, H, matches );
+    spatialRetriever_obj.get_matches_using_query( query_obj, docID2, H, matches );
     std::string image_fn1= inFn1;
     if (query_obj.isInternal)
         image_fn1= datasetObj.getFn( query_obj.docID );

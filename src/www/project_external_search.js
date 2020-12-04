@@ -1,9 +1,12 @@
 /**
  *
- * @desc code to build HTML user interface for /{PNAME}/showmatch endpoint
+ * @desc code to build HTML user interface for /{PNAME}/external_search endpoint
  * @author Abhishek Dutta <adutta@robots.ox.ac.uk>
- * @date 13 Feb. 2020
+ * @date 02 Dec. 2020
  *
+ * todo: create a module based on functionality of project_showmatch.js and reuse it
+ *       in project_external_search.js and project_search.js. The current code is not
+ *       most easy to understand and debug. (3 Dec. 2020)
  */
 'use strict'
 
@@ -23,21 +26,44 @@ toolbar.appendChild(pageinfo);
 
 var content = document.createElement('div');
 content.setAttribute('id', 'content');
-var querymatch_panel = document.createElement('div');
-querymatch_panel.setAttribute('class', 'querymatch_panel');
-content.appendChild(querymatch_panel);
 
+// for file upload
+var upload_container = document.createElement('div');
+upload_container.setAttribute('class', 'upload_container');
+var upload_panel = document.createElement('div');
+upload_panel.setAttribute('class', 'upload_panel');
+var progress_panel = document.createElement('div');
+progress_panel.setAttribute('class', 'progress_panel');
+var progress = document.createElement('progress');
+progress.setAttribute('max', '3');
+progress.setAttribute('value', '0');
+var progress_message = document.createElement('p');
+progress_panel.appendChild(progress);
+progress_panel.appendChild(progress_message);
+upload_container.appendChild(upload_panel);
+//upload_container.appendChild(progress_panel); // added after user uploads an image
+content.appendChild(upload_container);
+
+// for external search results
+var query_panel = document.createElement('div');
+query_panel.setAttribute('class', 'query_panel');
+content.appendChild(query_panel);
+var results_panel = document.createElement('div');
+results_panel.setAttribute('class', 'results_panel');
+content.appendChild(results_panel);
+var _vise_external_search = {};
+
+
+// for match details
+var querymatch_panel = document.createElement('div');
+querymatch_panel.setAttribute('class', 'querymatch_panel hide');
+content.appendChild(querymatch_panel);
 var toggle_panel = document.createElement('div');
 toggle_panel.setAttribute('class', 'toggle_panel');
 content.appendChild(toggle_panel);
-
 var match_panel = document.createElement('div');
 match_panel.setAttribute('class', 'match_panel');
 content.appendChild(match_panel);
-
-document.body.appendChild(toolbar);
-document.body.appendChild(content);
-
 var query_img;
 var match_img;
 var toggle_canvas;
@@ -58,9 +84,30 @@ var mouse_move_count = 0;
 var toggle_canvas_timer;
 var feature_type = 'matches'; // {matches, putative}
 
+document.body.appendChild(toolbar);
+document.body.appendChild(content);
+
+var showing_result_from = 0;
+var showing_result_to = 0;
+const SHOW_SIZE = 5;
+var current_score_threshold = 0;
+var current_norm_score_threshold = 0.07;
+var next_norm_score_threshold = 0.05;
+
+var selected_file = null;
+var selected_file_object_url = null;
+var selected_file_features = null;
+var selected_image_dim = [-1, -1];
+
+var _vise_match_details_file_id = null;
+
+var results = document.createElement('div');
+results.setAttribute('class', 'resultgrid');
+//results.setAttribute('class', 'resultlist');
+
 // update the search result when browser is resized
 // this is required as the image size changes and hence the bounding box needs update
-window.addEventListener('resize', _vise_init_show_match_ui);
+//window.addEventListener('resize', _vise_init_search_result_ui);
 
 // check existence of everything we need
 if( !_vise_self_check_is_ok()) {
@@ -75,25 +122,418 @@ if( !_vise_self_check_is_ok()) {
   pname.appendChild(pname_link);
 
   document.title = _vise_data.PNAME;
-  _vise_init_show_match_ui();
+  _vise_init_external_search_result_ui();
 }
 
 function _vise_self_check_is_ok() {
-  if( typeof(_vise_data.PNAME) === 'string' &&
-      typeof(_vise_data.QUERY) === 'object' &&
-      typeof(_vise_data.MATCH) === 'object'
-    ) {
+  if( typeof(_vise_data) === 'object' ) {
     return true;
   }
   return false;
 }
 
-function _vise_init_show_match_ui() {
+function _vise_init_external_search_result_ui() {
   _vise_set_project_pagetools(pagetools);
+  _vise_show_search_result_toolbar();
+  _vise_show_local_file_uploader();
+}
+
+function _vise_show_search_results() {
+  pageinfo.innerHTML = '';
+  upload_container.innerHTML = '';
+  query_panel.innerHTML = '';
+  results_panel.innerHTML = '';
+  querymatch_panel.classList.add('hide');
+
+  _vise_show_search_query_content();
+  _vise_show_search_result_content();
+}
+
+function _vise_show_search_result_toolbar() {
+  pageinfo.innerHTML = '';
+}
+
+function _vise_show_local_file_uploader() {
+  upload_panel.innerHTML = '';
+
+  var title = document.createElement('h3');
+  title.innerHTML = 'Search using you image'
+  var file_selector = document.createElement('input');
+  file_selector.setAttribute('type', 'file');
+  file_selector.setAttribute('accept', 'image/*');
+  file_selector.addEventListener('change', function(e) {
+    selected_file = e.target.files[0];
+    selected_file_object_url = URL.createObjectURL(selected_file);
+    var selected_image = document.createElement('img');
+    selected_image.addEventListener('load', function(e) {
+      selected_image_dim = [this.naturalWidth, this.naturalHeight];
+      console.log(selected_image_dim);
+    });
+    selected_image.src = selected_file_object_url;
+    selected_image.setAttribute('title', selected_file.name);
+    upload_panel.innerHTML = '';
+    upload_panel.appendChild(selected_image);
+
+    upload_container.appendChild(progress_panel);
+    progress.setAttribute('value', '1');
+    var file_size = (selected_file.size/1024).toFixed(1);
+    progress_message.innerHTML = 'Uploading image ' + selected_file.name + ' (' + file_size + ' KB) ...';
+    _vise_extract_features();
+  });
+  upload_panel.appendChild(title);
+  upload_panel.appendChild(file_selector);
+}
+
+function _vise_extract_features() {
+  var xhr = new XMLHttpRequest();
+  xhr.responseType = "blob";
+  xhr.addEventListener('load', function(e) {
+    switch(xhr.statusText) {
+    case 'OK':
+      progress.setAttribute('value', '2');
+      progress_message.innerHTML = 'Image features extracted ...';
+      selected_file_features = this.response;
+      console.log(selected_file_features);
+      _vise_search_features();
+      break;
+    default:
+      progress_message.innerHTML('Error: malformed response from VISE server. (' + this.response + ')');
+    }
+  });
+  xhr.addEventListener('timeout', function(e) {
+    progress_message.innerHTML = 'Timeout waiting for response from server';
+  });
+  xhr.addEventListener('error', function(e) {
+    progress_message.innerHTML = 'Error waiting for response from server';
+  });
+  xhr.open('POST', '_extract_image_features');
+  xhr.send(selected_file);
+}
+
+function _vise_search_features() {
+  var xhr = new XMLHttpRequest();
+  xhr.responseType = "application/json";
+  xhr.addEventListener('load', function(e) {
+    switch(xhr.statusText) {
+    case 'OK':
+      progress.setAttribute('value', '3');
+      progress_message.innerHTML = 'Finished searching using image features.';
+      _vise_external_search = JSON.parse(this.response);
+      _vise_external_search.QUERY = {'file_id':'Uploaded',
+                          'filename':selected_file.name,
+                          'x':0, 'y':0, 'width':selected_image_dim[0], 'height':selected_image_dim[1]};
+      console.log(_vise_data);
+      upload_container.innerHTML = '';
+      _vise_show_search_results();
+      break;
+    default:
+      progress_message.innerHTML('Error: malformed response from VISE server. (' + this.response + ')');
+    }
+  });
+  xhr.addEventListener('timeout', function(e) {
+    progress_message.innerHTML = 'Timeout waiting for response from server';
+  });
+  xhr.addEventListener('error', function(e) {
+    progress_message.innerHTML = 'Error waiting for response from server';
+  });
+  xhr.open('POST', '_search_using_features');
+  xhr.send(selected_file_features);
+}
+
+function _vise_show_search_query_content() {
+  var query = document.createElement('div');
+  query.setAttribute('class', 'query');
+  var qimgcontainer = document.createElement('div');
+  qimgcontainer.setAttribute('class', 'img_with_region');
+  var qimg = document.createElement('img');
+  qimg.setAttribute('src', selected_file_object_url);
+  qimg.addEventListener('load', _vise_on_img_load_show_query_rshape);
+  var qlabel = document.createElement('p');
+  var qhref = selected_file.name + ' (uploaded)';
+  qlabel.innerHTML = 'Query: ' + qhref;
+  qimgcontainer.appendChild(qimg);
+  query.appendChild(qimgcontainer);
+  query.appendChild(qlabel);
+
+  query_panel.innerHTML = '';
+  query_panel.appendChild(query);
+}
+
+function _vise_on_img_load_show_query_rshape(e) {
+  var scale = e.target.height / e.target.naturalHeight;
+  var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
+  var svg_css = [];
+  svg_css.push('position:absolute');
+  svg_css.push('-webkit-user-select:none;-moz-user-select:none;user-select:none');
+  svg_css.push('top:0');
+  svg_css.push('left:0');
+  svg_css.push('height:' + e.target.height + 'px');
+  svg_css.push('width:' + e.target.width + 'px');
+  svg_css.push('fill:none');
+  svg_css.push('stroke:yellow');
+  svg_css.push('stroke-width:2');
+  svg.setAttribute('style', svg_css.join(';'));
+
+  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+  rshape.setAttribute('x', Math.floor(_vise_external_search.QUERY['x'] * scale));
+  rshape.setAttribute('y', Math.floor(_vise_external_search.QUERY['y'] * scale));
+  rshape.setAttribute('width', Math.floor(_vise_external_search.QUERY['width'] * scale));
+  rshape.setAttribute('height', Math.floor(_vise_external_search.QUERY['height'] * scale));
+  svg.appendChild(rshape);
+
+  e.target.parentNode.appendChild(svg);
+}
+
+function _vise_show_search_result_nomatch_found() {
+  var nomatches = document.createElement('div');
+  nomatches.setAttribute('id', 'nomatches');
+  nomatches.innerHTML = 'No matches found';
+  results.appendChild(nomatches);
+
+  showing_result_from = -1;
+  showing_result_to   = -1;
+}
+
+function _vise_show_search_result_content() {
+  results_panel.innerHTML = '';
+  var result_title = document.createElement('h3');
+  result_title.innerHTML = 'Search Results';
+  results_panel.appendChild(result_title);
+
+  results.innerHTML = '';
+  if(_vise_external_search.RESULT.length === 0) {
+    // indicates only match to itself or no match at all
+    _vise_show_search_result_nomatch_found();
+    return;
+  }
+
+  if(_vise_external_search.RESULT.length < 5) {
+    // show all results
+    for( var i=0; i<_vise_external_search.RESULT.length; ++i) {
+      var a = _vise_search_result_html_element(i);
+      results.appendChild(a);
+    }
+  } else {
+    showing_result_from = 0; // discard first result which corresponds to the query image
+    showing_result_to = Math.min(showing_result_from + SHOW_SIZE, _vise_external_search.RESULT.length);
+    for( var i=showing_result_from; i<showing_result_to; ++i) {
+      var a = _vise_search_result_html_element(i);
+      results.appendChild(a);
+    }
+    if(showing_result_to < (_vise_external_search.RESULT.length - 1)) {
+      // more results remaining to show
+      var showmore = document.createElement('div');
+      showmore.setAttribute('id', 'showmore');
+      var info = document.createElement('p');
+      info.innerHTML = 'Showing results from 1 to ' + showing_result_to + '.';
+      var more = document.createElement('p');
+      more.innerHTML = '<span class="text_button" onclick="_vise_show_more_search_results()">Show ' + SHOW_SIZE + ' more</span>';
+      showmore.appendChild(info);
+      showmore.appendChild(more);
+      results.appendChild(showmore);
+    }
+  }
+
+  results_panel.appendChild(results);
+  _vise_search_set_view_style();
+}
+
+function _vise_search_result_html_element(result_index) {
+  var a = document.createElement('a');
+  a.setAttribute('data-rindex', result_index)
+  a.setAttribute('title', _vise_external_search.RESULT[result_index]['filename'] + ', score=' + _vise_external_search.RESULT[result_index]['score'].toFixed(1));
+  a.setAttribute('onclick', '_vise_get_feature_match_details(' + _vise_external_search.RESULT[result_index]['file_id'] + ')');
+
+  var img = document.createElement('img');
+  img.setAttribute('src', 'image/' + _vise_external_search.RESULT[result_index]['filename']);
+  img.setAttribute('data-rindex', result_index);
+  img.addEventListener('load', _vise_on_img_load_show_result_rshape);
+  a.appendChild(img);
+
+  if(results.classList.contains('resultgrid')) {
+    return a;
+  }
+  if(results.classList.contains('resultlist')) {
+    var div = document.createElement('div');
+    div.setAttribute('class', 'item');
+    a.setAttribute('title', 'Click to show details of match');
+    div.appendChild(a);
+
+    var table = document.createElement('table');
+    var tr0 = document.createElement('tr');
+    var td01 = document.createElement('td');
+    td01.innerHTML = 'Rank';
+    var td02 = document.createElement('td');
+    td02.innerHTML = result_index + 1;
+    tr0.appendChild(td01);
+    tr0.appendChild(td02);
+    table.appendChild(tr0);
+
+    var tr1 = document.createElement('tr');
+    var td11 = document.createElement('td');
+    td11.innerHTML = 'Filename';
+    var td12 = document.createElement('td');
+    td12.innerHTML = '<a href="file?file_id=' + _vise_external_search.RESULT[result_index]['file_id'] + '">' + _vise_external_search.RESULT[result_index]['filename'] + '</a>';
+    tr1.appendChild(td11);
+    tr1.appendChild(td12);
+    table.appendChild(tr1);
+
+    var tr2 = document.createElement('tr');
+    var td21 = document.createElement('td');
+    td21.innerHTML = 'Score';
+    var td22 = document.createElement('td');
+    td22.innerHTML = _vise_external_search.RESULT[result_index]['score'];
+    tr2.appendChild(td21);
+    tr2.appendChild(td22);
+    table.appendChild(tr2);
+    div.appendChild(table);
+
+    return div;
+  }
+}
+
+function _vise_show_more_search_results() {
+  var showmore = document.getElementById('showmore');
+  results.removeChild(showmore);
+
+  showing_result_from = showing_result_to;
+  showing_result_to = Math.min(showing_result_from + SHOW_SIZE, _vise_external_search_result.RESULT.length);
+  for( var i=showing_result_from; i<showing_result_to; ++i) {
+    var a = _vise_search_result_html_element(i);
+    results.appendChild(a);
+  }
+  if(showing_result_to < (_vise_external_search.RESULT.length - 1)) {
+    // more results remaining to show
+    var showmore = document.createElement('div');
+    showmore.setAttribute('id', 'showmore');
+    var info = document.createElement('p');
+    info.innerHTML = 'Showing results from 1 to ' + showing_result_to + ' (of ' + _vise_external_search.RESULT.length + ').';
+    var more = document.createElement('p');
+    more.innerHTML = '<span class="text_button" onclick="_vise_show_more_search_results()">Show ' + SHOW_SIZE + ' more</span>';
+    showmore.appendChild(info);
+    showmore.appendChild(more);
+    results.appendChild(showmore);
+  }
+}
+
+function _vise_get_feature_match_details(match_file_id) {
+  _vise_match_details_file_id = match_file_id;
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener('load', function(e) {
+    switch(xhr.statusText) {
+    case 'OK':
+      _vise_data = JSON.parse(this.response);
+      _vise_data['QUERY'] = _vise_external_search.QUERY;
+      _vise_show_match();
+      console.log(_vise_match);
+      break;
+    default:
+      progress_message.innerHTML('Error: malformed response from VISE server. (' + this.response + ')');
+    }
+  });
+  xhr.addEventListener('timeout', function(e) {
+    progress_message.innerHTML = 'Timeout waiting for response from server';
+  });
+  xhr.addEventListener('error', function(e) {
+    progress_message.innerHTML = 'Error waiting for response from server';
+  });
+  xhr.open('POST', '_get_feature_match_details?match_file_id=' + _vise_match_details_file_id);
+  xhr.send(selected_file_features);
+}
+
+function _vise_on_img_load_show_result_rshape(e) {
+  var rindex = parseInt(e.target.dataset.rindex);
+  var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
+  svg.setAttribute('style', 'height:' + e.target.height + 'px;width:' + e.target.width + 'px;');
+
+  var qx1 = _vise_external_search.QUERY['x'];
+  var qy1 = _vise_external_search.QUERY['y'];
+  var qx2 = qx1 + _vise_external_search.QUERY['width'];
+  var qy2 = qy1 + _vise_external_search.QUERY['height'];
+  var H = _vise_external_search.RESULT[rindex]['H'];
+
+  var scale = e.target.height / e.target.naturalHeight;
+
+  var rx1 = (H[0] * qx1 + H[1] * qy1 + H[2]) * scale;
+  var ry1 = (H[3] * qx1 + H[4] * qy1 + H[5]) * scale;
+  var rx2 = (H[0] * qx2 + H[1] * qy2 + H[2]) * scale;
+  var ry2 = (H[3] * qx2 + H[4] * qy2 + H[5]) * scale;
+  var sane_rect = _vise_sanitize_rect(rx1, ry1, rx2, ry2);
+  rx1 = sane_rect[0];
+  ry1 = sane_rect[1];
+  rx2 = sane_rect[2];
+  ry2 = sane_rect[3];
+
+  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+  rshape.setAttribute('x', Math.floor(rx1));
+  rshape.setAttribute('y', Math.floor(ry1));
+  rshape.setAttribute('width', Math.floor(rx2 - rx1));
+  rshape.setAttribute('height', Math.floor(ry2 - ry1));
+
+  svg.appendChild(rshape);
+  e.target.parentNode.appendChild(svg);
+
+  // set image label
+  if(results.classList.contains('resultgrid')) {
+    var label = document.createElement('div');
+    label.setAttribute('class', 'result_index');
+    label.innerHTML = rindex + 1;
+    e.target.parentNode.appendChild(label);
+  }
+}
+
+
+function _vise_search_result_toggle_layout() {
+  if(results.classList.contains('resultgrid')) {
+	  results.setAttribute('class', 'resultlist');
+  } else {
+	  results.setAttribute('class', 'resultgrid');
+  }
+  _vise_show_search_result_content();
+}
+
+function _vise_search_result_toggle_layout() {
+  if(results.classList.contains('resultgrid')) {
+    results.classList.remove('resultgrid');
+    results.classList.add('resultlist');
+  } else {
+    results.classList.remove('resultlist');
+    results.classList.add('resultgrid');
+  }
+  _vise_show_search_result_content();
+}
+
+function _vise_search_set_view_style() {
+  var result_layout_selector = document.createElement('div');
+  result_layout_selector.setAttribute('class', 'text_button');
+  result_layout_selector.setAttribute('onclick', '_vise_search_result_toggle_layout()');
+  if(results.classList.contains('resultgrid')) {
+	  result_layout_selector.innerHTML = 'List View';
+  } else {
+	  result_layout_selector.innerHTML = 'Grid View';
+  }
+  pageinfo.innerHTML = '';
+  pageinfo.appendChild(result_layout_selector);
+}
+
+//
+// code borrowed from project_showmatch.js
+//
+function _vise_show_match() {
+  pageinfo.innerHTML = '';
+  upload_container.innerHTML = '';
+  query_panel.innerHTML = '';
+  querymatch_panel.classList.remove('hide');
+  results_panel.innerHTML = '<p><span onclick="_vise_show_search_results()" class="text_button">Back to list of search results for uploaded image</span></p>';
+
+  if(toggle_canvas_timer) {
+    clearTimeout(toggle_canvas_timer);
+  }
+  register_response = {};
+  mouse_move_count = 0;
 
   _vise_querymatch_panel_show();
-
-  var query_img_uri = _vise_data.QUERY['filename'];
+  var query_img_uri = selected_file_object_url;
   var match_img_uri = _vise_data.MATCH['filename'];
   var load_promise_list = [];
   load_promise_list.push( _vise_load_remote_img(query_img_uri) );
@@ -109,6 +549,19 @@ function _vise_init_show_match_ui() {
   });
 }
 
+function _vise_load_remote_img(src) {
+  return new Promise( function(ok_callback, err_callback) {
+    var img = new Image();
+    img.src = src;
+    img.addEventListener('load', function(e) {
+      ok_callback(this);
+    });
+    img.addEventListener('error', function(e) {
+      err_callback();
+    });
+  });
+}
+
 function _vise_querymatch_panel_show() {
   querymatch_panel.innerHTML = '';
 
@@ -117,11 +570,10 @@ function _vise_querymatch_panel_show() {
   var qimgcontainer = document.createElement('div');
   qimgcontainer.setAttribute('class', 'img_with_region');
   var qimg = document.createElement('img');
-  qimg.setAttribute('src', 'image/' + _vise_data.QUERY['filename']);
+  qimg.setAttribute('src', selected_file_object_url);
   qimg.addEventListener('load', _vise_on_img_load_show_query_rshape);
-  var qlabel = document.createElement('a');
-  qlabel.innerHTML = 'Query: ' + _vise_data.QUERY['filename'];
-  qlabel.setAttribute('href', 'file?file_id=' + _vise_data.QUERY['file_id']);
+  var qlabel = document.createElement('span');
+  qlabel.innerHTML = 'Query: ' + selected_file.name + ' (uploaded)';
   qimgcontainer.appendChild(qimg);
   query.appendChild(qimgcontainer);
   query.appendChild(qlabel);
@@ -160,10 +612,10 @@ function _vise_on_img_load_show_query_rshape(e) {
   svg.setAttribute('style', svg_css.join(';'));
 
   var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
-  rshape.setAttribute('x', Math.floor(_vise_data.QUERY['x'] * scale));
-  rshape.setAttribute('y', Math.floor(_vise_data.QUERY['y'] * scale));
-  rshape.setAttribute('width', Math.floor(_vise_data.QUERY['width'] * scale));
-  rshape.setAttribute('height', Math.floor(_vise_data.QUERY['height'] * scale));
+  rshape.setAttribute('x', Math.floor(_vise_external_search.QUERY['x'] * scale));
+  rshape.setAttribute('y', Math.floor(_vise_external_search.QUERY['y'] * scale));
+  rshape.setAttribute('width', Math.floor(_vise_external_search.QUERY['width'] * scale));
+  rshape.setAttribute('height', Math.floor(_vise_external_search.QUERY['height'] * scale));
   svg.appendChild(rshape);
   e.target.parentNode.appendChild(svg);
 }
@@ -303,16 +755,9 @@ function _vise_togglepanel_show() {
   toggle_panel.appendChild(mregion);
 
   var req = [];
-  req.push('register?file1_id=' + _vise_data.QUERY['file_id']);
-  req.push('file2_id=' + _vise_data.MATCH['file_id']);
-  req.push('x=' + _vise_data.QUERY['x']);
-  req.push('y=' + _vise_data.QUERY['y']);
-  req.push('width=' + _vise_data.QUERY['width']);
-  req.push('height=' + _vise_data.QUERY['height']);
+  req.push('_external_register?file2_id=' + _vise_data.MATCH['file_id']);
   req.push('H0=' + JSON.stringify(_vise_data.MATCH_DETAILS['H']));
   var xhr = new XMLHttpRequest();
-  xhr.open('GET', req.join('&'));
-  xhr.send();
   xhr.addEventListener('load', function(e) {
     switch(xhr.statusText) {
     case 'OK':
@@ -379,6 +824,8 @@ function _vise_togglepanel_show() {
   xhr.addEventListener('error', function(e) {
     _vise_toggle_canvas_show_error_msg('Error waiting for response from server');
   });
+  xhr.open('POST', req.join('&'));
+  xhr.send(selected_file);
 }
 
 function _vise_toggle_canvas_show_error_msg(msg) {
@@ -460,20 +907,6 @@ function _vise_imregion_to_canvas(img, x, y, width, height, target_height) {
   ctx.drawImage(img, x, y, width, height, 0, 0, c.width, c.height);
 
   return c;
-}
-
-
-function _vise_load_remote_img(src) {
-  return new Promise( function(ok_callback, err_callback) {
-    var img = new Image();
-    img.src = src;
-    img.addEventListener('load', function(e) {
-      ok_callback(this);
-    });
-    img.addEventListener('error', function(e) {
-      err_callback();
-    });
-  });
 }
 
 function _vise_matchpanel_show() {
@@ -657,11 +1090,11 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   ctx.fillText(qregion, qoffsetx, pad + 4);
 
   var charwidth = ctx.measureText('M').width;
-  var qlabel = 'Query: ' + _vise_data.QUERY['filename'];
+  var qlabel = 'Query: ' + selected_file.name;
   var qmeasure = ctx.measureText(qlabel);
   if(qmeasure.width > qsdim[0]) {
     var maxchar = qsdim[0] / charwidth;
-    var qlabel = '...' + _vise_data.QUERY['filename'].substring(_vise_data.QUERY['filename'].length - maxchar);
+    var qlabel = '...' + selected_file.name.substring(selected_file.name.length - maxchar);
   }
   ctx.fillText(qlabel, qoffsetx, vh - pad + 5);
 
@@ -809,7 +1242,7 @@ function _vise_matchpanel_init_toolbar(toolbar) {
   download_link.addEventListener('click', function() {
     var a = document.createElement('a');
     a.setAttribute('href', feat_match_canvas.toDataURL('image/png'));
-    var download_filename = 'vise-' + _vise_data.QUERY['filename'] + '-' + _vise_data.MATCH['filename'] + '-match.png';
+    var download_filename = 'vise-' + selected_file.name + '-' + _vise_data.MATCH['filename'] + '-match.png';
     a.setAttribute('download', download_filename);
     a.click();
   });

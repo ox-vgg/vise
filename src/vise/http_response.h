@@ -92,26 +92,32 @@ namespace vise {
     }
 
     void set_payload(std::string payload) {
-      d_payload = payload;
+      d_payload.assign(payload);
       d_fields["Content-Length"] = std::to_string(d_payload.length());
     }
 
     void set_html_payload(std::string payload) {
-      d_payload = payload;
+      d_payload.assign(payload);
       d_fields["Content-Length"] = std::to_string(d_payload.length());
       set_field("Content-Type", "text/html");
     }
 
     void set_json_payload(std::string payload) {
-      d_payload = payload;
+      d_payload.assign(payload);
       d_fields["Content-Length"] = std::to_string(d_payload.length());
       set_field("Content-Type", "application/json");
     }
 
     void set_text_payload(std::string payload) {
-      d_payload = payload;
+      d_payload.assign(payload);
       d_fields["Content-Length"] = std::to_string(d_payload.length());
       set_field("Content-Type", "text/plain");
+    }
+
+    void set_binary_payload(std::string payload) {
+      d_payload.assign(payload);
+      d_fields["Content-Length"] = std::to_string(d_payload.length());
+      set_field("Content-Type", "application/octet-stream");
     }
 
     std::string get_response_str() {

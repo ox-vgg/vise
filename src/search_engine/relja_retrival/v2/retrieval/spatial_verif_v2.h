@@ -13,7 +13,8 @@
 
 Updates:
  - 2 Aug. 2019: removed dependency on fastann for nearest neighbour search (Abhishek Dutta)
-
+ - 1 Dec. 2020: added extract_image_features() and search_using_image_features()
+                for search using external images (Abhishek Dutta)
 */
 
 #ifndef _SPATIAL_VERIF_V2_H
@@ -61,6 +62,25 @@ public:
     firstRetriever_->externalQuery_computeData( imageFn, queryObj );
   }
 
+  inline void extract_image_features(const std::string &image_data, std::string &image_features) const {
+    firstRetriever_->extract_image_features( image_data, image_features );
+  }
+
+  inline bool search_using_features(const std::string &image_features,
+                                    std::vector<indScorePair> &queryRes,
+                                    std::map<uint32_t, homography> &Hs,
+                                    uint32_t toReturn= 0 ) const {
+    rr::indexEntry queryRep;
+    bool parse_success = queryRep.ParseFromString(image_features);
+    if(!parse_success) {
+      return false;
+    }
+    bool use_initial_results = true;
+    bool forget_initial_results = true;
+    spatialQueryExecute( queryRep, queryRes, &Hs, NULL, toReturn, use_initial_results, forget_initial_results );
+    return true;
+  }
+
   void
   queryExecute( rr::indexEntry &queryRep, std::vector<indScorePair> &queryRes, uint32_t toReturn= 0 ) const;
 
@@ -92,24 +112,25 @@ public:
     spatialQueryExecute( queryRep, queryRes, &Hs, NULL, toReturn, use_initial_results, forget_initial_results );
   }
 
-  void
-  getMatchesCore(query const &queryObj,
-                 uint32_t docID2,
-                 std::vector<ellipse> &ellipses1,
-                 std::vector<ellipse> &ellipses2,
-                 matchesType &putativeMatches) const;
-
-  inline void
-  getMatches( query const &queryObj,
-              uint32_t docID2,
-              homography &H,
-              std::vector< std::pair<ellipse,ellipse> > &matches ) const;
-
-  void
-  getPutativeMatches( query const &queryObj,
-                      uint32_t docID2,
-                      std::vector< std::pair<ellipse,ellipse> > &matches ) const;
-
+  void get_matches(rr::indexEntry &queryRep,
+                   const uint32_t match_file_id,
+                   std::vector<ellipse> &ellipses1,
+                   std::vector<ellipse> &ellipses2,
+                   matchesType &putativeMatches) const;
+  void get_matches_using_query(query const &queryObj,
+                               const uint32_t match_file_id,
+                               homography &H,
+                               std::vector< std::pair<ellipse,ellipse> > &matches ) const;
+  void get_matches_using_features(const std::string &image_features,
+                                  const uint32_t match_file_id,
+                                  homography &H,
+                                  std::vector< std::pair<ellipse,ellipse> > &matches ) const;
+  void get_putative_matches_using_query(query const &queryObj,
+                                        const uint32_t match_file_id,
+                                        std::vector< std::pair<ellipse,ellipse> > &matches ) const;
+  void get_putative_matches_using_features(const std::string &image_features,
+                                           const uint32_t match_file_id,
+                                           std::vector< std::pair<ellipse,ellipse> > &matches ) const;
 
 private:
 

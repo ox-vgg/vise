@@ -36,8 +36,8 @@ namespace vise {
     <meta name="author" content="VGG Image Search Engine (VISE)">
     <meta name="description" content="Home page of VGG Image Search Engine (VISE). More details are available at the following website: http://www.robots.ox.ac.uk/~vgg/software/vise/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" type="text/css" href="../vise.css">
+    <link rel="shortcut icon" href="app/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" type="text/css" href="app/vise.css">
     <meta http-equiv="refresh" content="3">
   </head>
   <!-- This HTML header was automatically generated using "src/vise/html_resources.h" file -->
@@ -54,8 +54,8 @@ namespace vise {
     <meta name="author" content="VGG Image Search Engine (VISE)">
     <meta name="description" content="A project created using VGG Image Search Engine (VISE). More details are available at the following website: http://www.robots.ox.ac.uk/~vgg/software/vise/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" type="text/css" href="../project.css">
+    <link rel="shortcut icon" href="app/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" type="text/css" href="app/project.css">
   </head>
   <!-- This HTML header was automatically generated using "src/vise/html_resources.h" file -->
 )HTML_STR";
@@ -91,9 +91,17 @@ namespace vise {
   <symbol id="micon_zoomout">
     <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z"/>
   </symbol>
-
   <symbol id="micon_help">
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+  </symbol>
+  <symbol id="micon_clear">
+    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+  </symbol>
+  <symbol id="micon_image_search">
+    <path d="M0 0h24v24H0V0z" fill="none"/><path d="M18 13v7H4V6h5.02c.05-.71.22-1.38.48-2H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5l-2-2zm-1.5 5h-11l2.75-3.53 1.96 2.36 2.75-3.54zm2.8-9.11c.44-.7.7-1.51.7-2.39C20 4.01 17.99 2 15.5 2S11 4.01 11 6.5s2.01 4.5 4.49 4.5c.88 0 1.7-.26 2.39-.7L21 13.42 22.42 12 19.3 8.89zM15.5 9C14.12 9 13 7.88 13 6.5S14.12 4 15.5 4 18 5.12 18 6.5 16.88 9 15.5 9z"/>
+  </symbol>
+  <symbol id="micon_grid">
+    <path d="M3 9h4V5H3v4zm0 5h4v-4H3v4zm5 0h4v-4H8v4zm5 0h4v-4h-4v4zM8 9h4V5H8v4zm5-4v4h4V5h-4zm5 9h4v-4h-4v4zM3 19h4v-4H3v4zm5 0h4v-4H8v4zm5 0h4v-4h-4v4zm5 0h4v-4h-4v4zm0-14v4h4V5h-4z"/>
   </symbol>
 
   <!--

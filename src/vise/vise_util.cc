@@ -7,6 +7,61 @@
 #include "vise_util.h"
 
 //
+// vise command line interface
+//
+
+// Usage: ./vise --run-mode=[create-project | serve-project | ...]
+//               --port=9103 --vise-home=/data/vise --nthread=4
+//               PNAME1:PCONF1 PNAME2:PCONF2 ...
+bool vise::parse_cli_args(int argc, char **argv,
+                          std::unordered_map<std::string, std::string> &cli_args,
+                          std::unordered_map<std::string, std::string> &pname_pconf_list) {
+  cli_args.clear();
+  pname_pconf_list.clear();
+  if(argc == 1) {
+    return false;
+  }
+
+  for(std::size_t i=1; i<argc; ++i) {
+    std::string arg(argv[i]);
+    if(arg.size() < 3) {
+      std::cout << "vise::parse_cli_args(): ignoring unknown argument ["
+                << arg << "]" << std::endl;
+      continue;
+    }
+    if(arg[0] == '-' && arg[1] == '-') {
+      std::size_t eq_pos = arg.find('=');
+      if(eq_pos == std::string::npos) {
+        continue;
+      }
+      std::string key(arg.substr(2, eq_pos-2));
+      std::string val(arg.substr(eq_pos+1));
+      if(cli_args.count(key) == 1) {
+        std::cout << "vise::parse_vise_cli_args(): duplicate arguments for ["
+                  << key << "], last one will be used." << std::endl;
+      }
+      cli_args[key] = val;
+    } else {
+      std::size_t colon_pos = arg.find(':');
+      if(colon_pos == std::string::npos) {
+        std::cout << "vise::parse_cli_args(): ignoring invalid argument ["
+                  << arg << "]" << std::endl;
+        continue;
+      }
+      std::string pname(arg.substr(0, colon_pos));
+      boost::filesystem::path project_conf_fn(arg.substr(colon_pos+1));
+      if(pname_pconf_list.count(pname) == 1) {
+        std::cout << "vise::parse_vise_cli_args(): duplicate project name ["
+                  << pname << "], last one will be used." << std::endl;
+      }
+
+      pname_pconf_list[pname] = project_conf_fn.string();
+    }
+  }
+  return true;
+}
+
+//
 // vise settings
 //
 void vise::init_vise_settings_comments(std::map<std::string, std::string> &vise_settings) {
@@ -17,6 +72,94 @@ void vise::init_vise_settings_comments(std::map<std::string, std::string> &vise_
   vise_settings["# nthread"] = "0 will use all the available threads; nthread > 0 will use the specified number of threads; nthread < 0 will only use (MAX_THREADS-nthread) threads.";
   vise_settings["# generic_visual_vocabulary"] = "location of generic visual vocabulary relative to VISE_HOME, e.g. asset/visual_vocabulary/voc100k_hamm32_800x800_imcount90k_nbd512/";
   vise_settings["# http_uri_namespace"] = "By default, VISE http resources are available under \"/\" namespace. Use this configuration parameter to make http resources availalbe under a new namespace like \"/a/b/c/\"";
+}
+
+bool vise::does_vise_home_and_store_exist(std::map<std::string, std::string> &vise_settings) {
+  if(vise_settings.count("vise_home") == 0 ||
+     vise_settings.count("vise_store") == 0 ||
+     vise_settings.count("www_store") == 0 ||
+     vise_settings.count("asset_store") == 0 ) {
+    std::cout << "vise::does_vise_home_and_store_exist(): missing vise_home, vise_store, www_store, asset_store."
+              << std::endl;
+    return false;
+  }
+  const boost::filesystem::path vise_home(vise_settings.at("vise_home"));
+  const boost::filesystem::path vise_store(vise_settings.at("vise_store"));
+  const boost::filesystem::path www_store(vise_settings.at("www_store"));
+  const boost::filesystem::path asset_store(vise_settings.at("asset_store"));
+
+  if(!boost::filesystem::exists(vise_home)) {
+    return false;
+  }
+  if(!boost::filesystem::exists(vise_store)) {
+    return false;
+  }
+  if(!boost::filesystem::exists(www_store)) {
+    return false;
+  }
+  if(!boost::filesystem::exists(asset_store)) {
+    return false;
+  }
+  return true;
+}
+
+bool vise::create_vise_home_and_store(std::map<std::string, std::string> &vise_settings) {
+  if(vise_settings.count("vise_home") == 0 ||
+     vise_settings.count("vise_store") == 0 ||
+     vise_settings.count("www_store") == 0 ||
+     vise_settings.count("asset_store") == 0 ) {
+    std::cout << "vise::create_vise_store(): missing vise_home, vise_store, www_store, asset_store."
+              << std::endl;
+    return false;
+  }
+
+  const boost::filesystem::path vise_home(vise_settings.at("vise_home"));
+  const boost::filesystem::path vise_store(vise_settings.at("vise_store"));
+  const boost::filesystem::path www_store(vise_settings.at("www_store"));
+  const boost::filesystem::path asset_store(vise_settings.at("asset_store"));
+
+  if(boost::filesystem::exists(vise_home)) {
+    if(!boost::filesystem::exists(vise_store)) {
+      boost::filesystem::create_directory(vise_store);
+    }
+    if(!boost::filesystem::exists(www_store)) {
+      boost::filesystem::create_directory(vise_store);
+    }
+    if(!boost::filesystem::exists(asset_store)) {
+      boost::filesystem::create_directory(vise_store);
+    }
+  } else {
+    boost::filesystem::create_directories(vise_home);
+    boost::filesystem::create_directory(vise_store);
+    boost::filesystem::create_directory(www_store);
+    boost::filesystem::create_directory(asset_store);
+  }
+  return true;
+}
+
+void vise::init_default_vise_settings(std::map<std::string, std::string> &vise_settings) {
+  const boost::filesystem::path vise_home = vise::vise_home();
+
+  // use default configuration for VISE
+  boost::filesystem::path vise_store = vise_home / "store";
+  boost::filesystem::path www_store = vise_home / "www";
+  boost::filesystem::path asset_store = vise_home / "asset";
+  boost::filesystem::path generic_visual_vocabulary(asset_store);
+  generic_visual_vocabulary = generic_visual_vocabulary / "visual_vocabulary";
+  generic_visual_vocabulary = generic_visual_vocabulary / "voc100k_hamm32_800x800_imcount90k_nbd512";
+
+  vise_settings.clear();
+  vise_settings["vise_home"] = vise_home.string();
+  vise_settings["vise_store"] = vise_store.string();
+  vise_settings["www_store"] = www_store.string();
+  vise_settings["asset_store"] = asset_store.string();
+  vise_settings["address"] = "localhost";
+  vise_settings["port"] = "9669";
+  vise_settings["nthread"] = "0";
+  vise_settings["generic_visual_vocabulary"] = generic_visual_vocabulary.string();
+  vise_settings["http_uri_namespace"] = "/";
+
+  init_vise_settings_comments(vise_settings);
 }
 
 void vise::init_vise_settings(std::map<std::string, std::string> &vise_settings) {
@@ -264,6 +407,16 @@ void vise::decompose_uri(const std::string &uri,
   }
 }
 
+void vise::escape_string(std::string &in, char match_char, std::string match_replacement) {
+  std::size_t start_index = 0;
+  std::size_t match_index = in.find(match_char, start_index);
+  while(match_index != std::string::npos) {
+    in.replace(match_index, 1, match_replacement);
+    start_index = match_index + match_replacement.size();
+    match_index = in.find(match_char, start_index);
+  }
+}
+
 bool vise::file_load(const boost::filesystem::path fn,
                            std::string& file_content)
 {
@@ -361,6 +514,40 @@ bool vise::url_decode(const std::string& in, std::string& out)
     }
     else {
       out += in[i];
+    }
+  }
+  return true;
+}
+
+// source: https://www.boost.org/doc/libs/1_46_0/doc/html/boost_asio/example/http/server3/request_handler.cpp
+// Author: Christopher M. Kohlhoff (chris at kohlhoff dot com)
+bool vise::decode_uri_query_param(const std::string& in, std::string& out)
+{
+  out.clear();
+  out.reserve(in.size());
+  for (std::size_t i = 0; i < in.size(); ++i)  {
+    if (in[i] == '%') {
+      if (i + 3 <= in.size()) {
+        int value = 0;
+        std::istringstream is(in.substr(i + 1, 2));
+        if (is >> std::hex >> value) {
+          out += static_cast<char>(value);
+          i += 2;
+        }
+        else {
+          return false;
+        }
+      }
+      else {
+        return false;
+      }
+    }
+    else {
+      if(in[i] == '+') {
+        out += ' ';
+      } else {
+        out += in[i];
+      }
     }
   }
   return true;

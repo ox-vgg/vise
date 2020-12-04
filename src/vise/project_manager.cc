@@ -5,7 +5,7 @@ using namespace vise;
 project_manager::project_manager(std::map<std::string, std::string> const &conf)
   : d_conf(conf), is_serve_only_active(false)
 {
-  std::cout << "project_manager: showing configuration"
+  std::cout << "project_manager: showing VISE configuration"
             << std::endl;
   vise::configuration_show(d_conf);
   d_projects.clear();
@@ -20,9 +20,6 @@ project_manager::~project_manager() {
 void project_manager::process_http_request(http_request const &request,
                                            http_response &response)
 {
-  std::ostringstream ss;
-  ss << "project_manager: " << request.d_method << " " << request.d_uri;
-
   // if http_uri_namespace is defined,
   // we only respond to queries under that namespace
   std::string request_uri_without_ns(request.d_uri);
@@ -44,7 +41,9 @@ void project_manager::process_http_request(http_request const &request,
   std::vector<std::string> uri;
   std::map<std::string, std::string> param;
   vise::decompose_uri(request_uri_without_ns, uri, param);
-  //ss << " [without-ns=" << request_uri_without_ns << "]";
+
+  std::ostringstream ss;
+  ss << "project_manager: " << request.d_method << " " << request.d_uri;
   std::cout << ss.str() << std::endl;
 
   //request.parse_urlencoded_form_data();
@@ -55,12 +54,6 @@ void project_manager::process_http_request(http_request const &request,
   //std::cout << "payload=" << request.d_payload.str() << std::endl;
 
   if(is_serve_only_active) {
-    // only respond to GET requests for a limited number of projects
-    if (request.d_method != "GET") {
-      serve_only_4xx_response(response);
-      return;
-    }
-
     if (request.d_method == "GET") {
       if (uri.size() == 1) {
         serve_only_4xx_response(response);
@@ -90,6 +83,27 @@ void project_manager::process_http_request(http_request const &request,
         return;
       }
     }
+
+    // only respond to a limited number of POST requests
+    // e.g. upload image and search
+    if (request.d_method == "POST") {
+      if(uri.size() == 3  &&
+         (uri[2] == "_extract_image_features" ||
+          uri[2] == "_search_using_features" ||
+          uri[2] == "_get_feature_match_details" ||
+          uri[2] == "_external_register" )) {
+        std::string pname = uri[1];
+        if( !project_is_loaded(pname) ) {
+          response.set_status(404);
+          return;
+        }
+        handle_project_post_request(pname, request, uri, param, response);
+        return;
+      }
+      serve_only_4xx_response(response);
+      return;
+    }
+
     response.set_status(404);
     return;
   }
@@ -252,10 +266,10 @@ void project_manager::handle_post(http_request const &request,
         return;
       }
       if (uri[1] == "_project_unload") {
-          std::map<std::string, std::string> formdata;
-          vise::parse_urlencoded_form(request.d_payload.str(), formdata);
-          vise_project_unload(formdata, response);
-          return;
+        std::map<std::string, std::string> formdata;
+        vise::parse_urlencoded_form(request.d_payload.str(), formdata);
+        vise_project_unload(formdata, response);
+        return;
       }
       if(uri[1] == "_settings_update") {
         std::string settings_formdata = request.d_payload.str();
@@ -298,10 +312,13 @@ void project_manager::handle_post(http_request const &request,
         project_file_add(pname, param, response);
         return;
       }
+      handle_project_post_request(pname, request, uri, param, response);
+      return;
     }
   }
   response.set_status(404);
 }
+
 
 void project_manager::handle_put(http_request const &request,
                                  std::vector<std::string> const &uri,
@@ -407,7 +424,7 @@ void project_manager::serve_from_www_store(std::string res_uri,
 void project_manager::file_send(boost::filesystem::path fn,
                                 http_response &response) const {
   std::string file_content;
-  //std::cout << "Sending file " << fn.string() << std::endl;
+  std::cout << "Sending file " << fn.string() << std::endl;
   bool ok = vise::file_load(fn, file_content);
   if ( ok ) {
     response.set_status(200);
@@ -474,6 +491,12 @@ void project_manager::handle_project_get_request(std::string const pname,
     return;
   }
 
+  if(uri[2] == "external_search") {
+    project_external_search(pname, param, response);
+    return;
+  }
+
+
   if (uri[2].front() == '_') {
     // project command (e.g. _conf,)
     if (uri[2] == "_image_src_count") {
@@ -493,19 +516,36 @@ void project_manager::handle_project_get_request(std::string const pname,
 
   if (uri.size() >= 3) {
     // serve static resources of a project (e.g. images)
-    std::string asset = uri[2];
-    if (uri.size() != 3) {
-      std::size_t start = request.d_uri.find(pname);
-      start = start + pname.size();
-      asset = request.d_uri.substr(start);
+    std::string asset_type = uri[2];
+    std::string asset_dir;
+    std::size_t start = request.d_uri.find(pname);
+    if(asset_type == "image") {
+      start = start + pname.size() + 6;
+      asset_dir = d_projects.at(pname)->pconf("image_dir");
+    } else if(asset_type == "app") {
+      start = start + pname.size() + 4;
+      if(d_projects.at(pname)->app_dir_exists()) {
+        asset_dir = d_projects.at(pname)->pconf("app_dir");
+      } else {
+        asset_dir = d_conf.at("www_store");
+      }
+    } else if(asset_type == "image_small") {
+      start = start + pname.size() + 12;
+      asset_dir = d_projects.at(pname)->pconf("image_small_dir");
+    } else if(asset_type == "image_src") {
+      start = start + pname.size() + 10;
+      asset_dir = d_projects.at(pname)->pconf("image_src_dir");
+    } else {
+      response.set_status(404);
+      return;
     }
-    std::string asset_uri_decoded;
-    bool decode_result = vise::url_decode(asset, asset_uri_decoded);
-    if(decode_result) {
-      std::string image_dir = d_projects.at(pname)->pconf("image_dir");
-      boost::filesystem::path fn(image_dir);
-      fn = fn / asset_uri_decoded;
-      file_send(fn, response);
+    std::string asset_name = request.d_uri.substr(start + 1);
+    std::string decoded_asset_name;
+    bool success = vise::url_decode(asset_name, decoded_asset_name);
+    if(success) {
+      boost::filesystem::path asset_fn(asset_dir);
+      asset_fn = asset_fn / decoded_asset_name;
+      file_send(asset_fn, response);
     } else {
       response.set_status(400);
     }
@@ -515,6 +555,42 @@ void project_manager::handle_project_get_request(std::string const pname,
   response.set_status(400);
   return;
 }
+
+void project_manager::handle_project_post_request(std::string const pname,
+                                                  http_request const &request,
+                                                  std::vector<std::string> const &uri,
+                                                  std::map<std::string, std::string> const &param,
+                                                  http_response& response) const {
+  if (uri[2].front() == '_') {
+    if (uri[2] == "_extract_image_features") {
+      std::string image_data(request.d_payload.str());
+      project_extract_image_features(pname, image_data, param, response);
+      return;
+    }
+    if (uri[2] == "_search_using_features") {
+      std::cout << "_search_using_features" << std::endl;
+      std::string image_features(request.d_payload.str());
+      project_index_search_using_features(pname, image_features, param, response);
+      return;
+    }
+    if(uri[2] == "_get_feature_match_details") {
+      std::cout << "_get_feature_match_details" << std::endl;
+      std::string image_features(request.d_payload.str());
+      project_get_feature_match_details(pname, image_features, param, response);
+      return;
+    }
+    if(uri[2] == "_external_register") {
+      std::cout << "_external_register" << std::endl;
+      std::string image_data(request.d_payload.str());
+      project_register_external_image(pname, image_data, param, response);
+      return;
+    }
+  }
+
+  response.set_status(400);
+  return;
+}
+
 //
 // POST /{PNAME}/_index_*
 //
@@ -648,6 +724,86 @@ bool project_manager::project_index_is_done(std::string pname) {
   }
 }
 
+void project_manager::project_extract_image_features(const std::string pname,
+                                                     const std::string &image_data,
+                                                     std::map<std::string, std::string> const &param,
+                                                     http_response &response) const {
+  uint32_t tstart = vise::getmillisecs();
+
+  uint32_t max_size = 2097152; // 2MB
+  if(image_data.size() > max_size) {
+    float max_size_mb = max_size / (1024 * 1024);
+    std::string message = "uploaded image size cannot be more than " + std::to_string(max_size_mb) + " MB.";
+    std::string response_format = "html";
+    if(param.count("response_format") == 1) {
+      if(param.at("response_format") == "json") {
+        response_format = "json";
+      }
+    }
+
+    vise_project_error_page(pname, message, response_format, response);
+    return;
+  }
+
+  std::string image_features;
+  d_projects.at(pname)->extract_image_features(image_data, image_features);
+  response.set_binary_payload(image_features);
+  response.set_status(200);
+  uint32_t tend = vise::getmillisecs();
+  std::cout << "_extract_image_features() : completed in " << (tend - tstart) << " ms" << std::endl;
+}
+
+void project_manager::project_index_search_using_features(const std::string pname,
+                                                          const std::string &image_features,
+                                                          std::map<std::string, std::string> const &param,
+                                                          http_response &response) const {
+  if( !project_is_loaded(pname) ) {
+    response.set_status(412);
+    response.set_payload("project not loaded yet");
+    return;
+  }
+
+  if( !d_projects.at(pname)->index_is_loaded() ) {
+    response.set_status(412);
+    response.set_payload("project index not loaded");
+    return;
+  }
+
+  uint32_t tstart = vise::getmillisecs();
+  uint32_t max_size = 2097152; // 2MB
+  if(image_features.size() > max_size) {
+    float max_size_mb = max_size / (1024 * 1024);
+    std::string message = "uploaded image features cannot be more than " + std::to_string(max_size_mb) + " MB.";
+    std::string response_format = "html";
+    if(param.count("response_format") == 1) {
+      if(param.at("response_format") == "json") {
+        response_format = "json";
+      }
+    }
+    vise_project_error_page(pname, message, response_format, response);
+    return;
+  }
+  std::vector<vise::search_result> result;
+  d_projects.at(pname)->index_search_using_features(image_features, result);
+  uint32_t tend = vise::getmillisecs();
+
+  std::ostringstream json;
+  json << "{\"PNAME\":\"" << pname << "\""
+       << ",\"QUERY\":\"__USING_IMAGE_FEATURE__\""
+       << ",\"RESULT_SIZE\":" << result.size();
+  if(result.size()) {
+    json<< ",\"RESULT\":[" << result.at(0).to_json();
+    for(uint32_t i=1; i < result.size(); ++i) {
+      json << "," << result.at(i).to_json();
+    }
+    json << "]";
+  }
+  json << "}";
+  response.set_json_payload(json.str()); // default is JSON response
+  std::cout << "project_index_search_using_features() : completed in " << (tend - tstart) << " ms" << std::endl;
+  return;
+}
+
 void project_manager::project_index_search(std::string pname,
                                            std::map<std::string, std::string> const &param,
                                            http_response &response) const {
@@ -706,8 +862,8 @@ void project_manager::project_index_search(std::string pname,
          << "// JS code generated automatically by src/vise/project_manager.cc::project_index_search()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"../vise_common.js\"></script>\n"
-         << "<script src=\"../project_search.js\"></script>\n"
+         << "<script src=\"app/vise_common.js\"></script>\n"
+         << "<script src=\"app/project_search.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -773,11 +929,52 @@ void project_manager::project_show_match(std::string pname,
          << "// JS code generated automatically by src/vise/project_manager.cc::project_index_search()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"../vise_common.js\"></script>\n"
-         << "<script src=\"../project_showmatch.js\"></script>\n"
+         << "<script src=\"app/vise_common.js\"></script>\n"
+         << "<script src=\"app/project_showmatch.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
+}
+
+void project_manager::project_get_feature_match_details(const std::string pname,
+                                                        const std::string &image_features,
+                                                        std::map<std::string, std::string> const &param,
+                                                        http_response &response) const {
+  if( !project_is_loaded(pname) ) {
+    response.set_status(412);
+    response.set_payload("project not loaded yet");
+    return;
+  }
+
+  if( !d_projects.at(pname)->index_is_loaded() ) {
+    response.set_status(412);
+    response.set_payload("project index not loaded");
+    return;
+  }
+
+  if (param.count("match_file_id") == 0) {
+    response.set_status(412);
+    response.set_payload("_get_feature_match_details requests must contain match_file_id");
+    return;
+  }
+
+  uint32_t match_file_id = std::atoi(param.at("match_file_id").c_str());
+
+  std::ostringstream match;
+  match << "{\"file_id\":" << param.at("match_file_id") << ","
+        << "\"filename\":\"" << d_projects.at(pname)->filename(match_file_id) << "\"}";
+
+  std::ostringstream match_details;
+  d_projects.at(pname)->index_get_feature_match_details(image_features, match_file_id, match_details);
+
+  std::ostringstream json;
+  json << "{\"PNAME\":\"" << pname << "\""
+       << ",\"QUERY\":\"__USING_IMAGE_FEATURE__\""
+       << ",\"MATCH\":" << match.str()
+       << ",\"MATCH_DETAILS\":" << match_details.str()
+       << "}";
+
+  response.set_json_payload(json.str());
 }
 
 void project_manager::project_register_image(std::string pname,
@@ -854,6 +1051,70 @@ void project_manager::project_register_image(std::string pname,
   return;
 }
 
+void project_manager::project_register_external_image(const std::string pname,
+                                                      const std::string &image_data,
+                                                      std::map<std::string, std::string> const &param,
+                                                      http_response &response) const {
+  if( !project_is_loaded(pname) ) {
+    response.set_status(412);
+    response.set_payload("project not loaded yet");
+    return;
+  }
+
+  if (!d_projects.at(pname)->index_is_loaded()) {
+    response.set_status(412);
+    response.set_payload("project index not loaded");
+    return;
+  }
+
+  if (param.count("file2_id") == 0 ||
+      param.count("H0") == 0) {
+    response.set_status(412);
+    response.set_payload("external_register requests must contain: file2_id [ and optionally H0 ]");
+    return;
+  }
+
+  std::string H0_str = param.at("H0");
+  if (H0_str.front() != '[' && H0_str.back() != ']') {
+    response.set_status(412);
+    response.set_payload("H0 must be a JSON array like H0 = [0.92, 0, 21.92, ..., ]");
+    return;
+  }
+
+  uint32_t file2_id = std::atoi(param.at("file2_id").c_str());
+
+  std::array<double, 9> H0;
+  H0_str = H0_str.substr(1, H0_str.length() - 2);
+  std::stringstream ss(H0_str); // csv
+  char comma;
+  // parse the comma separated values
+  ss >> H0[0] >> comma >> H0[1] >> comma >> H0[2] >> comma
+     >> H0[3] >> comma >> H0[4] >> comma >> H0[5] >> comma
+     >> H0[6] >> comma >> H0[7] >> comma >> H0[8];
+  std::array<double, 9> H = H0;
+
+  // @todo
+  // image registration module should be detached from relja_retrival search engine
+  try {
+    d_projects.at(pname)->register_external_image(image_data, file2_id, H);
+    std::ostringstream json;
+    json << "{\"STATUS\":\"ok\",\"H\":["
+         << H[0] << "," << H[1] << "," << H[2] << ","
+         << H[3] << "," << H[4] << "," << H[5] << ","
+         << H[6] << "," << H[7] << "," << H[8] << "]}";
+    response.set_status(200);
+    response.set_payload(json.str());
+    response.set_field("Content-Type", "application/json");
+  } catch(std::exception &ex) {
+    std::ostringstream json;
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":\"Exception occured during image registration: " << ex.what() << "\"}";
+    response.set_status(200);
+    response.set_payload(json.str());
+    response.set_field("Content-Type", "application/json");
+  }
+  return;
+}
+
 void project_manager::project_home(std::string pname,
                                    http_response& response) const {
   std::ostringstream ss;
@@ -905,45 +1166,173 @@ void project_manager::project_filelist(std::string pname,
   // check if project is loaded
   if(!d_projects.at(pname)->index_is_loaded()) {
     std::ostringstream ss;
-    ss << "Indexing has not been loaded yet. Some large indexes may take a bit longer (e.g. 10 seconds) to load. ";
+    ss << "Indexing has not been done yet. Some large indexes may take a bit longer (e.g. 10 seconds) to load. ";
     ss << "<br/>Please referesh this page using your browsers \"Reload\" or \"Refresh\" button.";
     response.set_html_payload(ss.str());
   }
 
-  uint32_t start = 0;
-  uint32_t end;
-  if(param.count("start") == 1) {
-    start = std::atoi(param.at("start").c_str());
-    if(start >= d_projects.at(pname)->fid_count()) {
-      start = 0;
+  std::string response_format = "html";
+  if(param.count("response_format") == 1) {
+    if(param.at("response_format") == "json") {
+      response_format = "json";
     }
   }
-  if(param.count("end") == 1) {
-    end = std::atoi(param.at("end").c_str());
-    if(end == start || end > d_projects.at(pname)->fid_count()) {
-      end = fminl(50, d_projects.at(pname)->fid_count());
+
+  std::string mode = param.count("mode") ? param.at("mode") : "all";
+  std::string encoded_query = param.count("query") ? param.at("query") : "";
+  std::string query;
+  if(!vise::decode_uri_query_param(encoded_query, query)) {
+    std::string message = "failed to decode special characters in query.";
+    vise_project_error_page(pname, message, response_format, response);
+    return;
+  }
+
+  std::vector<uint32_t> flist;
+  std::vector<uint32_t> flist_subset;
+  uint32_t flist_size = 0;
+  uint32_t flist_start = 0;
+  uint32_t flist_end = 0;
+
+  std::string groupby;
+  std::string group;
+  std::map<std::string, uint32_t> group_stat;
+  bool is_groupby = false;
+  if(param.count("groupby") == 1 && param.at("groupby") != "_none_") {
+    is_groupby = true;
+    groupby = param.at("groupby");
+  }
+
+  if(param.count("group") == 1) {
+    if(!vise::decode_uri_query_param(param.at("group"), group)) {
+      std::string message = "failed to decode group value.";
+      vise_project_error_page(pname, message, response_format, response);
+      return;
+    }
+  }
+
+  // prevent sql injection attacks
+  // @todo improve query validation
+  if(query.find('"') != std::string::npos ||
+     query.find('\'') != std::string::npos ||
+     query.find(';') != std::string::npos ||
+     query.find("\\") != std::string::npos) {
+    std::string message = "query contains invalid character.";
+    vise_project_error_page(pname, message, response_format, response);
+    return;
+  }
+  if(query.size() > 128) {
+    std::string message = "query cannot be more than 256 characters.";
+    vise_project_error_page(pname, message, response_format, response);
+    return;
+  }
+
+  if(mode == "all") {
+    if(is_groupby) {
+      d_projects.at(pname)->metadata_group_stat(groupby, group_stat);
+      if(group_stat.size()) {
+        if(param.count("group") == 0) {
+          group.assign(group_stat.begin()->first); // default: set group to the first element
+        }
+        // else, group is set based on request
+        d_projects.at(pname)->metadata_groupby(groupby, group, flist);
+        flist_size = flist.size();
+      } else {
+        std::string message = "empty group.";
+        vise_project_error_page(pname, message, response_format, response);
+        return;
+      }
+    } else {
+      flist_size = d_projects.at(pname)->fid_count();
+    }
+
+    project_filelist_set_range(param, flist_size, flist_start, flist_end);
+    if(is_groupby) {
+      // populate flist file_id in the range [flist_start, flist_end) from group
+      for(std::size_t i=flist_start; i<flist_end; ++i) {
+        flist_subset.push_back( flist.at(i) );
+      }
+    } else {
+      // populate flist with file_id in the range [flist_start, flist_end] from the full filelist
+      for(std::size_t i=flist_start; i<flist_end; ++i) {
+        flist_subset.push_back(i);
+      }
     }
   } else {
-    end = fminl(start + 50, d_projects.at(pname)->fid_count());
+    if(mode == "fts") {
+      if(is_groupby) {
+        d_projects.at(pname)->file_metadata_full_text_search_group_stat(query,
+                                                                        groupby,
+                                                                        group_stat);
+        if(group_stat.size()) {
+          if(param.count("group") == 0) {
+            group.assign(group_stat.begin()->first); // default: set group to the first element
+          }
+          // else group is set based on user request
+          d_projects.at(pname)->metadata_groupby(groupby, group, flist);
+          flist_size = flist.size();
+        } else {
+          std::string message = "empty group.";
+          vise_project_error_page(pname, message, response_format, response);
+          return;
+        }
+      } else {
+        d_projects.at(pname)->file_metadata_full_text_search(query, flist);
+        flist_size = flist.size();
+      }
+      project_filelist_set_range(param, flist_size, flist_start, flist_end);
+      for(std::size_t i=flist_start; i<flist_end; ++i) {
+        flist_subset.push_back( flist.at(i) );
+      }
+      std::cout << "project_manager::project_filelist : query=" << query << ", size=" << flist.size() << ", subset=" << flist_subset.size() << std::endl;
+    } else {
+      std::string message = "unknown mode.";
+      vise_project_error_page(pname, message, response_format, response);
+      return;
+    }
   }
 
   std::ostringstream json;
   json << "{\"PNAME\":\"" << pname << "\""
-       << ",\"FLIST_SIZE\":" << d_projects.at(pname)->fid_count()
-       << ",\"FLIST_START\":" << start
-       << ",\"FLIST_END\":" << end;
-  if(start != end) {
-    json << ",\"FLIST\":["
-         << "\"" << d_projects.at(pname)->filename(start) << "\"";
-    for(uint32_t fid=start+1; fid < end; ++fid) {
-      json << ",\"" << d_projects.at(pname)->filename(fid) << "\"";
+       << ",\"FLIST_SIZE\":" << flist_size
+       << ",\"FLIST_START\":" << flist_start
+       << ",\"FLIST_END\":" << flist_end
+       << ",\"FLIST_MODE\":\"" << mode << "\""
+       << ",\"FLIST_QUERY\":\"" << query << "\"";
+  if(is_groupby) {
+    json << ",\"FLIST_GROUPBY\":\"" << groupby << "\""
+         << ",\"FLIST_GROUP\":\"" << group << "\""
+         << ",\"FLIST_GROUP_STAT\":[";
+    if(group_stat.size()) {
+      std::map<std::string, uint32_t>::const_iterator itr = group_stat.begin();
+      json << "{\"group\":\"" << itr->first << "\",\"size\":" << itr->second << "}";
+      ++itr;
+      for(; itr!=group_stat.end(); ++itr) {
+        json << ",{\"group\":\"" << itr->first << "\",\"size\":" << itr->second << "}";
+      }
     }
     json << "]";
   }
+
+  if(flist_subset.size()) {
+    json << ",\"FLIST_FILENAME\":["
+         << "\"" << d_projects.at(pname)->filename( flist_subset.at(0) ) << "\"";
+    for(uint32_t i=1; i<flist_subset.size(); ++i) {
+      json << ",\"" << d_projects.at(pname)->filename( flist_subset.at(i) ) << "\"";
+    }
+    json << "],\"FLIST_FILE_ID\":["
+         << flist_subset.at(0);
+    for(uint32_t i=1; i<flist_subset.size(); ++i) {
+      json << ",\"" << flist_subset.at(i) << "\"";
+    }
+    json << "]";
+  } else {
+    json << ",\"FLIST_FILENAME\":[],\"FLIST_FILE_ID\":[]";
+  }
+  json << ",\"METADATA_CONF\":";
+  d_projects.at(pname)->metadata_conf_as_json(json);
   json << "}";
 
-  if(param.count("response_format") == 1 &&
-     param.at("response_format") == "json" ) {
+  if(response_format == "json" ) {
     response.set_json_payload(json.str());
   } else {
     // default response format is HTML
@@ -955,10 +1344,34 @@ void project_manager::project_filelist(std::string pname,
          << "// JS code generated automatically by src/vise/project_manager.cc::project_filelist()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"../vise_common.js\"></script>\n"
-         << "<script src=\"../project_filelist.js\"></script>\n"
+         << "<script src=\"app/vise_common.js\"></script>\n"
+         << "<script src=\"app/project_filelist.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
+  }
+}
+
+void project_manager::project_filelist_set_range(std::map<std::string, std::string> const &param,
+                                                 uint32_t flist_size,
+                                                 uint32_t &flist_start,
+                                                 uint32_t &flist_end) const {
+  // determine start
+  flist_start = 0;
+  if(param.count("start") == 1) {
+    flist_start = std::atoi(param.at("start").c_str());
+  }
+  if(flist_start >= flist_size) {
+    flist_start = 0;
+  }
+
+  // determine end
+  if(param.count("end") == 1) {
+    flist_end = std::atoi(param.at("end").c_str());
+    if(flist_end == flist_start || flist_end > flist_size) {
+      flist_end = fminl(20, flist_size);
+    }
+  } else {
+    flist_end = fminl(flist_start + 20, flist_size);
   }
 }
 
@@ -984,8 +1397,15 @@ void project_manager::project_file(std::string pname,
   json << "{\"PNAME\":\"" << pname << "\""
        << ",\"FILE_ID\":" << file_id
        << ",\"FILENAME\":\"" << d_projects.at(pname)->filename(file_id) << "\""
-       << ",\"FLIST_SIZE\":" << d_projects.at(pname)->fid_count()
-       << "}";
+       << ",\"FLIST_SIZE\":" << d_projects.at(pname)->fid_count();
+
+  json << ",\"FILE_METADATA\":";
+  d_projects.at(pname)->file_metadata_as_json(file_id, json);
+  json << ",\"REGION_METADATA\":";
+  d_projects.at(pname)->region_metadata_as_json(file_id, json);
+  json << ",\"METADATA_CONF\":";
+  d_projects.at(pname)->metadata_conf_as_json(json);
+  json << "}";
 
   if(param.count("response_format") == 1 &&
      param.at("response_format") == "json" ) {
@@ -1000,9 +1420,9 @@ void project_manager::project_file(std::string pname,
          << "// JS code generated automatically by src/vise/project_manager.cc::project_file()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"../vise_common.js\"></script>\n"
-         << "<script src=\"../via0.js\"></script>\n"
-         << "<script src=\"../project_file.js\"></script>\n"
+         << "<script src=\"app/vise_common.js\"></script>\n"
+         << "<script src=\"app/via0.js\"></script>\n"
+         << "<script src=\"app/project_file.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -1035,8 +1455,8 @@ void project_manager::project_configure(std::string pname,
        << "// JS code generated automatically by src/vise/project_manager.cc::project_configure()\n"
        << "var _vise_data = " << json.str() << ";\n"
        << "</script>\n"
-       << "<script src=\"../vise_common.js\"></script>\n"
-       << "<script src=\"../project_configure.js\"></script>\n"
+       << "<script src=\"app/vise_common.js\"></script>\n"
+       << "<script src=\"app/project_configure.js\"></script>\n"
        << vise::HTML_TAIL;
   response.set_html_payload(html.str());
 }
@@ -1068,13 +1488,46 @@ void project_manager::project_index_status(std::string pname,
            << "// JS code generated automatically by src/vise/project_manager.cc::project_index_status()\n"
            << "var _vise_data = " << json.str() << ";\n"
            << "</script>\n"
-           << "<script src=\"../vise_common.js\"></script>\n"
-           << "<script src=\"../project_index_status.js\"></script>\n"
+           << "<script src=\"app/vise_common.js\"></script>\n"
+           << "<script src=\"app/project_index_status.js\"></script>\n"
            << vise::HTML_TAIL;
       response.set_html_payload(html.str());
     }
   }
+}
 
+
+void project_manager::project_external_search(std::string pname,
+                                              std::map<std::string, std::string> const &param,
+                                              http_response &response) const {
+  if( !project_is_loaded(pname) ) {
+    response.set_status(412);
+    response.set_payload("project not loaded yet");
+    return;
+  }
+
+  if (!d_projects.at(pname)->index_is_loaded()) {
+    response.set_status(412);
+    response.set_payload("project index not loaded");
+    return;
+  }
+
+  std::ostringstream json;
+  json << "{\"PNAME\":\"" << pname << "\""
+       << "}";
+  // default response format is HTML
+  std::ostringstream html;
+  html << vise::PROJECT_HTML_HEAD
+       << "<body>\n"
+       << HTML_SVG_ASSETS
+       << "<script>\n"
+       << "// JS code generated automatically by src/vise/project_manager.cc::project_external_search()\n"
+       << "var _vise_data = " << json.str() << ";\n"
+       << "</script>\n"
+       << "<script src=\"app/vise_common.js\"></script>\n"
+       << "<script src=\"app/project_external_search.js\"></script>\n"
+       << vise::HTML_TAIL;
+  response.set_html_payload(html.str());
 }
 
 //
@@ -1396,6 +1849,33 @@ void project_manager::vise_about(std::map<std::string, std::string> const &param
   return;
 }
 
+void project_manager::vise_project_error_page(const std::string pname,
+                                              const std::string message,
+                                              const std::string response_format,
+                                              http_response &response) const {
+  std::ostringstream json;
+  json << "{\"PNAME\":\"" << pname << "\""
+       << ",\"STATUS\":\"Error\""
+       << ",\"MESSAGE\":\"" << message << "\"}";
+  if(response_format == "json" ) {
+    response.set_json_payload(json.str());
+  } else {
+    // default response format is HTML
+    std::ostringstream html;
+    html << vise::PROJECT_HTML_HEAD
+         << "<body>\n"
+         << HTML_SVG_ASSETS
+         << "<script>\n"
+         << "// JS code generated automatically by src/vise/project_manager.cc::vise_project_error_page()\n"
+         << "var _vise_data = " << json.str() << ";\n"
+         << "</script>\n"
+         << "<script src=\"app/vise_common.js\"></script>\n"
+         << "<script src=\"app/vise_project_error.js\"></script>\n"
+         << vise::HTML_TAIL;
+    response.set_html_payload(html.str());
+  }
+}
+
 void project_manager::vise_error_page(const std::string message,
                                       const std::string response_format,
                                       http_response &response) const {
@@ -1414,8 +1894,8 @@ void project_manager::vise_error_page(const std::string message,
          << "// JS code generated automatically by src/vise/project_manager.cc::vise_error_page()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"../vise_common.js\"></script>\n"
-         << "<script src=\"../vise_error.js\"></script>\n"
+         << "<script src=\"app/vise_common.js\"></script>\n"
+         << "<script src=\"app/vise_error.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -1439,8 +1919,8 @@ void project_manager::vise_wait_page(const std::string message,
          << "// JS code generated automatically by src/vise/project_manager.cc::vise_wait_page()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
-         << "<script src=\"../vise_common.js\"></script>\n"
-         << "<script src=\"../vise_wait.js\"></script>\n"
+         << "<script src=\"app/vise_common.js\"></script>\n"
+         << "<script src=\"app/vise_wait.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -1614,11 +2094,11 @@ void project_manager::project_config_use_preset(std::string pname,
 //
 // limit serving
 //
-void project_manager::serve_only(std::map<std::string, std::string> const pname_pconf_fn_map) {
+void project_manager::serve_only(std::unordered_map<std::string, std::string> const pname_pconf_fn_map) {
   std::lock_guard<std::mutex> lock(d_project_load_mutex);
 
   try {
-    std::map<std::string, std::string>::const_iterator itr;
+    std::unordered_map<std::string, std::string>::const_iterator itr;
     for(itr=pname_pconf_fn_map.begin(); itr!=pname_pconf_fn_map.end(); ++itr) {
       if (d_projects.count(itr->first) == 1) {
         continue ;
@@ -1639,7 +2119,7 @@ void project_manager::serve_only_4xx_response(http_response &response) const {
   std::ostringstream html;
   html << vise::VISE_HTML_HEAD
        << "<body>\n"
-       << "<p>The following VISE projects are available for search query:</p>"
+       << "<p>The following <a href=\"www.robots.ox.ac.uk/~vgg/software/vise/\">VISE</a> projects are available for search query:</p>"
        << "<ul>";
   std::map<std::string, std::unique_ptr<vise::project> >::const_iterator itr;
   for(itr=d_projects.begin(); itr!=d_projects.end(); ++itr) {
@@ -1657,7 +2137,7 @@ void project_manager::uri_namespace_mismatch_4xx_response(http_response &respons
   std::ostringstream html;
   html << vise::VISE_HTML_HEAD
        << "<body>\n"
-       << "<p>Resources hosted by VISE are available at: <a href=\""
+       << "<p>Resources hosted by <a href=\"www.robots.ox.ac.uk/~vgg/software/vise/\">VISE</a> are available at: <a href=\""
        << d_conf.at("http_uri_namespace") << "\">" << d_conf.at("http_uri_namespace") << "</a></p>"
        << vise::HTML_EMPTY_TAIL;
   response.set_html_payload(html.str());
