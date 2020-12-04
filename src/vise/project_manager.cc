@@ -42,10 +42,11 @@ void project_manager::process_http_request(http_request const &request,
   std::map<std::string, std::string> param;
   vise::decompose_uri(request_uri_without_ns, uri, param);
 
+#ifndef NDEBUG
   std::ostringstream ss;
   ss << "project_manager: " << request.d_method << " " << request.d_uri;
   std::cout << ss.str() << std::endl;
-
+#endif
   //request.parse_urlencoded_form_data();
   //vise::print_vector("uri", uri);
   //vise::print_map("param", param);
@@ -424,7 +425,7 @@ void project_manager::serve_from_www_store(std::string res_uri,
 void project_manager::file_send(boost::filesystem::path fn,
                                 http_response &response) const {
   std::string file_content;
-  std::cout << "Sending file " << fn.string() << std::endl;
+  //std::cout << "Sending file " << fn.string() << std::endl;
   bool ok = vise::file_load(fn, file_content);
   if ( ok ) {
     response.set_status(200);
@@ -1300,14 +1301,14 @@ void project_manager::project_filelist(std::string pname,
        << ",\"FLIST_QUERY\":\"" << query << "\"";
   if(is_groupby) {
     json << ",\"FLIST_GROUPBY\":\"" << groupby << "\""
-         << ",\"FLIST_GROUP\":\"" << group << "\""
+         << ",\"FLIST_GROUP\":\"" << json_escape_str(group) << "\""
          << ",\"FLIST_GROUP_STAT\":[";
     if(group_stat.size()) {
       std::map<std::string, uint32_t>::const_iterator itr = group_stat.begin();
-      json << "{\"group\":\"" << itr->first << "\",\"size\":" << itr->second << "}";
+      json << "{\"group\":\"" << json_escape_str(itr->first) << "\",\"size\":" << itr->second << "}";
       ++itr;
       for(; itr!=group_stat.end(); ++itr) {
-        json << ",{\"group\":\"" << itr->first << "\",\"size\":" << itr->second << "}";
+        json << ",{\"group\":\"" << json_escape_str(itr->first) << "\",\"size\":" << itr->second << "}";
       }
     }
     json << "]";

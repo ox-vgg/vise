@@ -188,7 +188,7 @@ function _vise_init_query_file_content() {
     query_img_container_height = query_img_container_height + 10;
     query_img_container.innerHTML = '';
     query_img_container.setAttribute('style', 'height:' + query_img_container_height + 'vh');
-    via_img_annotator = new _via0(query_img_container, _vise_data.FILENAME);
+    via_img_annotator = new _via0(query_img_container, 'image/' + _vise_data.FILENAME);
     via_img_annotator.add_hook('region_add', _vise_query_on_region_add, formdata);
   });
   var zoomout_link = document.createElement('a');
@@ -198,7 +198,7 @@ function _vise_init_query_file_content() {
     if(query_img_container_height > 0) {
       query_img_container.innerHTML = '';
       query_img_container.setAttribute('style', 'height:' + query_img_container_height + 'vh');
-      via_img_annotator = new _via0(query_img_container, _vise_data.FILENAME);
+      via_img_annotator = new _via0(query_img_container, 'image/' + _vise_data.FILENAME);
       via_img_annotator.add_hook('region_add', _vise_query_on_region_add, formdata);
     }
   });
@@ -211,7 +211,7 @@ function _vise_init_query_file_content() {
   query_img_container.innerHTML = '';
   var formdata = {'file_id':_vise_data.FILE_ID};
   query_img_container.style.height = query_img_container_height + 'vh';
-  via_img_annotator = new _via0(query_img_container, _vise_data.FILENAME);
+  via_img_annotator = new _via0(query_img_container, 'image/' + _vise_data.FILENAME);
   via_img_annotator.add_hook('region_add', _vise_query_on_region_add, formdata);
 
   var search_query_form = _vise_query_init_form(formdata);

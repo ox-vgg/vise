@@ -93,8 +93,8 @@ function _vise_init_show_match_ui() {
 
   _vise_querymatch_panel_show();
 
-  var query_img_uri = _vise_data.QUERY['filename'];
-  var match_img_uri = _vise_data.MATCH['filename'];
+  var query_img_uri = 'image/' + _vise_data.QUERY['filename'];
+  var match_img_uri = 'image/' + _vise_data.MATCH['filename'];
   var load_promise_list = [];
   load_promise_list.push( _vise_load_remote_img(query_img_uri) );
   load_promise_list.push( _vise_load_remote_img(match_img_uri) );

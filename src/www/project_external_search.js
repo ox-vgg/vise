@@ -46,7 +46,7 @@ content.appendChild(upload_container);
 
 // for external search results
 var query_panel = document.createElement('div');
-query_panel.setAttribute('class', 'query_panel');
+query_panel.setAttribute('class', 'query_panel hide');
 content.appendChild(query_panel);
 var results_panel = document.createElement('div');
 results_panel.setAttribute('class', 'results_panel');
@@ -107,7 +107,7 @@ results.setAttribute('class', 'resultgrid');
 
 // update the search result when browser is resized
 // this is required as the image size changes and hence the bounding box needs update
-//window.addEventListener('resize', _vise_init_search_result_ui);
+window.addEventListener('resize', _vise_init_external_search_result_ui);
 
 // check existence of everything we need
 if( !_vise_self_check_is_ok()) {
@@ -167,7 +167,6 @@ function _vise_show_local_file_uploader() {
     var selected_image = document.createElement('img');
     selected_image.addEventListener('load', function(e) {
       selected_image_dim = [this.naturalWidth, this.naturalHeight];
-      console.log(selected_image_dim);
     });
     selected_image.src = selected_file_object_url;
     selected_image.setAttribute('title', selected_file.name);
@@ -193,7 +192,6 @@ function _vise_extract_features() {
       progress.setAttribute('value', '2');
       progress_message.innerHTML = 'Image features extracted ...';
       selected_file_features = this.response;
-      console.log(selected_file_features);
       _vise_search_features();
       break;
     default:
@@ -222,7 +220,6 @@ function _vise_search_features() {
       _vise_external_search.QUERY = {'file_id':'Uploaded',
                           'filename':selected_file.name,
                           'x':0, 'y':0, 'width':selected_image_dim[0], 'height':selected_image_dim[1]};
-      console.log(_vise_data);
       upload_container.innerHTML = '';
       _vise_show_search_results();
       break;
@@ -397,7 +394,7 @@ function _vise_show_more_search_results() {
   results.removeChild(showmore);
 
   showing_result_from = showing_result_to;
-  showing_result_to = Math.min(showing_result_from + SHOW_SIZE, _vise_external_search_result.RESULT.length);
+  showing_result_to = Math.min(showing_result_from + SHOW_SIZE, _vise_external_search.RESULT.length);
   for( var i=showing_result_from; i<showing_result_to; ++i) {
     var a = _vise_search_result_html_element(i);
     results.appendChild(a);
@@ -425,7 +422,6 @@ function _vise_get_feature_match_details(match_file_id) {
       _vise_data = JSON.parse(this.response);
       _vise_data['QUERY'] = _vise_external_search.QUERY;
       _vise_show_match();
-      console.log(_vise_match);
       break;
     default:
       progress_message.innerHTML('Error: malformed response from VISE server. (' + this.response + ')');
@@ -534,7 +530,7 @@ function _vise_show_match() {
 
   _vise_querymatch_panel_show();
   var query_img_uri = selected_file_object_url;
-  var match_img_uri = _vise_data.MATCH['filename'];
+  var match_img_uri = 'image/' + _vise_data.MATCH['filename'];
   var load_promise_list = [];
   load_promise_list.push( _vise_load_remote_img(query_img_uri) );
   load_promise_list.push( _vise_load_remote_img(match_img_uri) );
