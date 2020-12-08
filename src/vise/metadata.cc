@@ -221,8 +221,8 @@ void vise::metadata::init_metadata_fts_vtable() {
     }
     ss << " AS `" << d_concatenated_file_metadata_col_name
        << "` FROM `" << d_file_metadata_table_name << "` AS FM"
-       << " INNER JOIN `" << d_region_metadata_table_name << "` AS RM"
-       << " WHERE FM.file_id = RM.file_id;";
+       << " LEFT JOIN `" << d_region_metadata_table_name << "` AS RM"
+       << " USING(file_id);";
     sql = ss.str();
   } else {
     // insert file metadata only
@@ -263,11 +263,9 @@ void vise::metadata::init_metadata_fts_vtable() {
 // query: year=(1400,1500)
 bool vise::metadata::full_text_search_query_to_sql(const std::string query,
                                                    std::string &sql) const {
-  std::cout << "query={" << query << "}" << std::endl;
 
   std::ostringstream ss;
   std::size_t eq_pos = query.find("=");
-  std::cout << "eq_pos = " << eq_pos << ", size=" << query.size() << std::endl;
   if(eq_pos == (query.size() - 1)) {
     return false;
   }
@@ -282,7 +280,6 @@ bool vise::metadata::full_text_search_query_to_sql(const std::string query,
 
   std::string col_name( query.substr(0, eq_pos) );
   std::string table_name = table_name_from_attribute_name(col_name);
-  std::cout << "column=" << col_name << ", table=" << table_name << std::endl;
 
   if(table_name == "") {
     return false; // non-existing column
@@ -306,7 +303,6 @@ bool vise::metadata::full_text_search_query_to_sql(const std::string query,
     }
     std::string value1_str( query.substr(eq_pos+2, comma_pos - eq_pos - 2) );
     std::string value2_str( query.substr(comma_pos + 1, bracket_pos - comma_pos - 1) );
-    std::cout << "query={" << query << "}, colname=" << col_name << ", value1=" << value1_str << ", value2=" << value2_str << std::endl;
     ss << "SELECT DISTINCT file_id from `" << table_name << "` WHERE `"
        << col_name << "` BETWEEN '" << value1_str << "' AND '" << value2_str << "'";
     sql.assign(ss.str());
@@ -314,7 +310,6 @@ bool vise::metadata::full_text_search_query_to_sql(const std::string query,
   } else {
     // exact search
     std::string value_str( query.substr(eq_pos + 1) );
-    std::cout << "query={" << query << "}, colname=" << col_name << ", value=" << value_str << std::endl;
     ss << "SELECT DISTINCT file_id from `" << table_name << "` WHERE `"
        << col_name << "` = '" << value_str << "'";
     sql.assign(ss.str());
@@ -331,7 +326,6 @@ void vise::metadata::file_metadata_full_text_search(const std::string query,
   uint32_t tstart = vise::getmillisecs();
   std::string sql;
   bool success = full_text_search_query_to_sql(query, sql);
-  std::cout << "full_text_search_query_to_sql(): success=" << success << ", sql={" << sql << "}" << std::endl;
   if(!success) {
     return;
   }
@@ -364,7 +358,6 @@ void vise::metadata::file_metadata_full_text_search_group_stat(const std::string
 
   std::string query_sql;
   bool success = full_text_search_query_to_sql(query, query_sql);
-  std::cout << "full_text_search_query_to_sql(): success=" << success << ", query_sql={" << query_sql << "}" << std::endl;
   if(!success) {
     return;
   }
@@ -376,7 +369,6 @@ void vise::metadata::file_metadata_full_text_search_group_stat(const std::string
      << " (" << query_sql << ") "
      << "GROUP BY (" << groupby << ");";
   std::string sql(ss.str());
-  std::cout << "sql = {" << sql << "}" << std::endl;
   int rc;
   sqlite3_stmt *stmt;
   const char *tail;
@@ -623,7 +615,6 @@ void vise::metadata::metadata_groupby(const std::string groupby,
   ss << "SELECT `file_id` from `" << table_name
      << "` WHERE `" << groupby << "`='" << group << "';";
   std::string sql(ss.str());
-  std::cout << "vise::metadata : " << sql << std::endl;
   int rc;
   sqlite3_stmt *stmt;
   const char *tail;

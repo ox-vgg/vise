@@ -195,7 +195,7 @@ function _vise_extract_features() {
       _vise_search_features();
       break;
     default:
-      progress_message.innerHTML('Error: malformed response from VISE server. (' + this.response + ')');
+      progress_message.innerHTML = 'Error: malformed response from VISE server. (' + this.response + ')';
     }
   });
   xhr.addEventListener('timeout', function(e) {
@@ -224,7 +224,7 @@ function _vise_search_features() {
       _vise_show_search_results();
       break;
     default:
-      progress_message.innerHTML('Error: malformed response from VISE server. (' + this.response + ')');
+      progress_message.innerHTML = 'Error: malformed response from VISE server. (' + this.response + ')';
     }
   });
   xhr.addEventListener('timeout', function(e) {

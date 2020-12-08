@@ -358,6 +358,7 @@ function _vise_togglepanel_show() {
 	    }
     });
     toggle_canvas.addEventListener('mousemove', function(e) {
+      return;
       if(is_manual_toggle_mode) {
         if(mouse_move_count > 10) {
           _vise_toggle_canvas_toggle();

@@ -246,7 +246,11 @@ function _vise_init_filelist_search_toolbar() {
   }
   search_input.setAttribute('placeholder', 'Enter a search keyword (e.g. Aesopus AND Venice)');
   search_input.addEventListener('change', function(e) {
-    search_panel_mode.setAttribute('value', 'fts'); // switch to full text search mode
+    if(this.value === '') {
+      search_panel_mode.setAttribute('value', 'all'); // switch to full text search mode
+    } else {
+      search_panel_mode.setAttribute('value', 'fts'); // switch to full text search mode
+    }
   });
 
   var groupby_select = document.createElement('select');
