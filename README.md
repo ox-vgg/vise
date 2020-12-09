@@ -12,24 +12,28 @@ For more details, visit https://www.robots.ox.ac.uk/~vgg/software/vise/
 
 ## Compiling from Source in Linux
 ```
-export VISE_DIR=$HOME/vise/code
-export VISE_DEP_DIR=$HOME/vise/dep
+export VISE_DIR=$HOME/vise/code     # change this to suit your requirements
+export VISE_DEP_DIR=$HOME/vise/dep  # change this to suit your requirements
 
 mkdir -p $VISE_DIR
+cd $VISE_DIR
 git clone git@gitlab.com:vgg/vise.git
 cd $VISE_DIR/vise/scripts/build/
-# compile and install VISE dependencies (cmake, protobuf, eigen, boost, imagemagick, vlfeat)
-./make_deps_debian.sh $VISE_DEP_DIR
+./make_deps_debian.sh $VISE_DEP_DIR # compile and install VISE dependencies
 
 # compile VISE
 cd $VISE_DIR/vise/
 mkdir cmake_build && cd cmake_build
-$VISE_DEP_DIR/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$VISE_DEP_DIR -DVLFEAT_LIB=$VISE_DEP_DIR/_tmp_libsrc/vlfeat-0.9.21/bin/glnxa64/libvl.so -DVLFEAT_INCLUDE_DIR=$VISE_DEP_DIR/_tmp_libsrc/vlfeat-0.9.21/ ../src
-make -j8
+$VISE_DEP_DIR/bin/cmake -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH=$VISE_DEP_DIR \
+  -DVLFEAT_LIB=$VISE_DEP_DIR/_tmp_libsrc/vlfeat-0.9.21/bin/glnxa64/libvl.so \
+  -DVLFEAT_INCLUDE_DIR=$VISE_DEP_DIR/_tmp_libsrc/vlfeat-0.9.21/ \
+  ../src
+make -j8                            # compile VISE
 
-# run VISE
 cd $VISE_DIR/vise/cmake_build
-./vise/vise # user interface available at http://localhost:9669
+./vise/vise                         # start VISE server, the VISE web interface
+                                    # is available at http://localhost:9669
 ```
 
 ## Command Line Mode (for Advanced Users)
@@ -55,11 +59,14 @@ tar -zxvf oxbuild_images.tgz # extract all images to "image_src" folder
 rm oxbuild_images.tgz        # no longer needed
 
 # create visual search index
-./vise/vise create-project oxford-buildings /data/vggdemos/vise/www/vise/oxford-buildings/data/conf.txt
+./vise/vise-cli create-project oxford-buildings \
+  /data/vggdemos/vise/www/vise/oxford-buildings/data/conf.txt
 
 # make visual search engine web interface 
 # available at http://localhost:9670/vise/demo/
-./vise/vise serve-project --port=9670 --nthread=4 --http_uri_namespace=/vise/demo/ oxford-buildings:/data/oxford-buildings/data/conf.txt
+./vise/vise-cli serve-project --port=9670 --nthread=4 --address=0.0.0.0 \
+  --http_uri_namespace=/vise/demo/ \
+  oxford-buildings:/data/oxford-buildings/data/conf.txt
 ```
 
 ## HTTP API
