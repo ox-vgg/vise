@@ -59,13 +59,13 @@ tar -zxvf oxbuild_images.tgz # extract all images to "image_src" folder
 rm oxbuild_images.tgz        # no longer needed
 
 # create visual search index
-./vise/vise-cli create-project oxford-buildings \
-  /data/vggdemos/vise/www/vise/oxford-buildings/data/conf.txt
+./vise/vise-cli --run-mode=create-project --nthread=2 \
+  oxford-buildings:/data/vggdemos/vise/www/vise/oxford-buildings/data/conf.txt
 
 # make visual search engine web interface 
 # available at http://localhost:9670/vise/demo/
-./vise/vise-cli serve-project --port=9670 --nthread=4 --address=0.0.0.0 \
-  --http_uri_namespace=/vise/demo/ \
+./vise/vise-cli --run-mode=serve-project \
+  --port=9670 --nthread=4 --address=0.0.0.0 --http_uri_namespace=/vise/demo/ \
   oxford-buildings:/data/oxford-buildings/data/conf.txt
 ```
 

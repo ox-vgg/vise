@@ -28,7 +28,7 @@
 
 void print_usage(std::string visecli_exec="vise-cli") {
   std::cout << "\nUsage::\n"
-            << visecli_exec << " --run-mode=[create-project | server-project | web-ui | create-visual-vocabulary | ...]\n"
+            << visecli_exec << " --run-mode=[create-project | serve-project | web-ui | create-visual-vocabulary | ...]\n"
             << "         --vise-home=DIR --port=PORT --nthread=NTHREAD --http_uri_namespace=NS ...\n"
             << "         PROJECT1_NAME:CONF_FILENAME PROJECT2_NAME:CONF_FILENAME ...\n"
             << "\nExample::\n"
