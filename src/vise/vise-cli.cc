@@ -35,7 +35,7 @@ void print_usage(std::string visecli_exec="vise-cli") {
             << "a) to access all features of VISE using the web address http://localhost:10011/my_vise/\n"
             << "$ " << visecli_exec << " --run-mode=web-ui --vise-home=/home/xyz/.vise/ --port=10011 --nthread=8 --http_uri_namespace=/my_vise/\n"
             << "b) to create a project whose configuration file is stored in /data/Oxford-Buildings/data/conf.txt\n"
-            << "$ " << visecli_exec << " --run-mode=create-project --nthread=32 Oxford-Buildings /data/Oxford-Buildings/data/conf.txt" << std::endl
+            << "$ " << visecli_exec << " --run-mode=create-project --nthread=32 Oxford-Buildings:/data/Oxford-Buildings/data/conf.txt" << std::endl
             << "c) to allow users to search two projects (e.g. P1, P2) using the web address http://localhost:80/demo/\n"
             << "$ " << visecli_exec << " --run-mode=serve-project --port=80 --http_uri_namespace=/demo/ P1:/p1/data/conf.txt P2:/p2/data/conf.txt" << std::endl;
 }
@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
   }
   if(cli_args.at("run-mode") == "create-project" ||
      cli_args.at("run-mode") == "create-visual-vocabularly" ) {
-    if(pname_pconf_list.size() == 1) {
+    if(pname_pconf_list.size() != 1) {
       std::cout << "--run-mode={create-project, create-visual-vocabulary} accepts only a single PROJECT_NAME:CONF_FILENAME parameter."
                 << std::endl;
       return 1;
