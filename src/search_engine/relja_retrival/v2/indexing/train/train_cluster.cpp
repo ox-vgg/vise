@@ -105,7 +105,7 @@ namespace buildIndex {
 #elif __APPLE__
     read_count = fseeko(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
 #else
-    read_count = fseek(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
+    read_count = fseeko64(f, HEADER_BYTES, SEEK_SET); // move file pointer to start of descriptors
 #endif
     if(read_count) {
       logf << "cluster:: fseek() failed for file " << train_desc_fn << std::endl;
