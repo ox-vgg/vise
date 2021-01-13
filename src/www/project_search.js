@@ -167,6 +167,8 @@ function _vise_show_search_result_content() {
     next_norm_score_threshold = 0.01;
   }
 
+  //console.log('best_norm_score=' + best_norm_score + ', current_norm_score_threshold=' + current_norm_score_threshold + ', next_norm_score_threshold=' + next_norm_score_threshold);
+
   showing_result_from = 1; // discard first result which corresponds to the query image
   for( var i=showing_result_from; i<_vise_data.RESULT.length; ++i) {
     var norm_score = _vise_data.RESULT[i]['score'] / _vise_data.RESULT[0]['score'];
@@ -262,12 +264,12 @@ function _vise_show_more_search_results() {
   results.removeChild(showmore);
 
   showing_result_from = showing_result_to;
-  showing_result_to = Math.min(showing_result_from+SHOW_SIZE, _vise_data.RESULT.length);
-  for( var i=showing_result_from; i<showing_result_to; ++i) {
+  for( var i=showing_result_from; i<_vise_data.RESULT.length; ++i) {
     var norm_score = _vise_data.RESULT[i]['score'] / _vise_data.RESULT[0]['score'];
     if(norm_score > next_norm_score_threshold) {
       var a = _vise_search_result_html_element(i);
       results.appendChild(a);
+      showing_result_to = i;
     } else {
       break;
     }
@@ -277,13 +279,25 @@ function _vise_show_more_search_results() {
     var showmore = document.createElement('div');
     showmore.setAttribute('id', 'showmore');
     var info = document.createElement('p');
-    info.innerHTML = 'Showing results from 1 to ' + (showing_result_to - 1) + ' (of ' + _vise_data.RESULT.length + ').';
+    info.innerHTML = 'Showing results from 1 to ' + (showing_result_to) + ' (of ' + _vise_data.RESULT.length + ').';
 
     var more = document.createElement('p');
-    more.innerHTML = '<span class="text_button" onclick="_vise_show_more_search_results()">Show ' + SHOW_SIZE + ' more</span>';
+    more.innerHTML = '<span class="text_button" onclick="_vise_show_all_remaining_search_results()">Show remaining results</span>';
     showmore.appendChild(info);
     showmore.appendChild(more);
     results.appendChild(showmore);
+  }
+}
+
+function _vise_show_all_remaining_search_results() {
+  var showmore = document.getElementById('showmore');
+  results.removeChild(showmore);
+
+  showing_result_from = showing_result_to;
+  for( var i=showing_result_from; i<_vise_data.RESULT.length; ++i) {
+      var a = _vise_search_result_html_element(i);
+      results.appendChild(a);
+      showing_result_to = i;
   }
 }
 
