@@ -828,3 +828,23 @@ void vise::project::register_external_image(const std::string &image_data,
     d_search_engine->register_external_image(image_data, file2_id, H);
   }
 }
+
+//
+// visual group
+//
+void vise::project::create_visual_group(std::unordered_map<std::string, std::string> &params,
+                                        bool &success, std::string &message,
+                                        bool &block_until_done) const {
+  success = false;
+  if(d_state != vise::project_state::SEARCH_READY) {
+    message = "project state must be SEARCH_READY for creating a visual group";
+    return;
+  }
+
+  if (!d_search_engine) {
+    message = "search engine not initialized yet";
+    return;
+  }
+
+  d_search_engine->create_visual_group(params, success, message, block_until_done);
+}

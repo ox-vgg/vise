@@ -29,15 +29,19 @@
 void print_usage(std::string visecli_exec="vise-cli") {
   std::cout << "\nUsage::\n"
             << visecli_exec << " --run-mode=[create-project | serve-project | web-ui | create-visual-vocabulary | ...]\n"
-            << "         --vise-home=DIR --port=PORT --nthread=NTHREAD --http_uri_namespace=NS ...\n"
-            << "         PROJECT1_NAME:CONF_FILENAME PROJECT2_NAME:CONF_FILENAME ...\n"
-            << "\nExample::\n"
+            << "  --vise-home=DIR --port=PORT --nthread=NTHREAD --http_uri_namespace=NS ...\n"
+            << "  PROJECT1_NAME:CONF_FILENAME PROJECT2_NAME:CONF_FILENAME ...\n"
+            << "\nSome Examples:\n"
             << "a) to access all features of VISE using the web address http://localhost:10011/my_vise/\n"
             << "$ " << visecli_exec << " --run-mode=web-ui --vise-home=/home/xyz/.vise/ --port=10011 --nthread=8 --http_uri_namespace=/my_vise/\n"
             << "b) to create a project whose configuration file is stored in /data/Oxford-Buildings/data/conf.txt\n"
             << "$ " << visecli_exec << " --run-mode=create-project --nthread=32 Oxford-Buildings:/data/Oxford-Buildings/data/conf.txt" << std::endl
             << "c) to allow users to search two projects (e.g. P1, P2) using the web address http://localhost:80/demo/\n"
-            << "$ " << visecli_exec << " --run-mode=serve-project --port=80 --http_uri_namespace=/demo/ P1:/p1/data/conf.txt P2:/p2/data/conf.txt" << std::endl;
+            << "$ " << visecli_exec << " --run-mode=serve-project --port=80 --http_uri_namespace=/demo/ P1:/p1/data/conf.txt P2:/p2/data/conf.txt" << std::endl
+            << "d) to create a visual group\n"
+            << "$ " << visecli_exec << " --run-mode=create-visual-group --id=negative-groups\n"
+            << "  --max-matches=50 --min-score=100 --select-filename=^negative/.*"
+            << std::endl;
 }
 
 int main(int argc, char **argv) {
@@ -148,6 +152,38 @@ int main(int argc, char **argv) {
     vise::http_server server(vise_settings, manager);
     server.start();
     return 0;
+  }
+
+  if(cli_args.at("run-mode") == "create-visual-group") {
+    if(pname_pconf_list.size() != 1) {
+      std::cout << "--run-mode=create-visual-group required only one PROJECT_NAME:CONF_FILENAME parameter."
+                << std::endl;
+      return 1;
+    }
+    if(cli_args.count("id") == 0) {
+      std::cout << "you must specify a unique id for visual group using --id parameter."
+                << std::endl;
+      return 1;
+    }
+
+    std::unordered_map<std::string, std::string>::const_iterator itr = pname_pconf_list.begin();
+    std::string pname = itr->first;
+    boost::filesystem::path project_conf_fn(itr->second);
+    if( !boost::filesystem::exists(project_conf_fn) ) {
+      std::cout << "Error: configuration file ["
+                << project_conf_fn << "] for project [" << pname << "] "
+                << "was not found" << std::endl;
+      return 1;
+    }
+    vise::project existing_project(pname, project_conf_fn.string());
+    bool success;
+    std::string message;
+    bool block_until_done = true;
+    existing_project.create_visual_group(cli_args, success, message, block_until_done);
+    if(!success) {
+      std::cout << "failed: " << message << std::endl;
+    }
+    return 0; // as we know there is only one project to be processed
   }
 
   std::cout << "Unknown --run-mode=" << cli_args.at("run-mode") << std::endl;

@@ -132,7 +132,8 @@ spatialVerifV2::spatialQueryExecute(rr::indexEntry &queryRep,
     workers.push_back( new spatWorker(ellipses1, ue, daatIter, daatLock, uniqIndToInd, spatParams_, elUnquant_, sameRandomObj_) );
   }
 
-  std::cout << "spatial_verif_v2:: workers.size = " << workers.size() << std::endl;
+
+  //std::cout << "spatial_verif_v2:: workers.size = " << workers.size() << std::endl;
   spatManager manager( forgetFirst, initial_query_results, queryRes, spatParams_, spatialDepthEff, Hs );
 
   // start the threads

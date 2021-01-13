@@ -111,6 +111,10 @@ namespace vise {
     void index_get_feature_match_details(const std::string &image_features,
                                          const uint32_t match_file_id,
                                          std::ostringstream &json) const;
+    // visual group
+    void create_visual_group(std::unordered_map<std::string, std::string> &params,
+                             bool &success, std::string &message,
+                             bool &block_until_done) const;
   private:
     std::string d_pname;
     boost::filesystem::path d_project_dir;

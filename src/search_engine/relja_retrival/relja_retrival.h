@@ -68,10 +68,13 @@
 #include <unordered_map>
 #include <functional>
 #include <stdexcept>
+#include <regex>
 
 #include <boost/filesystem.hpp>
 
 #include <Magick++.h>
+
+#include <sqlite3.h>
 
 namespace vise {
   class relja_retrival:public search_engine {
@@ -119,6 +122,9 @@ namespace vise {
 
     void extract_image_features(const std::string &image_data,
                                 std::string &image_features) const override;
+    void create_visual_group(std::unordered_map<std::string, std::string> &params,
+                             bool &success, std::string &message,
+                             bool &block_until_done) const override;
   private:
     void index_run_all_stages(std::function<void(void)> callback);
     uint32_t image_src_count() const;
@@ -133,6 +139,9 @@ namespace vise {
     int64_t get_traindesc_count(std::string train_desc_fn);
 
     void findBBox2( double xl, double xu, double yl, double yu, homography const &H, double &xl2, double &xu2, double &yl2, double &yu2, uint32_t w2, uint32_t h2 ) const;
+
+    // visual group
+    bool sqlite_table_exists(sqlite3 *db, const std::string table_name) const;
 
     boost::filesystem::path d_data_dir;
     boost::filesystem::path d_image_dir;

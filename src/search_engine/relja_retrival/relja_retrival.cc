@@ -1377,3 +1377,205 @@ void vise::relja_retrival::index_search_using_features(const std::string &image_
                 );
   }
 }
+
+//
+// visual group
+//
+void vise::relja_retrival::create_visual_group(std::unordered_map<std::string, std::string> &params,
+                                               bool &success, std::string &message,
+                                               bool &block_until_done) const {
+  std::string match_edges_tablename("match_graph_edges");
+  std::string match_progress_tablename("match_progress");
+
+  std::cout << "relja_retrival::create_visual_group()" << std::endl;
+  success = false;
+  std::vector<std::size_t> all_fid_list;
+  if(params.count("select-filename")) {
+    std::regex filename_regex(params.at("select-filename"), std::regex_constants::egrep);
+    for(std::size_t fid=0; fid<d_dataset->getNumDoc(); ++fid) {
+      if(std::regex_match(d_dataset->getInternalFn(fid), filename_regex)) {
+        all_fid_list.push_back(fid);
+      };
+    }
+    std::cout << "relja_retrival:: regex " << params.at("select-filename")
+              << " matched " << all_fid_list.size() << " files" << std::endl;
+  } else {
+    for(std::size_t fid=0; fid<d_dataset->getNumDoc(); ++fid) {
+      all_fid_list.push_back(fid);
+    }
+  }
+
+  if(all_fid_list.size() == 0) {
+    message = "no matching files";
+    return;
+  }
+
+  std::size_t max_matches_count = 100;
+  if(params.count("max-matches")) {
+    max_matches_count = std::stoi(params.at("max-matches"));
+  }
+  float min_score = 10;
+  if(params.count("min-score")) {
+    min_score = std::stof(params.at("min-score"));
+  }
+
+  std::string vgroup_id = "visual_group";
+  if(params.count("id")) {
+    vgroup_id = params.at("id");
+  }
+
+  // initialize sqlite db
+  sqlite3 *db = nullptr;
+  boost::filesystem::path vgroup_db_fn   = d_data_dir / (vgroup_id + ".sqlite");
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.string().c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    message = "failed to initialize database";
+    sqlite3_close(db);
+    return;
+  }
+  int rc;
+  char *err_msg;
+  std::string sql;
+  std::vector<std::size_t> todo_fid_list;
+  if(sqlite_table_exists(db, match_edges_tablename)) {
+    // retrieve largest query_file_id and start from the next file_id
+    std::set<std::size_t> done_fid_list;
+    sql = "SELECT `processed_query_file_id` FROM " + match_progress_tablename;
+    sqlite3_stmt *stmt;
+    const char *tail;
+    rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+    if(rc != SQLITE_OK) {
+      message = "failed to read existing " + match_edges_tablename;
+      sqlite3_close(db);
+      return;
+    }
+    rc = sqlite3_step(stmt);
+    std::size_t done_fid;
+    while(rc == SQLITE_ROW) {
+      done_fid = sqlite3_column_int(stmt, 0);
+      done_fid_list.insert(done_fid);
+      rc = sqlite3_step(stmt);
+    }
+    sqlite3_finalize(stmt);
+
+    // remove all the done fid from todo list
+    if(done_fid_list.size()) {
+      for(std::size_t i=0; i<all_fid_list.size(); ++i) {
+        if(done_fid_list.count(all_fid_list[i]) == 0) {
+          todo_fid_list.push_back( all_fid_list[i] );
+        }
+      }
+    }
+    std::cout << "relja_retrival:: resuming computations from file_id="
+              << todo_fid_list.at(0) << std::endl;
+  } else {
+    // create table
+    sql = "BEGIN TRANSACTION";
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+    sql = "CREATE TABLE `" + match_edges_tablename + "`(`query_file_id` INTEGER, `match_file_id` INTEGER, `score` REAL NOT NULL, `H` TEXT NOT NULL);";
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+    sql = "CREATE TABLE `" + match_progress_tablename + "`(`query_file_id` INTEGER, `match_count` INTEGER, `match_time_sec` REAL);";
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+    sql = "END TRANSACTION";
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+    if(rc != SQLITE_OK) {
+      if(err_msg != NULL) {
+        message = "failed to create " + match_edges_tablename + " table";
+        sqlite3_free(err_msg);
+        return;
+      }
+    }
+    todo_fid_list = all_fid_list;
+  }
+
+  std::size_t query_fid;
+  std::size_t match_fid;
+  bool is_internal_query = true; // indicates that query image is a part of the indexed dataset
+  unsigned int processed_file_count = 0;
+  for(std::size_t findex=0; findex<todo_fid_list.size(); ++findex) {
+    query_fid = todo_fid_list[findex];
+    query qobj(query_fid, is_internal_query, "");
+
+    std::vector<indScorePair> all_result;
+    std::map<uint32_t, homography> H_list;
+    uint32_t tstart = vise::getmillisecs();
+    d_spatial_retriever->spatialQuery(qobj, all_result, H_list, max_matches_count);
+    uint32_t tend = vise::getmillisecs();
+    double telapsed = ((double) (tend - tstart)) / 1000.0;
+
+    std::cout << query_fid << " : ";
+    sql = "BEGIN TRANSACTION";
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+    int match_count = 0;
+    for ( uint32_t i = 1; i < all_result.size(); ++i ) {
+      float score = (float) all_result[i].second;
+      if(score > min_score) {
+        match_fid = all_result[i].first;
+        std::ostringstream ss;
+        ss << "INSERT INTO `" << match_edges_tablename << "` VALUES("
+           << query_fid << "," << match_fid << "," << score << ","
+           << "'[" << H_list[i].H[0] << "," << H_list[i].H[1] << ","
+           << H_list[i].H[2] << "," << H_list[i].H[3] << ","
+           << H_list[i].H[4] << "," << H_list[i].H[5] << "]');";
+        sql = ss.str();
+        rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+        match_count = match_count + 1;
+        std::cout << match_fid << ":" << score << ", ";
+      }
+    }
+    sql = "INSERT INTO `" + match_progress_tablename + "` VALUES(" + std::to_string(query_fid) + "," + std::to_string(match_count) + "," + std::to_string(telapsed) + ");";
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+    sql = "END TRANSACTION";
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+    if(rc != SQLITE_OK) {
+      message = "failed to insert data into " + match_edges_tablename;
+      if(err_msg != NULL) {
+        sqlite3_free(err_msg);
+      }
+      sqlite3_close(db);
+      return;
+    }
+
+    std::cout << std::endl;
+    processed_file_count = processed_file_count + 1;
+  }
+  sqlite3_close(db);
+  success = true;
+  message = "done : processed " + std::to_string(processed_file_count) + " images";
+}
+
+bool vise::relja_retrival::sqlite_table_exists(sqlite3 *db, const std::string table_name) const {
+  std::string sql("SELECT COUNT(type) from sqlite_master where type='table' and name='" + table_name + "';");
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    std::cout << "relja_retrival::sqlite_table_exists() failed" << std::endl;
+    return false;
+  }
+  rc = sqlite3_step(stmt);
+  int ncols = sqlite3_column_count(stmt);
+  if(ncols != 1) {
+    std::cout << "relja_retrival::sqlite_table_exists() malformed result from SQL"
+              << std::endl;
+    return false;
+  }
+
+  unsigned int table_count = sqlite3_column_int(stmt, 0);
+  sqlite3_finalize(stmt);
+  if(table_count == 1) {
+    return true;
+  } else {
+    return false;
+  }
+}

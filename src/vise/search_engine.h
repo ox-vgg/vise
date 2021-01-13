@@ -13,6 +13,7 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <unordered_map>
 
 namespace vise {
   class search_engine {
@@ -58,6 +59,10 @@ namespace vise {
 
     virtual void extract_image_features(const std::string &image_data,
                                         std::string &image_features) const = 0;
+
+    virtual void create_visual_group(std::unordered_map<std::string, std::string> &params,
+                                     bool &success, std::string &message,
+                                     bool &block_until_done) const = 0;
   private:
     const std::string d_se_name;
   };
