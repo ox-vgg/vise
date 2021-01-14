@@ -87,7 +87,7 @@ function _vise_init_query_toolbar() {
   sep.innerHTML = '&nbsp;|&nbsp;';
 
   var fileinfo = document.createElement('div');
-  fileinfo.innerHTML = 'Showing file ' + _vise_data.FILE_ID + ' of ' + _vise_data.FLIST_SIZE + ' | <a target="_blank" href="' + _vise_data.FILENAME + '">' + _vise_data.FILENAME + '</a>';
+  fileinfo.innerHTML = 'Showing file ' + _vise_data.FILE_ID + ' of ' + _vise_data.FLIST_SIZE + ' | <a target="_blank" href="image/' + _vise_data.FILENAME + '">' + _vise_data.FILENAME + '</a>';
 
   var list = document.createElement('a');
   list.setAttribute('href', 'filelist?start=' + _vise_data.FILE_ID);
