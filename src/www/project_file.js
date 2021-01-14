@@ -130,6 +130,7 @@ function _vise_init_query_toolbar() {
 function _vise_init_query_file_metadata() {
   file_metadata.innerHTML = '';
   var table = document.createElement('table');
+  var metadata_row_count = 0;
   if(_vise_data.hasOwnProperty('METADATA_CONF')) {
     for(var aindex in _vise_data['METADATA_CONF']['file_attributes_id_list']) {
       var aid = _vise_data['METADATA_CONF']['file_attributes_id_list'][aindex];
@@ -159,6 +160,7 @@ function _vise_init_query_file_metadata() {
       tr.appendChild(key);
       tr.appendChild(value_col);
       table.appendChild(tr);
+      metadata_row_count = metadata_row_count + 1;
     }
   } else {
     for(var aid in _vise_data['FILE_METADATA']) {
@@ -170,9 +172,16 @@ function _vise_init_query_file_metadata() {
       tr.appendChild(key);
       tr.appendChild(value);
       table.appendChild(tr);
+      metadata_row_count = metadata_row_count + 1;
     }
   }
-  file_metadata.appendChild(table);
+  if(metadata_row_count) {
+    file_metadata.appendChild(table);
+  } else {
+    // we do not need to allocate column for file metadata
+    file_panel.removeChild(file_metadata);
+    file_panel.setAttribute('style', 'grid-template-columns:1fr;');
+  }
 }
 
 function _vise_init_query_file_content() {
@@ -256,7 +265,7 @@ function _vise_query_on_region_add(region) {
 function _vise_init_query_region_metadata() {
   region_metadata.innerHTML = '';
   if(_vise_data['REGION_METADATA'].length === 0) {
-    region_metadata.innerHTML = '<p>No image regions defined for this image.</p>';
+    //region_metadata.innerHTML = '<p>No image regions defined for this image.</p>';
     return;
   }
   var title = document.createElement('h3');
