@@ -13,7 +13,6 @@ vise::relja_retrival::relja_retrival(boost::filesystem::path pconf_fn,
                                      boost::filesystem::path project_dir)
   : search_engine("relja_retrival"),
     d_match_edges_table("match_graph_edges"),
-    d_match_graph_table("match_graph"),
     d_match_progress_table("match_graph_progress"),
     d_group_metadata_table("group_metadata"),
     d_pconf_fn(pconf_fn), d_project_dir(project_dir),
@@ -1490,7 +1489,6 @@ void vise::relja_retrival::is_visual_group_valid(const std::string group_id,
 
   std::ostringstream ss;
   ss << "SELECT COUNT(type) from sqlite_master where type='table' and name IN ("
-     << "'" << d_match_graph_table << "',"
      << "'" << d_match_edges_table << "',"
      << "'" << d_match_progress_table << "',"
      << "'" << d_group_metadata_table << "');";
@@ -1563,9 +1561,6 @@ void vise::relja_retrival::init_group_db_tables(const std::string group_id,
   char *err_msg;
 
   std::string sql = "BEGIN TRANSACTION";
-  rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
-
-  sql = "CREATE TABLE `" + d_match_graph_table + "`(`set_id` INTEGER PRIMARY KEY, `query_file_id` INTEGER, `match_count` INTEGER);";
   rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
 
   sql = "CREATE TABLE `" + d_match_edges_table + "`(`query_file_id` INTEGER NOT NULL, `match_file_id` INTEGER NOT NULL, `score` REAL NOT NULL, `H` TEXT NOT NULL);";
@@ -1756,13 +1751,6 @@ void vise::relja_retrival::group_by_visual_matches(const std::string group_id,
         std::cout << match_fid << ":" << score << ", ";
       }
     }
-    if(match_count) {
-      // only keep record for sets that have matches
-      // set_id is automatically incremented and assigned
-      sql = "INSERT INTO `" + d_match_graph_table + "` VALUES(NULL," + std::to_string(query_fid) + "," + std::to_string(match_count) + ");";
-      rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
-    }
-
     sql = "INSERT INTO `" + d_match_progress_table + "` VALUES(" + std::to_string(query_fid) + "," + std::to_string(telapsed) + ");";
     rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
     sql = "END TRANSACTION";

@@ -165,7 +165,6 @@ namespace vise {
     void select_all_file_id(std::vector<std::size_t> &fid_list) const;
     //std::unordered_map<std::string, std::unique_ptr<sqlite3> > d_groups;
     const std::string d_match_edges_table;
-    const std::string d_match_graph_table;
     const std::string d_match_progress_table;
     const std::string d_group_metadata_table;
 
