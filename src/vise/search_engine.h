@@ -60,9 +60,16 @@ namespace vise {
     virtual void extract_image_features(const std::string &image_data,
                                         std::string &image_features) const = 0;
 
-    virtual void create_visual_group(std::unordered_map<std::string, std::string> &params,
+    virtual void create_visual_group(const std::unordered_map<std::string, std::string> &params,
                                      bool &success, std::string &message,
                                      bool &block_until_done) const = 0;
+    virtual void is_visual_group_valid(const std::string group_id,
+                                       bool &success,
+                                       std::string &message) const = 0;
+    virtual void get_visual_group(const std::string group_id,
+                                  std::map<std::string, std::string> const &param,
+                                  std::ostringstream &json) const = 0;
+
   private:
     const std::string d_se_name;
   };

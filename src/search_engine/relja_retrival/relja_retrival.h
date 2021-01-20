@@ -122,9 +122,18 @@ namespace vise {
 
     void extract_image_features(const std::string &image_data,
                                 std::string &image_features) const override;
-    void create_visual_group(std::unordered_map<std::string, std::string> &params,
+
+    // visual group
+    void create_visual_group(const std::unordered_map<std::string, std::string> &params,
                              bool &success, std::string &message,
                              bool &block_until_done) const override;
+    void is_visual_group_valid(const std::string group_id,
+                               bool &success,
+                               std::string &message) const;
+    void get_visual_group(const std::string group_id,
+                          std::map<std::string, std::string> const &param,
+                          std::ostringstream &json) const override;
+
   private:
     void index_run_all_stages(std::function<void(void)> callback);
     uint32_t image_src_count() const;
@@ -141,7 +150,24 @@ namespace vise {
     void findBBox2( double xl, double xu, double yl, double yu, homography const &H, double &xl2, double &xu2, double &yl2, double &yu2, uint32_t w2, uint32_t h2 ) const;
 
     // visual group
-    bool sqlite_table_exists(sqlite3 *db, const std::string table_name) const;
+    void init_group_db_tables(const std::string group_id,
+                              std::unordered_map<std::string, std::string> &group_metadata,
+                              bool &success, std::string &message) const;
+    std::string get_group_db_filename(const std::string group_id) const;
+    void get_match_graph_progress(const std::string group_id,
+                                  std::set<std::size_t> &query_fid_list,
+                                  bool &success, std::string &message) const;
+    void group_by_visual_matches(const std::string group_id,
+                                 const std::unordered_map<std::string, std::string> &group_metadata,
+                                 const std::vector<std::size_t> &query_fid_list,
+                                 bool &success, std::string &message) const;
+    void select_file_id(const std::string filename_regex, std::vector<std::size_t> &fid_list) const;
+    void select_all_file_id(std::vector<std::size_t> &fid_list) const;
+    //std::unordered_map<std::string, std::unique_ptr<sqlite3> > d_groups;
+    const std::string d_match_edges_table;
+    const std::string d_match_graph_table;
+    const std::string d_match_progress_table;
+    const std::string d_group_metadata_table;
 
     boost::filesystem::path d_data_dir;
     boost::filesystem::path d_image_dir;
@@ -196,6 +222,10 @@ namespace vise {
     spatialRetriever *d_spatial_retriever = nullptr;
     multiQuery *d_multi_query = nullptr;
     multiQueryMax *d_multi_query_max = nullptr;
+
+    // threads
+    unsigned int d_nthread_indexing;
+    unsigned int d_nthread_search;
 
     std::ofstream d_log;
     static const std::vector<std::string> task_name_list;

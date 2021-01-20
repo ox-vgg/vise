@@ -70,6 +70,9 @@ vise::project::project(std::string pname,
     if(d_metadata->is_metadata_available()) {
       d_is_metadata_ready = true;
     }
+
+    // load the name of groups allowed to be queried
+    init_group_id_list();
   }
 }
 
@@ -141,7 +144,13 @@ vise::project::project(std::string pname,
       std::cout << "error: failed to save configuration " << d_pconf_fn << std::endl;
       d_state = project_state::INIT_FAILED;
     }
+  } else {
+    if(d_state == vise::project_state::SEARCH_READY) {
+      // load the name of groups allowed to be queried
+      init_group_id_list();
+    }
   }
+
 }
 
 vise::project::~project() {
@@ -832,19 +841,85 @@ void vise::project::register_external_image(const std::string &image_data,
 //
 // visual group
 //
-void vise::project::create_visual_group(std::unordered_map<std::string, std::string> &params,
+void vise::project::create_visual_group(const std::unordered_map<std::string, std::string> &params,
                                         bool &success, std::string &message,
                                         bool &block_until_done) const {
-  success = false;
   if(d_state != vise::project_state::SEARCH_READY) {
+    success = false;
     message = "project state must be SEARCH_READY for creating a visual group";
     return;
   }
 
   if (!d_search_engine) {
+    success = false;
     message = "search engine not initialized yet";
     return;
   }
 
   d_search_engine->create_visual_group(params, success, message, block_until_done);
+}
+
+void vise::project::get_visual_group(std::map<std::string, std::string> const &param,
+                                     std::ostringstream &json) const {
+  if(d_state != vise::project_state::SEARCH_READY) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"project state must be SEARCH_READY for querying a visual group\"}";
+    return;
+  }
+
+  if(!d_search_engine) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"search engine not initialized yet\"}";
+    return;
+  }
+
+  if(param.count("group_id")) {
+    std::string group_id(param.at("group_id"));
+    if(d_group_id_list.count(group_id)) {
+      d_search_engine->get_visual_group(group_id, param, json);
+    } else {
+      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+           << "\"group " << group_id << " does not exist\"}";
+    }
+  } else {
+    if(d_group_id_list.size()) {
+      std::ostringstream ss;
+      std::set<std::string>::const_iterator itr = d_group_id_list.begin();
+      ss << "\"" << *itr << "\"";
+      for(++itr; itr != d_group_id_list.end(); ++itr) {
+        ss << ",\"" << *itr << "\"";
+      }
+      json << "{\"STATUS\":\"group_index\",\"MESSAGE\":"
+           << "\"The following visual groups (i.e. images grouped based on their content) are available:\""
+           << ",\"group_id_list\":[" << ss.str() << "]}";
+    } else {
+      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+           << "\"visual groups (i.e. images grouped based on their content) are not available\"}";
+      return;
+    }
+  }
+}
+
+void vise::project::init_group_id_list() {
+  d_group_id_list.clear();
+
+  if(d_pconf.count("group_id_list")) {
+    std::vector<std::string> group_id_list = vise::split(d_pconf.at("group_id_list"), ',');
+    std::ostringstream ss;
+    for(std::size_t i=0; i<group_id_list.size(); ++i) {
+      std::string group_id(group_id_list.at(i));
+      std::string message;
+      bool success;
+      d_search_engine->is_visual_group_valid(group_id, success, message);
+      if(success) {
+        d_group_id_list.insert(group_id);
+        ss << group_id << ",";
+      } else {
+        std::cout << "vise::project : DISCARD group " << group_id << ", REASON="
+                  << message << std::endl;
+      }
+    }
+    std::cout << "vise::project : initialized following " << d_group_id_list.size()
+              << " groups: " << ss.str() << std::endl;
+  }
 }

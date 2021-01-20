@@ -26,14 +26,14 @@ namespace buildIndex {
                              uint32_t bow_cluster_count,
                              uint32_t cluster_num_iteration,
                              std::ofstream &logf,
+                             const unsigned int nthread,
                              vise::task_progress *progress) {
     logf << "cluster:: train_desc_fn = " << train_desc_fn << std::endl;
     logf << "cluster:: use_root_sift = " << use_root_sift << std::endl;
     logf << "cluster:: cluster_fn = " << cluster_fn << std::endl;
 
-    uint32_t num_worker_threads = vise::configuration_get_nthread();
-    vl_set_num_threads(num_worker_threads);
-    logf << "cluster:: using " << num_worker_threads << " threads" << std::endl;
+    vl_set_num_threads(nthread);
+    logf << "cluster:: using " << nthread << " threads" << std::endl;
 
     FILE *f = fopen(train_desc_fn.c_str(), "rb");
     if ( f == NULL ) {

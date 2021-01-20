@@ -30,6 +30,7 @@ namespace buildIndex {
                        std::string const trainHammFn,
                        uint32_t const hammEmbBits,
                        std::ofstream &logf,
+                       const unsigned int nthread,
                        vise::task_progress *progress = nullptr);
 }
 

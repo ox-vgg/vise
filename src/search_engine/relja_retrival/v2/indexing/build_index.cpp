@@ -1021,13 +1021,12 @@ namespace buildIndex {
         featGetter const &featGetter_obj,
         std::string const clstFn,
         std::ofstream &logf,
+        const unsigned int nthread,
         embedderFactory const *embFactory,
         vise::task_progress *progress) {
 
     MPI_GLOBAL_ALL
       bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads = vise::configuration_get_nthread();
-    //uint32_t numWorkerThreads = 4;
 
     ASSERT(tmpDir[tmpDir.length()-1]=='/' || tmpDir[tmpDir.length() - 1] == '\\');
     std::string indexingStatusFn= tmpDir+"indexingstatus.bin";
@@ -1127,7 +1126,7 @@ namespace buildIndex {
       if (useThreads){
 
         std::vector<queueWorker<buildResultSemiSorted> const *> workers;
-        for (uint32_t i= 0; i<numWorkerThreads; ++i)
+        for (uint32_t i= 0; i<nthread; ++i)
           workers.push_back( new buildWorkerSemiSorted(
                                                        tmpDir, imagelistFn, databasePath,
                                                        featGetter_obj,
@@ -1244,10 +1243,10 @@ namespace buildIndex {
       buildManagerFiles *manager= (rank==0) ?
         new buildManagerFiles(nJobs, "index::buildManagerSorted", logf, progress) :
         NULL;
-      buildWorkerSorted worker(tmpDir, fns, mergingMemoryLim / std::max(numProc, numWorkerThreads), embFactory );
+      buildWorkerSorted worker(tmpDir, fns, mergingMemoryLim / std::max(numProc, nthread), embFactory );
 
       if (useThreads) {
-        threadQueue<std::string>::start( nJobs, worker, *manager, numWorkerThreads );
+        threadQueue<std::string>::start( nJobs, worker, *manager, nthread );
       }
       else {
         mpiQueue<std::string>::start( nJobs, worker, manager );

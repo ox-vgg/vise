@@ -38,7 +38,8 @@ class spatialRetriever {
             spatialQuery( query const &queryObj,
                           std::vector<indScorePair> &queryRes,
                           std::map<uint32_t, homography> &Hs,
-                          uint32_t toReturn= 0 ) const =0;
+                          uint32_t toReturn= 0,
+                          const unsigned int nthread = 1) const =0;
 
   virtual void get_matches(rr::indexEntry &queryRep,
                            const uint32_t match_file_id,
@@ -110,7 +111,8 @@ class fakeSpatialRetriever : public spatialRetriever {
             spatialQuery( query const &queryObj,
                           std::vector<indScorePair> &queryRes,
                           std::map<uint32_t, homography> &Hs,
-                          uint32_t toReturn= 0 ) const {
+                          uint32_t toReturn= 0,
+                          const unsigned int nthread = 1) const {
                 Hs.clear();
                 trueRetriever_->queryExecute(queryObj, queryRes, toReturn);
             }

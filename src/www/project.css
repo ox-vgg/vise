@@ -155,3 +155,16 @@ footer { display:block; text-align:center; margin-top:2em; padding:0.5em 0; font
 #content #progress_container table {}
 #content #progress_container table td { padding:0.25em 1em; }
 #content #progress_container table .progress_label { font-size:0.8em; }
+
+/* /{PNAME}/group: shows groups in a project */
+#content .group_search_panel { display:block; font-size:small; }
+#content .group_search_panel div { display:inline-block; margin:0 1em; }
+#content .group_search_panel input { font-size:small; }
+#content .group_search_panel select { font-size:small; }
+#content .group_panel { display:block; }
+#content .group_panel .set_panel { display:block;  background-color:#f2f2f2; border-radius:0.4em; position:relative; margin:1em 0; }
+#content .group_panel .set_panel span { position:absolute; top:0em; left:0em; background-color:black; color:white; font-size:small; padding:0em 0.4em; }
+#content .group_panel .set_panel a { display:inline-block; padding:0; margin:0.4em; vertical-align:top; }
+#content .group_panel .set_panel a figure { display:inline-block; width:min-content; }
+#content .group_panel .set_panel a figure img { display:inline-block; height:250px; max-width:98%; margin:0; padding:0; object-fit:fill; }
+#content .group_panel .set_panel a figure figcaption { font-size:small; line-height:1.2em; }

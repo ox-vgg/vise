@@ -256,6 +256,7 @@ computeHamming(
         std::string const trainHammFn,
         uint32_t const hammEmbBits,
         std::ofstream &logf,
+        const unsigned int nthread,
         vise::task_progress *progress){
 
     MPI_GLOBAL_ALL;
@@ -287,7 +288,6 @@ computeHamming(
     ASSERT(numDims>=hammEmbBits);
 
     bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads = vise::configuration_get_nthread();
 
     // rotation
     std::vector<float> rot;
@@ -429,7 +429,7 @@ computeHamming(
     uint32_t const vocChunkSize=
         std::min( static_cast<uint32_t>(5000),
                   static_cast<uint32_t>(
-                      std::ceil(static_cast<double>(numClst)/std::max(numWorkerThreads, numProc))) );
+                      std::ceil(static_cast<double>(numClst)/std::max(nthread, numProc))) );
     uint32_t const nJobs= static_cast<uint32_t>( std::ceil(static_cast<double>(numClst)/vocChunkSize) );
     if(progress != nullptr) {
       progress->start(0, nJobs);
@@ -450,7 +450,7 @@ computeHamming(
                               rot, clstCentres_obj, vocChunkSize);
 
     if (useThreads)
-        threadQueue<trainHammingResult>::start( nJobs, worker, *manager, numWorkerThreads );
+        threadQueue<trainHammingResult>::start( nJobs, worker, *manager, nthread );
     else
         mpiQueue<trainHammingResult>::start( nJobs, worker, manager );
 

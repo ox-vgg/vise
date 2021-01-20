@@ -220,18 +220,18 @@ namespace buildIndex {
                     int64_t const trainNumDescs,
                     featGetter const &featGetter_obj,
                     std::ofstream& logf,
+                    const unsigned int nthread,
                     vise::task_progress *progress){
 
     MPI_GLOBAL_RANK;
 
     bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads = vise::configuration_get_nthread();
 
     // read the list of training images and shuffle it
     std::vector<std::string> imageFns;
 
     if (rank==0){
-      logf << "traindesc:: using " << numWorkerThreads << " threads" << std::endl;
+      logf << "traindesc:: using " << nthread << " threads" << std::endl;
       logf << "traindesc:: image filename list = " << trainImagelistFn << std::endl;
       logf << "traindesc:: image source dir = " << trainDatabasePath << std::endl;
       logf << "traindesc:: image feature descriptors will be written to " << trainDescsFn << std::endl;
@@ -279,7 +279,7 @@ namespace buildIndex {
     trainDescsWorker worker(imageFns, trainDatabasePath, featGetter_obj);
 
     if (useThreads) {
-      threadQueue<trainDescsResult>::start( nJobs, worker, *manager, numWorkerThreads );
+      threadQueue<trainDescsResult>::start( nJobs, worker, *manager, nthread );
     }
     else {
       mpiQueue<trainDescsResult>::start( nJobs, worker, manager );

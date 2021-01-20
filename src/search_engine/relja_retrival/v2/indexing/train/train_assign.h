@@ -28,6 +28,7 @@ namespace buildIndex {
                       std::string const trainDescsFn,
                       std::string const trainAssignsFn,
                       std::ofstream& logf,
+                      const unsigned int nthread,
                       vise::task_progress *progress = nullptr);
 }
 

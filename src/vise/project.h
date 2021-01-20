@@ -18,6 +18,7 @@
 #include <exception>
 #include <functional>
 #include <unordered_map>
+#include <set>
 
 #include <boost/filesystem.hpp>
 
@@ -112,9 +113,11 @@ namespace vise {
                                          const uint32_t match_file_id,
                                          std::ostringstream &json) const;
     // visual group
-    void create_visual_group(std::unordered_map<std::string, std::string> &params,
+    void create_visual_group(const std::unordered_map<std::string, std::string> &params,
                              bool &success, std::string &message,
                              bool &block_until_done) const;
+    void get_visual_group(std::map<std::string, std::string> const &param,
+                          std::ostringstream &json) const;
   private:
     std::string d_pname;
     boost::filesystem::path d_project_dir;
@@ -151,6 +154,10 @@ namespace vise {
     void init_default_conf();
     void init_preset_conf();
     bool init_project_data_dir(bool create_data_dir_if_missing=false);
+
+    // visual group
+    std::set<std::string> d_group_id_list;
+    void init_group_id_list();
   };
 }
 #endif

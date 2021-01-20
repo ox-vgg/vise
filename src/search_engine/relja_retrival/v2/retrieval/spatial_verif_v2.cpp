@@ -62,8 +62,8 @@ spatialVerifV2::spatialQueryExecute(rr::indexEntry &queryRep,
                                     std::set<uint32_t> *ignoreDocs,
                                     uint32_t toReturn,
                                     bool queryFirst,
-                                    bool forgetFirst) const {
-
+                                    bool forgetFirst,
+                                    const unsigned int nthread) const {
   //assert( !forgetFirst || queryFirst );
   ASSERT(queryRep.id_size()==queryRep.x_size() || queryRep.id_size()==queryRep.qx_size());
   ASSERT(queryRep.id_size()==queryRep.y_size() || queryRep.id_size()==queryRep.qy_size());
@@ -126,14 +126,11 @@ spatialVerifV2::spatialQueryExecute(rr::indexEntry &queryRep,
                                             static_cast<uint32_t>(detectUseThreads() ? conf_nthread : 1),
                                             spatialDepthEff);
   */
-  uint32_t const numWorkerThreads = 1;
   std::vector<queueWorker<Result> const *> workers;
-  for (uint32_t iThread= 0; iThread < numWorkerThreads; ++iThread) {
+  for (uint32_t iThread= 0; iThread < nthread; ++iThread) {
     workers.push_back( new spatWorker(ellipses1, ue, daatIter, daatLock, uniqIndToInd, spatParams_, elUnquant_, sameRandomObj_) );
   }
 
-
-  //std::cout << "spatial_verif_v2:: workers.size = " << workers.size() << std::endl;
   spatManager manager( forgetFirst, initial_query_results, queryRes, spatParams_, spatialDepthEff, Hs );
 
   // start the threads

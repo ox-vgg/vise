@@ -40,7 +40,7 @@ void print_usage(std::string visecli_exec="vise-cli") {
             << "$ " << visecli_exec << " --run-mode=serve-project --port=80 --http_uri_namespace=/demo/ P1:/p1/data/conf.txt P2:/p2/data/conf.txt" << std::endl
             << "d) to create a visual group\n"
             << "$ " << visecli_exec << " --run-mode=create-visual-group --id=negative-groups\n"
-            << "  --max-matches=50 --min-score=100 --select-filename=^negative/.*"
+            << "  --max-matches=50 --min-score=100 --nthread=16 --select-filename=^negative/.*"
             << std::endl;
 }
 
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
 
   if(cli_args.at("run-mode") == "create-visual-group") {
     if(pname_pconf_list.size() != 1) {
-      std::cout << "--run-mode=create-visual-group required only one PROJECT_NAME:CONF_FILENAME parameter."
+      std::cout << "--run-mode=create-visual-group requires only one PROJECT_NAME:CONF_FILENAME parameter."
                 << std::endl;
       return 1;
     }
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
       return 1;
     }
     vise::project existing_project(pname, project_conf_fn.string());
-    bool success;
+    bool success = false;
     std::string message;
     bool block_until_done = true;
     existing_project.create_visual_group(cli_args, success, message, block_until_done);

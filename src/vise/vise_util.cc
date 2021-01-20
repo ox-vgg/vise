@@ -619,42 +619,6 @@ boost::filesystem::path vise::vise_home() {
   return vise_home_dir;
 }
 
-std::string vise::configuration_get(std::string key) {
-  // if available, load vise configuration to find out the number of threads that should be used
-  const boost::filesystem::path visehome = vise::vise_home();
-  boost::filesystem::path vise_settings_fn = visehome / "vise_settings.txt";
-  if(boost::filesystem::exists(vise_settings_fn)) {
-    std::map<std::string, std::string> vise_settings;
-    vise::configuration_load(vise_settings_fn.string(), vise_settings);
-    if(vise_settings.count(key)) {
-      return vise_settings.at(key);
-    } else {
-      return "";
-    }
-  } else {
-    return "";
-  }
-}
-
-uint32_t vise::configuration_get_nthread() {
-  uint32_t nthread = omp_get_max_threads(); // i.e. use all available cores
-  std::string nthread_str = vise::configuration_get("nthread");
-  if(nthread_str != "") {
-    int32_t conf_nthread = 0;
-    std::istringstream ss(nthread_str);
-    ss >> conf_nthread;
-    if(conf_nthread < 0) {
-      nthread = omp_get_max_threads() + conf_nthread;
-    } else {
-      nthread = conf_nthread;
-    }
-    if(nthread == 0 || nthread > omp_get_max_threads()) {
-      nthread = omp_get_max_threads();
-    }
-  }
-  return nthread;
-}
-
 bool vise::is_valid_image(std::string img_fn, std::string &message) {
   if(!boost::filesystem::exists(boost::filesystem::path(img_fn))) {
     message = "file missing";

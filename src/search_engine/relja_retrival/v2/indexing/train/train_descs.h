@@ -31,6 +31,7 @@ namespace buildIndex {
                           int64_t const trainNumDescs,
                           featGetter const &featGetter_obj,
                           std::ofstream& logf,
+                          const unsigned int nthread,
                           vise::task_progress *progress = nullptr);
 }
 

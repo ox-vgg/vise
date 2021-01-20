@@ -91,7 +91,8 @@ public:
                        std::set<uint32_t> *ignoreDocs= NULL,
                        uint32_t toReturn= 0,
                        bool queryFirst= true,
-                       bool forgetFirst= false) const;
+                       bool forgetFirst= false,
+                       const unsigned int nthread = 1) const;
 
   inline uint32_t
   numDocs() const {
@@ -99,17 +100,17 @@ public:
   }
 
   // spatialRetriever
-
   inline void
   spatialQuery( query const &queryObj,
                 std::vector<indScorePair> &queryRes,
                 std::map<uint32_t, homography> &Hs,
-                uint32_t toReturn= 0 ) const {
+                uint32_t toReturn= 0,
+                const unsigned int nthread = 1) const {
     rr::indexEntry queryRep;
     getQueryRep(queryObj, queryRep);
     bool use_initial_results = true;
     bool forget_initial_results = true;
-    spatialQueryExecute( queryRep, queryRes, &Hs, NULL, toReturn, use_initial_results, forget_initial_results );
+    spatialQueryExecute( queryRep, queryRes, &Hs, NULL, toReturn, use_initial_results, forget_initial_results, nthread );
   }
 
   void get_matches(rr::indexEntry &queryRep,

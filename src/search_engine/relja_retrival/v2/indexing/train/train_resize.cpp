@@ -153,12 +153,12 @@ namespace buildIndex {
                           boost::filesystem::path const filestat_fn,
                           std::string resize_dimension,
                           std::ofstream& logf,
+                          const unsigned int nthread,
                           vise::task_progress *progress) {
 
     MPI_GLOBAL_RANK;
 
     bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads = vise::configuration_get_nthread();
 
     std::vector<std::string> resize_src_image_fn_list;
     std::vector<std::string> resize_dst_image_fn_list;
@@ -271,7 +271,7 @@ namespace buildIndex {
                              resize_dimension);
 
     if (useThreads) {
-      threadQueue<trainResizeResult>::start( nJobs, worker, *manager, numWorkerThreads );
+      threadQueue<trainResizeResult>::start( nJobs, worker, *manager, nthread );
     }
     else {
       mpiQueue<trainResizeResult>::start( nJobs, worker, manager );

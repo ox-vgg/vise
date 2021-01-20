@@ -158,6 +158,7 @@ namespace buildIndex {
                       std::string const trainDescsFn,
                       std::string const trainAssignsFn,
                       std::ofstream& logf,
+                      const unsigned int nthread,
                       vise::task_progress *progress){
 
     MPI_GLOBAL_ALL;
@@ -170,7 +171,6 @@ namespace buildIndex {
     ASSERT( boost::filesystem::exists(trainDescsFn) );
 
     bool useThreads= detectUseThreads();
-    uint32_t numWorkerThreads = vise::configuration_get_nthread();
 
     // clusters
     if (rank==0)
@@ -203,7 +203,7 @@ namespace buildIndex {
     uint32_t const chunkSize=
       std::min( static_cast<uint32_t>(10000),
                 static_cast<uint32_t>(
-                                      std::ceil(static_cast<double>(numTrainDescs)/std::max(numWorkerThreads, numProc))) );
+                                      std::ceil(static_cast<double>(numTrainDescs)/std::max(nthread, numProc))) );
     uint32_t const nJobs= static_cast<uint32_t>( std::ceil(static_cast<double>(numTrainDescs)/chunkSize) );
     if(progress != nullptr) {
       progress->start(0, nJobs);
@@ -222,7 +222,7 @@ namespace buildIndex {
     trainAssignsWorker worker(kd_forest, descFile, chunkSize, clstCentres_obj.numDims);
 
     if (useThreads)
-      threadQueue<trainAssignsResult>::start( nJobs, worker, *manager, numWorkerThreads );
+      threadQueue<trainAssignsResult>::start( nJobs, worker, *manager, nthread );
     else
       mpiQueue<trainAssignsResult>::start( nJobs, worker, manager );
 

@@ -27,6 +27,7 @@ namespace buildIndex {
                        boost::filesystem::path const filestat_fn,
                        std::string resize_dimension,
                        std::ofstream& logf,
+                       const unsigned int nthread,
                        vise::task_progress *progress = nullptr);
 }
 

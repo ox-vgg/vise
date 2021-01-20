@@ -35,6 +35,7 @@ namespace buildIndex {
               featGetter const &featGetter_obj,
               std::string const clstFn,
               std::ofstream &logf,
+              const unsigned int nthread,
               embedderFactory const *embFactory= NULL,
               vise::task_progress *progress = nullptr);
 };

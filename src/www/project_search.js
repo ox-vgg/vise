@@ -179,7 +179,6 @@ function _vise_show_search_result_content() {
     results.appendChild(a);
     showing_result_to = i;
   }
-  showing_result_to = showing_result_to + 1;
   if(showing_result_to < _vise_data.RESULT.length) {
     var showmore = document.createElement('div');
     showmore.setAttribute('id', 'showmore');
@@ -263,7 +262,7 @@ function _vise_show_more_search_results() {
   var showmore = document.getElementById('showmore');
   results.removeChild(showmore);
 
-  showing_result_from = showing_result_to;
+  showing_result_from = showing_result_to + 1;
   for( var i=showing_result_from; i<_vise_data.RESULT.length; ++i) {
     var norm_score = _vise_data.RESULT[i]['score'] / _vise_data.RESULT[0]['score'];
     if(norm_score > next_norm_score_threshold) {
@@ -293,7 +292,7 @@ function _vise_show_all_remaining_search_results() {
   var showmore = document.getElementById('showmore');
   results.removeChild(showmore);
 
-  showing_result_from = showing_result_to;
+  showing_result_from = showing_result_to + 1;
   for( var i=showing_result_from; i<_vise_data.RESULT.length; ++i) {
       var a = _vise_search_result_html_element(i);
       results.appendChild(a);

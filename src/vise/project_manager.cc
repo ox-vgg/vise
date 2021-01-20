@@ -497,6 +497,10 @@ void project_manager::handle_project_get_request(std::string const pname,
     return;
   }
 
+  if(uri[2] == "group") {
+    project_group(pname, param, response);
+    return;
+  }
 
   if (uri[2].front() == '_') {
     // project command (e.g. _conf,)
@@ -1529,6 +1533,47 @@ void project_manager::project_external_search(std::string pname,
        << "<script src=\"app/project_external_search.js\"></script>\n"
        << vise::HTML_TAIL;
   response.set_html_payload(html.str());
+}
+
+void project_manager::project_group(std::string pname,
+                                   std::map<std::string, std::string> const &param,
+                                   http_response &response) const {
+  if( !project_is_loaded(pname) ) {
+    response.set_status(412);
+    response.set_payload("project not loaded yet");
+    return;
+  }
+
+  if (!d_projects.at(pname)->index_is_loaded()) {
+    response.set_status(412);
+    response.set_payload("project index not loaded");
+    return;
+  }
+
+  std::ostringstream json;
+  json << "{\"PNAME\":\"" << pname << "\","
+       << "\"GROUP\":";
+  d_projects.at(pname)->get_visual_group(param, json);
+  json << "}";
+
+  if(param.count("response_format") == 1 &&
+     param.at("response_format") == "json" ) {
+    response.set_json_payload(json.str());
+  } else {
+    // default response format is HTML
+    std::ostringstream html;
+    html << vise::PROJECT_HTML_HEAD
+         << "<body>\n"
+         << HTML_SVG_ASSETS
+         << "<script>\n"
+         << "// JS code generated automatically by src/vise/project_manager.cc::project_group()\n"
+         << "var _vise_data = " << json.str() << ";\n"
+         << "</script>\n"
+         << "<script src=\"app/vise_common.js\"></script>\n"
+         << "<script src=\"app/project_group.js\"></script>\n"
+         << vise::HTML_TAIL;
+    response.set_html_payload(html.str());
+  }
 }
 
 //
