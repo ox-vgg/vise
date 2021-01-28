@@ -130,10 +130,12 @@ namespace vise {
     void is_visual_group_valid(const std::string group_id,
                                bool &success,
                                std::string &message) const;
-    void get_visual_group(const std::string group_id,
-                          std::map<std::string, std::string> const &param,
-                          std::ostringstream &json) const override;
-
+    void get_image_graph(const std::string group_id,
+                         std::map<std::string, std::string> const &param,
+                         std::ostringstream &json) const override;
+    void get_image_group(const std::string group_id,
+                         std::map<std::string, std::string> const &param,
+                         std::ostringstream &json) const override;
   private:
     void index_run_all_stages(std::function<void(void)> callback);
     uint32_t image_src_count() const;
@@ -157,16 +159,29 @@ namespace vise {
     void get_match_graph_progress(const std::string group_id,
                                   std::set<std::size_t> &query_fid_list,
                                   bool &success, std::string &message) const;
-    void group_by_visual_matches(const std::string group_id,
-                                 const std::unordered_map<std::string, std::string> &group_metadata,
-                                 const std::vector<std::size_t> &query_fid_list,
-                                 bool &success, std::string &message) const;
+    void create_match_graph(const std::string group_id,
+                            const std::unordered_map<std::string, std::string> &group_metadata,
+                            const std::vector<std::size_t> &query_fid_list,
+                            bool &success, std::string &message) const;
+    void find_connected_components(const std::string group_id,
+                                   const std::unordered_map<std::string, std::string> &group_metadata,
+                                   bool &success, std::string &message) const;
+    void depth_first_search(const std::unordered_map<std::size_t, std::vector<std::size_t> > &match_graph,
+                            std::unordered_map<std::size_t, uint8_t> &vertex_flag,
+                            std::size_t vertex,
+                            std::vector<std::size_t> &visited_nodes) const;
+    void get_image_group_set(const std::string group_id,
+                             const std::string set_id,
+                             std::ostringstream &json) const;
+
+
     void select_file_id(const std::string filename_regex, std::vector<std::size_t> &fid_list) const;
     void select_all_file_id(std::vector<std::size_t> &fid_list) const;
-    //std::unordered_map<std::string, std::unique_ptr<sqlite3> > d_groups;
     const std::string d_match_edges_table;
     const std::string d_match_progress_table;
     const std::string d_group_metadata_table;
+    const std::string d_image_group_table;
+    const std::string d_image_group_inv_table;
 
     boost::filesystem::path d_data_dir;
     boost::filesystem::path d_image_dir;

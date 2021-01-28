@@ -116,8 +116,10 @@ namespace vise {
     void create_visual_group(const std::unordered_map<std::string, std::string> &params,
                              bool &success, std::string &message,
                              bool &block_until_done) const;
-    void get_visual_group(std::map<std::string, std::string> const &param,
-                          std::ostringstream &json) const;
+    void get_image_graph(std::map<std::string, std::string> const &param,
+                         std::ostringstream &json) const;
+    void get_image_group(std::map<std::string, std::string> const &param,
+                         std::ostringstream &json) const;
   private:
     std::string d_pname;
     boost::filesystem::path d_project_dir;

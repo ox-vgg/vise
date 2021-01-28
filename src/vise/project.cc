@@ -859,7 +859,7 @@ void vise::project::create_visual_group(const std::unordered_map<std::string, st
   d_search_engine->create_visual_group(params, success, message, block_until_done);
 }
 
-void vise::project::get_visual_group(std::map<std::string, std::string> const &param,
+void vise::project::get_image_graph(std::map<std::string, std::string> const &param,
                                      std::ostringstream &json) const {
   if(d_state != vise::project_state::SEARCH_READY) {
     json << "{\"STATUS\":\"error\",\"MESSAGE\":"
@@ -876,7 +876,7 @@ void vise::project::get_visual_group(std::map<std::string, std::string> const &p
   if(param.count("group_id")) {
     std::string group_id(param.at("group_id"));
     if(d_group_id_list.count(group_id)) {
-      d_search_engine->get_visual_group(group_id, param, json);
+      d_search_engine->get_image_graph(group_id, param, json);
     } else {
       json << "{\"STATUS\":\"error\",\"MESSAGE\":"
            << "\"group " << group_id << " does not exist\"}";
@@ -890,11 +890,52 @@ void vise::project::get_visual_group(std::map<std::string, std::string> const &p
         ss << ",\"" << *itr << "\"";
       }
       json << "{\"STATUS\":\"group_index\",\"MESSAGE\":"
-           << "\"The following visual groups (i.e. images grouped based on their content) are available:\""
+           << "\"The following image graphs are available:\""
            << ",\"group_id_list\":[" << ss.str() << "]}";
     } else {
       json << "{\"STATUS\":\"error\",\"MESSAGE\":"
-           << "\"visual groups (i.e. images grouped based on their content) are not available\"}";
+           << "\"image graphs are not available\"}";
+      return;
+    }
+  }
+}
+
+void vise::project::get_image_group(std::map<std::string, std::string> const &param,
+                                     std::ostringstream &json) const {
+  if(d_state != vise::project_state::SEARCH_READY) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"project state must be SEARCH_READY for querying a visual group\"}";
+    return;
+  }
+
+  if(!d_search_engine) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"search engine not initialized yet\"}";
+    return;
+  }
+
+  if(param.count("group_id")) {
+    std::string group_id(param.at("group_id"));
+    if(d_group_id_list.count(group_id)) {
+      d_search_engine->get_image_group(group_id, param, json);
+    } else {
+      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+           << "\"group " << group_id << " does not exist\"}";
+    }
+  } else {
+    if(d_group_id_list.size()) {
+      std::ostringstream ss;
+      std::set<std::string>::const_iterator itr = d_group_id_list.begin();
+      ss << "\"" << *itr << "\"";
+      for(++itr; itr != d_group_id_list.end(); ++itr) {
+        ss << ",\"" << *itr << "\"";
+      }
+      json << "{\"STATUS\":\"group_index\",\"MESSAGE\":"
+           << "\"The following image groups are available:\""
+           << ",\"group_id_list\":[" << ss.str() << "]}";
+    } else {
+      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+           << "\"image graphs are not available\"}";
       return;
     }
   }

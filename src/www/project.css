@@ -168,3 +168,19 @@ footer { display:block; text-align:center; margin-top:2em; padding:0.5em 0; font
 #content .group_panel .set_panel a figure { display:inline-block; width:min-content; }
 #content .group_panel .set_panel a figure img { display:inline-block; height:250px; max-width:98%; margin:0; padding:0; object-fit:fill; }
 #content .group_panel .set_panel a figure figcaption { font-size:small; line-height:1.2em; }
+
+/* /{PNAME}/image_group: shows groups in a project */
+#content .image_group_search_panel { display:block; font-size:small; text-align:center; }
+#content .image_group_search_panel div { display:inline-block; margin:0 1em; }
+#content .image_group_search_panel input { font-size:small; }
+#content .image_group_search_panel select { font-size:small; }
+#content .image_group_panel { display:block; }
+#content .image_group_panel .set_panel { display:inline-block; border:1px solid #cccccc; position:relative; margin:1em; }
+#content .image_group_panel .set_panel .set_info { display:block; background-color: #cccccc; font-size:small; padding:0 1em; }
+#content .image_group_panel .set_panel .set_info .set_index { text-align:left; }
+#content .image_group_panel .set_panel .set_info .set_id { float:right; }
+
+#content .image_group_panel .set_panel > a { display:inline-block; padding:0; margin:0.4em; vertical-align:top; }
+#content .image_group_panel .set_panel > a figure { display:inline-block; width:min-content; }
+#content .image_group_panel .set_panel > a figure img { display:inline-block; height:250px; max-width:98%; margin:0; padding:0; object-fit:fill; }
+#content .image_group_panel .set_panel > a figure figcaption { font-size:small; line-height:1.2em; }
