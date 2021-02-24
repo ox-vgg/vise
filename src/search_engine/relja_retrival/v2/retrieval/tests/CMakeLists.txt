@@ -35,6 +35,7 @@ else(WIN32)
 		image_util
 		${ImageMagick_LIBRARIES}
 		${Boost_LIBRARIES}
-    OpenMP::OpenMP_CXX
+		OpenMP::OpenMP_CXX
+		-lvl
 	)
 endif (WIN32)
