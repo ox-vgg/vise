@@ -201,6 +201,12 @@ void vise::relja_retrival::extract_train_descriptors() {
   }
   d_log << "traindesc:: bow_descriptor_count : "
         << bow_descriptor_count << std::endl;
+  if(bow_descriptor_count == 0) {
+    d_log << "traindesc:: WARNING: bow_descriptor_count=0 and therefore the "
+          << "process cannot continue any further. Set bow_descriptor_count=-1 "
+          << "in data/conf.txt file to extract and use all available descriptors."
+          << std::endl;
+  }
 
   buildIndex::computeTrainDescs(d_filelist_fn.string(),
                                 d_image_dir.string(),
@@ -1248,9 +1254,15 @@ uint32_t vise::relja_retrival::fid(std::string filename) const {
 
 std::string vise::relja_retrival::filename(uint32_t fid) const {
   if(d_is_search_engine_loaded) {
-    return d_dataset->getInternalFn(fid);
+    if(fid < d_dataset->getNumDoc()) {
+      return d_dataset->getInternalFn(fid);
+    } else {
+      std::ostringstream ss;
+      ss << "ERROR_INVALID_FILE_ID_" << fid;
+      return ss.str();
+    }
   } else {
-    return "";
+    return "ERROR_SEARCH_ENGINE_NOT_LOADED";
   }
 }
 
