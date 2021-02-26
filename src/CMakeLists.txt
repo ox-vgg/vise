@@ -14,7 +14,6 @@ enable_testing()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_BUILD_TYPE Release)
 SET(BUILD_SHARED_LIBS OFF)
 
 #set( BUILD_SHARED_LIBS "ON" )
@@ -32,6 +31,10 @@ configure_file (
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h.in"
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
   )
+
+IF(NOT DEFINED CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+ENDIF()
 
 if (WIN32)
   message("************************************************************")
