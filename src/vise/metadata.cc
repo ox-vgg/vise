@@ -346,8 +346,8 @@ void vise::metadata::file_metadata_full_text_search(const std::string query,
   }
   sqlite3_finalize(stmt);
   uint32_t tend = vise::getmillisecs();
-  std::cout << "vise::metadata : query=" << query << ", result size=" << flist.size()
-            << ", completed in " << (tend - tstart) << " ms" << std::endl;
+  //std::cout << "vise::metadata : query=" << query << ", result size=" << flist.size()
+  //          << ", completed in " << (tend - tstart) << " ms" << std::endl;
 }
 
 void vise::metadata::file_metadata_full_text_search_group_stat(const std::string query,

@@ -433,8 +433,6 @@ void project_manager::file_send(boost::filesystem::path fn,
     response.set_content_type_from_filename( fn.string() );
   } else {
     response.set_status(404);
-    std::cout << "failed to send file in http response ["
-              << fn.string() << "]" << std::endl;
   }
 }
 
@@ -1293,7 +1291,7 @@ void project_manager::project_filelist(std::string pname,
       for(std::size_t i=flist_start; i<flist_end; ++i) {
         flist_subset.push_back( flist.at(i) );
       }
-      std::cout << "project_manager::project_filelist : query=" << query << ", size=" << flist.size() << ", subset=" << flist_subset.size() << std::endl;
+      //std::cout << "project_manager::project_filelist : query=" << query << ", size=" << flist.size() << ", subset=" << flist_subset.size() << std::endl;
     } else {
       std::string message = "unknown mode.";
       vise_project_error_page(pname, message, response_format, response);
