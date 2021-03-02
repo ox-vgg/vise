@@ -111,7 +111,7 @@ namespace vise {
                         std::array<double, 9> &H) const override;
     void register_external_image(const std::string &image_data,
                                  const uint32_t file2_id,
-                                 std::array<double, 9> &H) const;
+                                 std::array<double, 9> &H) const override;
 
     uint32_t fid_count() const override;
     uint32_t fid(std::string filename) const override;
@@ -129,7 +129,7 @@ namespace vise {
                              bool &block_until_done) const override;
     void is_visual_group_valid(const std::string group_id,
                                bool &success,
-                               std::string &message) const;
+                               std::string &message) const override;
     void get_image_graph(const std::string group_id,
                          std::map<std::string, std::string> const &param,
                          std::ostringstream &json) const override;
