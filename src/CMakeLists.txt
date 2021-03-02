@@ -71,8 +71,8 @@ if (WIN32)
 endif (WIN32)
 
 if (APPLE)
-  set(CMAKE_SKIP_BUILD_RPATH FALSE)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+  #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+  #set(CMAKE_SKIP_RPATH TRUE)
   set(CMAKE_MACOSX_RPATH TRUE)
 endif(APPLE)
 
@@ -95,6 +95,7 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
+include_directories( ${OpenMP_CXX_INCLUDE_DIRS} ) ## required by clang in MacOS 11
 
 ## Protocol Buffer
 ## required by "search_engine/relja_retrival"
@@ -132,6 +133,7 @@ message("SQLite3_INCLUDE_DIRS: " ${SQLite3_INCLUDE_DIRS} )
 message("SQLite3_LIBRARIES: " ${SQLite3_LIBRARIES} )
 message("CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
 message("VISE_SOURCE_ROOT_DIR: " ${VISE_SOURCE_ROOT_DIR} )
+message("OpenMP: " ${OpenMP_CXX_INCLUDE_DIRS} )
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # i.e. include_directories(.)
 include_directories( . )
