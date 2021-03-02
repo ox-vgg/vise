@@ -39,6 +39,7 @@ vise::metadata::metadata(std::string pname, boost::filesystem::path project_data
     std::cout << "vise::metadata : init completed in " << (tend - tstart) << " ms"
               << std::endl;
   } else {
+    d_metadata_conf = "{}";
     std::cout << "vise::metadata: failed to open database file "
               << d_metadata_db_fn.string() << std::endl;
   }
