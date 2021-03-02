@@ -36,8 +36,8 @@ if(APPLE)
 		image_util
 		${ImageMagick_LIBRARIES}
 		${Boost_LIBRARIES}
-    OpenMP::OpenMP_CXX
-    -lvl
+		OpenMP::OpenMP_CXX
+		-lvl
 	)
 
 else(APPLE)
@@ -56,6 +56,6 @@ else(APPLE)
 		image_util
 		${ImageMagick_LIBRARIES}
 		${Boost_LIBRARIES}
-    OpenMP::OpenMP_CXX
+		OpenMP::OpenMP_CXX
 	)
 endif(APPLE)

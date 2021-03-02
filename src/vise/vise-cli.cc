@@ -163,12 +163,6 @@ int main(int argc, char **argv) {
     for(itr=cli_args.begin(); itr!=cli_args.end(); ++itr) {
       vise_settings[itr->first] = itr->second;
     }
-    if(!vise::does_vise_home_and_store_exist(vise_settings)) {
-      std::cout << "missing folders should be defined as the following command line arguments: "
-                << "--vise_home, --vise_store, --www_store, --asset_store"
-                << std::endl;
-      return 1;
-    }
 
     vise::project_manager manager(vise_settings);
     manager.serve_only(pname_pconf_list);

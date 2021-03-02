@@ -16,6 +16,7 @@ target_link_libraries( build_index
     proto_db_file
     proto_index
     util
+    -lvl
     ${Boost_LIBRARIES} )
 
 PROTOBUF_GENERATE_CPP(build_index_status.pb.cpp build_index_status.pb.h ./build_index_status.proto)
