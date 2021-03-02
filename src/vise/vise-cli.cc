@@ -70,6 +70,29 @@ int main(int argc, char **argv) {
     }
   }
 
+  if(cli_args.at("run-mode") == "web-ui") {
+    // sanity check
+    if(pname_pconf_list.size() != 0) {
+      std::cout << "--run-mode=web-ui does not accept PROJECT_NAME:CONF_FILENAME parameter."
+                << std::endl;
+      return 1;
+    }
+
+    std::map<std::string, std::string> vise_settings;
+    std::unordered_map<std::string, std::string>::const_iterator itr;
+    vise::init_default_vise_settings(vise_settings);
+    for(itr=cli_args.begin(); itr!=cli_args.end(); ++itr) {
+      if(vise_settings.count(itr->first)) {
+	vise_settings[itr->first] = itr->second;
+      }
+    }
+
+    vise::project_manager manager(vise_settings);
+    vise::http_server server(vise_settings, manager);
+    server.start();
+    return 0;
+  }
+  
   if(cli_args.at("run-mode") == "create-project") {
     std::unordered_map<std::string, std::string>::const_iterator itr;
     for( itr=pname_pconf_list.begin(); itr!=pname_pconf_list.end(); ++itr) {
