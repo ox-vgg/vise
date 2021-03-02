@@ -21,11 +21,11 @@ if ! [ -d "${DEPSRC}" ]; then
 fi
 
 #sudo apt install libssl-dev # required by cmake
-brew install libjpeg libpng libomp
+brew install wget libjpeg libpng libomp
 
 ## cmake
 if ! [ -f "${DEPDIR}/bin/cmake" ]; then
-  cd $DEPSRC && wget https://github.com/Kitware/CMake/releases/download/v3.18.0/cmake-3.18.4.tar.gz && tar -zxvf cmake-3.18.4.tar.gz && cd cmake-3.18.4 && ./configure --prefix=$DEPDIR && make -j 16 && make install
+  cd $DEPSRC && wget https://github.com/Kitware/CMake/releases/download/v3.19.4/cmake-3.19.4.tar.gz && tar -zxvf cmake-3.19.4.tar.gz && cd cmake-3.19.4 && ./configure --prefix=$DEPDIR && make -j 16 && make install
 fi
 
 ## boost
@@ -51,6 +51,11 @@ fi
 # vlfeat
 if ! [ -d "${DEPDIR}/include/vl" ]; then
   cd $DEPSRC && wget http://www.vlfeat.org/download/vlfeat-0.9.21-bin.tar.gz && tar -zxvf vlfeat-0.9.21-bin.tar.gz && cd vlfeat-0.9.21 && make -j16 && cp "${DEPSRC}/vlfeat-0.9.21/bin/maci64/libvl.dylib" "${DEPDIR}/lib/libvl.dylib" && mkdir "${DEPDIR}/include/vl" && cp -fr $DEPSRC/vlfeat-0.9.21/vl/*.* "${DEPDIR}/include/vl/"
+fi
+
+# sqlite
+if ! [ -f "${DEPDIR}/include/sqlite3.h" ]; then
+  cd $DEPSRC && wget https://www.sqlite.org/2020/sqlite-autoconf-3330000.tar.gz && tar -zxvf sqlite-autoconf-3330000.tar.gz && cd sqlite-autoconf-3330000 && ./configure --prefix=$DEPDIR && make -j8 && make install
 fi
 
 echo "****************************************************************"
