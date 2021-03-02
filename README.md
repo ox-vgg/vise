@@ -36,6 +36,30 @@ cd $VISE_DIR/vise/cmake_build
                                     # is available at http://localhost:9669
 ```
 
+## Compiling from Source in MacOS (Big Sur)
+```
+export VISE_DIR=$HOME/vise/code     # change this to suit your requirements
+export VISE_DEP_DIR=$HOME/vise/dep  # change this to suit your requirements
+
+mkdir -p $VISE_DIR
+cd $VISE_DIR
+git clone git@gitlab.com:vgg/vise.git
+cd $VISE_DIR/vise/scripts/build/
+./make_deps_macos.sh $VISE_DEP_DIR # compile and install VISE dependencies
+
+# compile VISE
+cd $VISE_DIR/vise/
+mkdir cmake_build && cd cmake_build
+$VISE_DEP_DIR/bin/cmake -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH=$VISE_DEP_DIR \
+  ../src
+make -j8                            # compile VISE
+
+cd $VISE_DIR/vise/cmake_build
+./vise/vise                         # start VISE server, the VISE web interface
+                                    # is available at http://localhost:9669
+```
+
 ## Command Line Mode (for Advanced Users)
 ```
 cd /data/vise/demo/oxford-buildings # create a folder to store all project files
