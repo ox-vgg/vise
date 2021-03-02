@@ -764,6 +764,8 @@ void vise::project::file_metadata_as_json(const uint32_t file_id,
                                           std::ostringstream &json) const {
   if(d_is_metadata_ready) {
     d_metadata->file_metadata_as_json(file_id, json);
+  } else {
+    json << "{}";
   }
 }
 
@@ -771,6 +773,8 @@ void vise::project::region_metadata_as_json(const uint32_t file_id,
                                             std::ostringstream &json) const {
   if(d_is_metadata_ready) {
     d_metadata->region_metadata_as_json(file_id, json);
+  } else {
+    json << "[]";
   }
 }
 
