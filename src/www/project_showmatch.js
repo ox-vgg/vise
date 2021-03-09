@@ -159,12 +159,17 @@ function _vise_on_img_load_show_query_rshape(e) {
   svg_css.push('stroke-width:2');
   svg.setAttribute('style', svg_css.join(';'));
 
-  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
-  rshape.setAttribute('x', Math.floor(_vise_data.QUERY['x'] * scale));
-  rshape.setAttribute('y', Math.floor(_vise_data.QUERY['y'] * scale));
-  rshape.setAttribute('width', Math.floor(_vise_data.QUERY['width'] * scale));
-  rshape.setAttribute('height', Math.floor(_vise_data.QUERY['height'] * scale));
-  svg.appendChild(rshape);
+  if(_vise_data.QUERY.hasOwnProperty('x') &&
+     _vise_data.QUERY.hasOwnProperty('y') &&
+     _vise_data.QUERY.hasOwnProperty('width') &&
+     _vise_data.QUERY.hasOwnProperty('height')) {
+    var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+    rshape.setAttribute('x', Math.floor(_vise_data.QUERY['x'] * scale));
+    rshape.setAttribute('y', Math.floor(_vise_data.QUERY['y'] * scale));
+    rshape.setAttribute('width', Math.floor(_vise_data.QUERY['width'] * scale));
+    rshape.setAttribute('height', Math.floor(_vise_data.QUERY['height'] * scale));
+    svg.appendChild(rshape);
+  }
   e.target.parentNode.appendChild(svg);
 }
 
@@ -183,10 +188,19 @@ function _vise_on_img_load_show_match_rshape(e) {
 
   svg.setAttribute('style', svg_css.join(';'));
 
-  var qx1 = _vise_data.QUERY['x'];
-  var qy1 = _vise_data.QUERY['y'];
-  var qx2 = qx1 + _vise_data.QUERY['width'];
-  var qy2 = qy1 + _vise_data.QUERY['height'];
+  var qx1 = 0;
+  var qy1 = 0;
+  var qx2 = e.target.naturalWidth;
+  var qy2 = e.target.naturalHeight;
+  if(_vise_data.QUERY.hasOwnProperty('x') &&
+     _vise_data.QUERY.hasOwnProperty('y') &&
+     _vise_data.QUERY.hasOwnProperty('width') &&
+     _vise_data.QUERY.hasOwnProperty('height')) {
+    qx1 = _vise_data.QUERY['x'];
+    qy1 = _vise_data.QUERY['y'];
+    qx2 = qx1 + _vise_data.QUERY['width'];
+    qy2 = qy1 + _vise_data.QUERY['height'];
+  }
   var H = _vise_data.MATCH_DETAILS['H'];
 
   var scale = e.target.height / e.target.naturalHeight;
@@ -216,13 +230,23 @@ function _vise_togglepanel_show() {
   title.innerHTML = 'Difference between Query and Match';
   toggle_panel.appendChild(title);
 
-  //var target_height = toggle_panel.clientHeight;
-  var target_height = _vise_data.QUERY['height'];
+  var target_height = query_img.naturalHeight;
+  var qx1 = 0;
+  var qy1 = 0;
+  var qw  = query_img.naturalWidth;
+  var qh  = query_img.naturalHeight;
+  if(_vise_data.QUERY.hasOwnProperty('x') &&
+     _vise_data.QUERY.hasOwnProperty('y') &&
+     _vise_data.QUERY.hasOwnProperty('width') &&
+     _vise_data.QUERY.hasOwnProperty('height')) {
+    //var target_height = toggle_panel.clientHeight;
+    target_height = _vise_data.QUERY['height'];
+    qx1 = _vise_data.QUERY['x'];
+    qy1 = _vise_data.QUERY['y'];
+    qw = _vise_data.QUERY['width'];
+    qh = _vise_data.QUERY['height'];
+  }
 
-  var qx1 = _vise_data.QUERY['x'];
-  var qy1 = _vise_data.QUERY['y'];
-  var qw = _vise_data.QUERY['width'];
-  var qh = _vise_data.QUERY['height'];
   var qx2 = qx1 + qw;
   var qy2 = qy1 + qh;
   var qcanvas = _vise_imregion_to_canvas(query_img, qx1, qy1, qw, qh, target_height);
@@ -305,10 +329,20 @@ function _vise_togglepanel_show() {
   var req = [];
   req.push('register?file1_id=' + _vise_data.QUERY['file_id']);
   req.push('file2_id=' + _vise_data.MATCH['file_id']);
-  req.push('x=' + _vise_data.QUERY['x']);
-  req.push('y=' + _vise_data.QUERY['y']);
-  req.push('width=' + _vise_data.QUERY['width']);
-  req.push('height=' + _vise_data.QUERY['height']);
+  if(_vise_data.QUERY.hasOwnProperty('x') &&
+     _vise_data.QUERY.hasOwnProperty('y') &&
+     _vise_data.QUERY.hasOwnProperty('width') &&
+     _vise_data.QUERY.hasOwnProperty('height')) {
+    req.push('x=' + _vise_data.QUERY['x']);
+    req.push('y=' + _vise_data.QUERY['y']);
+    req.push('width=' + _vise_data.QUERY['width']);
+    req.push('height=' + _vise_data.QUERY['height']);
+  } else {
+    req.push('x=0');
+    req.push('y=0');
+    req.push('width=' + query_img.naturalWidth);
+    req.push('height=' + query_img.naturalHeight);
+  }
   req.push('H0=' + JSON.stringify(_vise_data.MATCH_DETAILS['H']));
   var xhr = new XMLHttpRequest();
   xhr.open('GET', req.join('&'));
@@ -336,8 +370,14 @@ function _vise_togglepanel_show() {
     match_img_tx_ctx.setTransform(H[0], H[3], H[1], H[4], H[2], H[5]);
     match_img_tx_ctx.drawImage(match_img, 0, 0);
 
-    toggle_canvas.height = _vise_data.QUERY['height'];
-    toggle_canvas.width = _vise_data.QUERY['width'];
+    if(_vise_data.QUERY.hasOwnProperty('width') &&
+       _vise_data.QUERY.hasOwnProperty('height')) {
+      toggle_canvas.height = _vise_data.QUERY['height'];
+      toggle_canvas.width = _vise_data.QUERY['width'];
+    } else {
+      toggle_canvas.height = query_img.naturalHeight;
+      toggle_canvas.width = query_img.naturalWidth;
+    }
 
     _vise_toggle_canvas_show_query();
     toggle_canvas.addEventListener('mousedown', function(e) {
@@ -358,7 +398,7 @@ function _vise_togglepanel_show() {
 	    }
     });
     toggle_canvas.addEventListener('mousemove', function(e) {
-      return;
+      return; // disable as this feature is quite distracting
       if(is_manual_toggle_mode) {
         if(mouse_move_count > 10) {
           _vise_toggle_canvas_toggle();
@@ -414,12 +454,24 @@ function _vise_toggle_canvas_show_error_msg(msg) {
 }
 
 function _vise_toggle_canvas_get_expand_size() {
-  var expand_size = Math.floor(_vise_data.QUERY['width'] * 0.1);
-  var ex = Math.max(0, _vise_data.QUERY['x'] - expand_size);
-  var ey = Math.max(0, _vise_data.QUERY['y'] - expand_size);
-  var ewidth  = Math.min(_vise_data.QUERY['width'] + 2*expand_size, query_img.naturalWidth);
-  var eheight = Math.min(_vise_data.QUERY['height'] + 2*expand_size, query_img.naturalHeight);
-  return [ex, ey, ewidth, eheight];
+  if(_vise_data.QUERY.hasOwnProperty('x') &&
+     _vise_data.QUERY.hasOwnProperty('y') &&
+     _vise_data.QUERY.hasOwnProperty('width') &&
+     _vise_data.QUERY.hasOwnProperty('height')) {
+    var expand_size = Math.floor(_vise_data.QUERY['width'] * 0.1);
+    var ex = Math.max(0, _vise_data.QUERY['x'] - expand_size);
+    var ey = Math.max(0, _vise_data.QUERY['y'] - expand_size);
+    var ewidth  = Math.min(_vise_data.QUERY['width'] + 2*expand_size, query_img.naturalWidth);
+    var eheight = Math.min(_vise_data.QUERY['height'] + 2*expand_size, query_img.naturalHeight);
+    return [ex, ey, ewidth, eheight];
+  } else {
+    var expand_size = Math.floor(query_img.naturalWidth * 0.1);
+    var ex = Math.max(0, 0 - expand_size);
+    var ey = Math.max(0, 0 - expand_size);
+    var ewidth  = Math.min(query_img.naturalWidth + 2*expand_size, query_img.naturalWidth);
+    var eheight = Math.min(query_img.naturalHeight + 2*expand_size, query_img.naturalHeight);
+    return [ex, ey, ewidth, eheight];
+  }
 }
 
 function _vise_toggle_canvas_toggle() {

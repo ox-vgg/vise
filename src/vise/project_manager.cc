@@ -576,19 +576,16 @@ void project_manager::handle_project_post_request(std::string const pname,
       return;
     }
     if (uri[2] == "_search_using_features") {
-      std::cout << "_search_using_features" << std::endl;
       std::string image_features(request.d_payload.str());
       project_index_search_using_features(pname, image_features, param, response);
       return;
     }
     if(uri[2] == "_get_feature_match_details") {
-      std::cout << "_get_feature_match_details" << std::endl;
       std::string image_features(request.d_payload.str());
       project_get_feature_match_details(pname, image_features, param, response);
       return;
     }
     if(uri[2] == "_external_register") {
-      std::cout << "_external_register" << std::endl;
       std::string image_data(request.d_payload.str());
       project_register_external_image(pname, image_data, param, response);
       return;
@@ -894,14 +891,9 @@ void project_manager::project_show_match(std::string pname,
   }
 
   if (param.count("file_id") == 0 ||
-      param.count("match_file_id") == 0 ||
-      param.count("x") == 0 ||
-      param.count("y") == 0 ||
-      param.count("width") == 0 ||
-      param.count("height") == 0
-      ) {
+      param.count("match_file_id") == 0) {
     response.set_status(412);
-    response.set_payload("showmatch requests must contain: qfile_id, mfile_id, x, y, width, height, H");
+    response.set_payload("showmatch requests must contain: file_id, match_file_id");
     return;
   }
 

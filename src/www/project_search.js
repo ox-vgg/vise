@@ -87,13 +87,13 @@ function _vise_show_search_query_content() {
   query.setAttribute('class', 'query');
   var qimgcontainer = document.createElement('div');
   qimgcontainer.setAttribute('class', 'img_with_region');
-  var qimg = document.createElement('img');
-  qimg.setAttribute('src', 'image/' + _vise_data.QUERY['filename']);
-  qimg.addEventListener('load', _vise_on_img_load_show_query_rshape);
+  var query_image = document.createElement('img');
+  query_image.setAttribute('src', 'image/' + _vise_data.QUERY['filename']);
+  query_image.addEventListener('load', _vise_on_img_load_show_query_rshape);
   var qlabel = document.createElement('p');
   var qhref = '<a href="file?file_id=' + _vise_data.QUERY['file_id'] + '">' + _vise_data.QUERY['filename'] + '</a>'
   qlabel.innerHTML = 'Query: ' + qhref;
-  qimgcontainer.appendChild(qimg);
+  qimgcontainer.appendChild(query_image);
   query.appendChild(qimgcontainer);
   query.appendChild(qlabel);
 
@@ -116,12 +116,17 @@ function _vise_on_img_load_show_query_rshape(e) {
   svg_css.push('stroke-width:2');
   svg.setAttribute('style', svg_css.join(';'));
 
-  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
-  rshape.setAttribute('x', Math.floor(_vise_data.QUERY['x'] * scale));
-  rshape.setAttribute('y', Math.floor(_vise_data.QUERY['y'] * scale));
-  rshape.setAttribute('width', Math.floor(_vise_data.QUERY['width'] * scale));
-  rshape.setAttribute('height', Math.floor(_vise_data.QUERY['height'] * scale));
-  svg.appendChild(rshape);
+  if(_vise_data.QUERY.hasOwnProperty('x') &&
+     _vise_data.QUERY.hasOwnProperty('y') &&
+     _vise_data.QUERY.hasOwnProperty('width') &&
+     _vise_data.QUERY.hasOwnProperty('height')) {
+    var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+    rshape.setAttribute('x', Math.floor(_vise_data.QUERY['x'] * scale));
+    rshape.setAttribute('y', Math.floor(_vise_data.QUERY['y'] * scale));
+    rshape.setAttribute('width', Math.floor(_vise_data.QUERY['width'] * scale));
+    rshape.setAttribute('height', Math.floor(_vise_data.QUERY['height'] * scale));
+    svg.appendChild(rshape);
+  }
 
   e.target.parentNode.appendChild(svg);
 }
@@ -200,10 +205,15 @@ function _vise_search_result_html_element(result_index) {
   var matchview_uri = [];
   matchview_uri.push('showmatch?file_id=' + _vise_data.QUERY['file_id']);
   matchview_uri.push('match_file_id=' + _vise_data.RESULT[result_index]['file_id']);
-  matchview_uri.push('x=' + _vise_data.QUERY['x']);
-  matchview_uri.push('y=' + _vise_data.QUERY['y']);
-  matchview_uri.push('width=' + _vise_data.QUERY['width']);
-  matchview_uri.push('height=' + _vise_data.QUERY['height']);
+  if(_vise_data.QUERY.hasOwnProperty('x') &&
+     _vise_data.QUERY.hasOwnProperty('y') &&
+     _vise_data.QUERY.hasOwnProperty('width') &&
+     _vise_data.QUERY.hasOwnProperty('height')) {
+    matchview_uri.push('x=' + _vise_data.QUERY['x']);
+    matchview_uri.push('y=' + _vise_data.QUERY['y']);
+    matchview_uri.push('width=' + _vise_data.QUERY['width']);
+    matchview_uri.push('height=' + _vise_data.QUERY['height']);
+  }
 
   var a = document.createElement('a');
   a.setAttribute('data-rindex', result_index)
