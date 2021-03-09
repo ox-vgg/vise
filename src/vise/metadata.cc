@@ -442,9 +442,6 @@ void vise::metadata::file_metadata_as_json(const uint32_t file_id,
   const char *tail;
   rc = sqlite3_prepare_v2(d_db, sql.c_str(), -1, &stmt, &tail);
   if(rc != SQLITE_OK) {
-    std::cout << "vise::metadata : file_metadata() failed. "
-              << sqlite3_errmsg(d_db)
-              << std::endl;
     json << "{}";
     return;
   }
@@ -483,9 +480,6 @@ void vise::metadata::region_metadata_as_json(const uint32_t file_id,
   const char *tail;
   rc = sqlite3_prepare_v2(d_db, sql.c_str(), -1, &stmt, &tail);
   if(rc != SQLITE_OK) {
-    std::cout << "vise::metadata : file_metadata() failed. "
-              << sqlite3_errmsg(d_db)
-              << std::endl;
     json << "[]";
     return;
   }
