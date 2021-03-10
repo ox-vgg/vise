@@ -116,9 +116,12 @@ endif (WIN32)
 include_directories( ${EIGEN3_INCLUDE_DIR} )
 
 ## vlfeat
-## -DVLFEAT_LIB=/data/mybin/vlfeat/vlfeat-0.9.20/bin/glnxa64/libvl.so -DVLFEAT_INCLUDE_DIR=/data/mybin/vlfeat/vlfeat-0.9.20/vl
-# @todo: remove dependency on absolute path
-include_directories( ${VLFEAT_INCLUDE_DIR})
+if(NOT DEFINED ${VLFEAT_LIB})
+  set(VLFEAT_LIB "-lvl")
+endif()
+if(NOT DEFINED ${VLFEAT_INCLUDE_DIR})
+  set(VLFEAT_INCLUDE_DIR "${CMAKE_PREFIX_PATH}include/vl")
+endif()
 
 ## sqlite
 find_package(SQLite3)
