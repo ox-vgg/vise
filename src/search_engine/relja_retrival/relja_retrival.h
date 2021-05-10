@@ -13,6 +13,7 @@
 #include "vise/search_result.h"
 #include "vise/vise_util.h"
 #include "vise/task_progress.h"
+#include "vise/metadata.h"
 
 // for building an index
 #include "build_index.h"
@@ -38,7 +39,6 @@
 #include "clst_centres.h"
 #include "soft_assigner.h"
 #include "hamming.h"
-#include "hamming_embedder.h"
 #include "tfidf_data.pb.h"
 #include "tfidf_v2.h"
 #include "spatial_verif_v2.h"
@@ -116,6 +116,8 @@ namespace vise {
     uint32_t fid_count() const override;
     uint32_t fid(std::string filename) const override;
     std::string filename(uint32_t fid) const override;
+    void select_file_id(const std::string filename_regex, std::vector<std::size_t> &fid_list) const override;
+    void select_all_file_id(std::vector<std::size_t> &fid_list) const override;
 
     void conf(std::map<std::string, std::string> conf_data) override;
     std::map<std::string, std::string> conf() const override;
@@ -123,19 +125,6 @@ namespace vise {
     void extract_image_features(const std::string &image_data,
                                 std::string &image_features) const override;
 
-    // visual group
-    void create_visual_group(const std::unordered_map<std::string, std::string> &params,
-                             bool &success, std::string &message,
-                             bool &block_until_done) const override;
-    void is_visual_group_valid(const std::string group_id,
-                               bool &success,
-                               std::string &message) const override;
-    void get_image_graph(const std::string group_id,
-                         std::map<std::string, std::string> const &param,
-                         std::ostringstream &json) const override;
-    void get_image_group(const std::string group_id,
-                         std::map<std::string, std::string> const &param,
-                         std::ostringstream &json) const override;
   private:
     void index_run_all_stages(std::function<void(void)> callback);
     uint32_t image_src_count() const;
@@ -150,38 +139,6 @@ namespace vise {
     int64_t get_traindesc_count(std::string train_desc_fn);
 
     void findBBox2( double xl, double xu, double yl, double yu, homography const &H, double &xl2, double &xu2, double &yl2, double &yu2, uint32_t w2, uint32_t h2 ) const;
-
-    // visual group
-    void init_group_db_tables(const std::string group_id,
-                              std::unordered_map<std::string, std::string> &group_metadata,
-                              bool &success, std::string &message) const;
-    std::string get_group_db_filename(const std::string group_id) const;
-    void get_match_graph_progress(const std::string group_id,
-                                  std::set<std::size_t> &query_fid_list,
-                                  bool &success, std::string &message) const;
-    void create_match_graph(const std::string group_id,
-                            const std::unordered_map<std::string, std::string> &group_metadata,
-                            const std::vector<std::size_t> &query_fid_list,
-                            bool &success, std::string &message) const;
-    void find_connected_components(const std::string group_id,
-                                   const std::unordered_map<std::string, std::string> &group_metadata,
-                                   bool &success, std::string &message) const;
-    void depth_first_search(const std::unordered_map<std::size_t, std::vector<std::size_t> > &match_graph,
-                            std::unordered_map<std::size_t, uint8_t> &vertex_flag,
-                            std::size_t vertex,
-                            std::vector<std::size_t> &visited_nodes) const;
-    void get_image_group_set(const std::string group_id,
-                             const std::string set_id,
-                             std::ostringstream &json) const;
-
-
-    void select_file_id(const std::string filename_regex, std::vector<std::size_t> &fid_list) const;
-    void select_all_file_id(std::vector<std::size_t> &fid_list) const;
-    const std::string d_match_edges_table;
-    const std::string d_match_progress_table;
-    const std::string d_group_metadata_table;
-    const std::string d_image_group_table;
-    const std::string d_image_group_inv_table;
 
     boost::filesystem::path d_data_dir;
     boost::filesystem::path d_image_dir;

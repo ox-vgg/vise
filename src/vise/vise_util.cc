@@ -31,11 +31,15 @@ bool vise::parse_cli_args(int argc, char **argv,
     }
     if(arg[0] == '-' && arg[1] == '-') {
       std::size_t eq_pos = arg.find('=');
+      std::string key, val;
       if(eq_pos == std::string::npos) {
-        continue;
+        // for arguments without a value (e.g. --version, --help, ...)
+        key = arg.substr(2, arg.size());
+        val = "";
+      } else {
+        key = arg.substr(2, eq_pos-2);
+        val = arg.substr(eq_pos+1);
       }
-      std::string key(arg.substr(2, eq_pos-2));
-      std::string val(arg.substr(eq_pos+1));
       if(cli_args.count(key) == 1) {
         std::cout << "vise::parse_vise_cli_args(): duplicate arguments for ["
                   << key << "], last one will be used." << std::endl;
@@ -64,16 +68,6 @@ bool vise::parse_cli_args(int argc, char **argv,
 //
 // vise settings
 //
-void vise::init_vise_settings_comments(std::map<std::string, std::string> &vise_settings) {
-  // comments
-  vise_settings["# www_store"] = "HTML, Javascript, CSS, static images and other assets of VISE web application are stored in this path.";
-  vise_settings["# vise_store"] = "all files (images, index, configuration, etc) associated with a project files are stored in this path.";
-  vise_settings["# asset_store"] = "VISE application assets (e.g. generic visual vocabulary) are stored in this path.";
-  vise_settings["# nthread"] = "0 will use all the available threads; nthread > 0 will use the specified number of threads; nthread < 0 will only use (MAX_THREADS-nthread) threads.";
-  vise_settings["# generic_visual_vocabulary"] = "location of generic visual vocabulary relative to VISE_HOME, e.g. asset/visual_vocabulary/voc100k_hamm32_800x800_imcount90k_nbd512/";
-  vise_settings["# http_uri_namespace"] = "By default, VISE http resources are available under \"/\" namespace. Use this configuration parameter to make http resources availalbe under a new namespace like \"/a/b/c/\"";
-}
-
 bool vise::does_vise_home_and_store_exist(std::map<std::string, std::string> &vise_settings) {
   if(vise_settings.count("vise_home") == 0 ||
      vise_settings.count("vise_store") == 0 ||
@@ -141,25 +135,19 @@ void vise::init_default_vise_settings(std::map<std::string, std::string> &vise_s
   const boost::filesystem::path vise_home = vise::vise_home();
 
   // use default configuration for VISE
-  boost::filesystem::path vise_store = vise_home / "store";
-  boost::filesystem::path www_store = vise_home / "www";
-  boost::filesystem::path asset_store = vise_home / "asset";
-  boost::filesystem::path generic_visual_vocabulary(asset_store);
-  generic_visual_vocabulary = generic_visual_vocabulary / "visual_vocabulary";
-  generic_visual_vocabulary = generic_visual_vocabulary / "voc100k_hamm32_800x800_imcount90k_nbd512";
+  boost::filesystem::path project_dir = vise_home / "project";
+  boost::filesystem::path asset_dir = vise_home / "asset";
+  boost::filesystem::path www_dir = vise_home / "www";
 
   vise_settings.clear();
-  vise_settings["vise_home"] = vise_home.string();
-  vise_settings["vise_store"] = vise_store.string();
-  vise_settings["www_store"] = www_store.string();
-  vise_settings["asset_store"] = asset_store.string();
-  vise_settings["address"] = "localhost";
-  vise_settings["port"] = "9669";
-  vise_settings["nthread"] = "0";
-  vise_settings["generic_visual_vocabulary"] = generic_visual_vocabulary.string();
-  vise_settings["http_uri_namespace"] = "/";
-
-  init_vise_settings_comments(vise_settings);
+  vise_settings["vise-home-dir"] = vise_home.string();
+  vise_settings["vise-project-dir"] = project_dir.string();
+  vise_settings["vise-asset-dir"] = asset_dir.string();
+  vise_settings["http-www-dir"] = www_dir.string();
+  vise_settings["http-address"] = "localhost";
+  vise_settings["http-port"] = "9669";
+  vise_settings["http-worker"] = "2";
+  vise_settings["http-namespace"] = "/";
 }
 
 void vise::init_vise_settings(std::map<std::string, std::string> &vise_settings) {
@@ -193,13 +181,10 @@ void vise::init_vise_settings(std::map<std::string, std::string> &vise_settings)
     vise_settings["generic_visual_vocabulary"] = generic_visual_vocabulary.string();
     vise_settings["http_uri_namespace"] = "/";
 
-    init_vise_settings_comments(vise_settings);
-
     vise::configuration_save(vise_settings, vise_settings_fn.string());
   } else {
     vise_settings.clear();
     vise::configuration_load(vise_settings_fn.string(), vise_settings);
-    init_vise_settings_comments(vise_settings);
     bool settings_changed = false;
     if(vise_settings.count("asset_store") == 0) {
       boost::filesystem::path asset_store = visehome / "asset";
@@ -226,7 +211,6 @@ void vise::init_vise_settings(std::map<std::string, std::string> &vise_settings)
     }
 
     if(settings_changed) {
-      init_vise_settings_comments(vise_settings);
       vise::configuration_save(vise_settings, vise_settings_fn.string());
     }
   }
@@ -286,9 +270,9 @@ bool vise::configuration_save(std::map<std::string, std::string> &conf,
 void vise::configuration_show(std::map<std::string, std::string> const &conf) {
   std::map<std::string, std::string>::const_iterator itr;
   for (itr=conf.begin(); itr!=conf.end(); ++itr) {
-	if(itr->first.at(0) != '#') {
+    if(itr->first.at(0) != '#') {
       std::cout << "::" << itr->first << "=" << itr->second << std::endl;
-	}
+    }
   }
 }
 
@@ -418,7 +402,7 @@ void vise::escape_string(std::string &in, char match_char, std::string match_rep
 }
 
 bool vise::file_load(const boost::filesystem::path fn,
-                           std::string& file_content)
+                     std::string& file_content)
 {
   if( !boost::filesystem::exists(fn) ) {
     std::cout << "file does not exist [" << fn.string() << "]" << std::endl;
@@ -437,7 +421,7 @@ bool vise::file_load(const boost::filesystem::path fn,
     file_content.reserve( f.tellg() );
     f.seekg(0, std::ios::beg);
     file_content.assign( (std::istreambuf_iterator<char>(f)),
-                          std::istreambuf_iterator<char>() );
+                         std::istreambuf_iterator<char>() );
     f.close();
     return true;
   } catch(std::exception &e) {
@@ -447,7 +431,7 @@ bool vise::file_load(const boost::filesystem::path fn,
 }
 
 bool vise::file_save(const boost::filesystem::path fn,
-                           std::string& file_content)
+                     std::string& file_content)
 {
   try {
     std::ofstream f;
@@ -462,19 +446,19 @@ bool vise::file_save(const boost::filesystem::path fn,
 }
 
 bool vise::file_save_binary(const boost::filesystem::path fn,
-    std::string& file_content)
+                            std::string& file_content)
 {
-    try {
-        std::ofstream f;
-        f.open(fn.string().c_str(), std::ofstream::binary);
-        f << file_content;
-        f.close();
-        return true;
-    }
-    catch (std::exception& e) {
-        std::cout << "failed to save file [" << fn.string() << "]" << std::endl;
-        return false;
-    }
+  try {
+    std::ofstream f;
+    f.open(fn.string().c_str(), std::ofstream::binary);
+    f << file_content;
+    f.close();
+    return true;
+  }
+  catch (std::exception& e) {
+    std::cout << "failed to save file [" << fn.string() << "]" << std::endl;
+    return false;
+  }
 }
 
 void vise::print_map(std::string name,
@@ -570,29 +554,29 @@ void vise::parse_urlencoded_form(const std::string &formdata_str,
 std::string vise::json_escape_str(const std::string& in) {
   // C:\Data\My "Project" Name\image.jpg
   // C:\\Data\\My \"Project\" Name\\image.jpg
-    std::string result;
-    if (in.find('"') != std::string::npos ||
-        in.find('\\') != std::string::npos
-        ) {
-        result.reserve(2*in.size());
+  std::string result;
+  if (in.find('"') != std::string::npos ||
+      in.find('\\') != std::string::npos
+      ) {
+    result.reserve(2*in.size());
 		for (uint32_t i = 0; i < in.size(); ++i) {
-            switch (in[i]) {
-            case '\"':
-                result.append("\\\"");
-                break;
-            case '\\':
-                result.append("\\\\");
-                break;
-            default:
-                result.push_back(in[i]);
-            }
+      switch (in[i]) {
+      case '\"':
+        result.append("\\\"");
+        break;
+      case '\\':
+        result.append("\\\\");
+        break;
+      default:
+        result.push_back(in[i]);
+      }
 		}
-        result.shrink_to_fit();
-    }
-    else {
-        result = in;
-    }
-    return result;
+    result.shrink_to_fit();
+  }
+  else {
+    result = in;
+  }
+  return result;
 }
 
 std::string vise::now_timestamp() {
@@ -689,4 +673,51 @@ bool vise::if_valid_get_image_size(std::string img_fn, std::string &message, uin
     success = false;
   }
   return success;
+}
+
+void vise::csv_string_to_float_array(std::string csv_string,
+                                     std::vector<float> &float_array) {
+  std::vector<std::string> tokens = vise::split(csv_string, ',');
+  float_array.clear();
+  for(std::size_t i=0; i<tokens.size(); ++i) {
+    float_array.push_back( std::stof(tokens.at(i) ) );
+  }
+}
+
+double vise::iou(std::vector<float> &a, std::vector<float> &b) {
+  // a and b are rectangle coordinates formatted as : x, y, width, height
+  double ax0 = (double) a[0];
+  double ay0 = (double) a[1];
+  double ax1 = ax0 + (double) a[2];
+  double ay1 = ay0 + (double) a[3];
+
+  double bx0 = (double) b[0];
+  double by0 = (double) b[1];
+  double bx1 = bx0 + (double) b[2];
+  double by1 = by0 + (double) b[3];
+
+  // coordinates of the intersection box
+  double x0 = fmax(ax0, bx0);
+  double y0 = fmax(ay0, by0);
+  double x1 = fmin(ax1, bx1);
+  double y1 = fmin(ay1, by1);
+
+  double overlap_width  = (x1 - x0);
+  double overlap_height = (y1 - y0);
+  if( overlap_width < 0 || overlap_height < 0) {
+    return 0.0;
+  }
+
+  double overlap_area = overlap_width * overlap_height;
+  double area_a = (ax1 - ax0) * (ay1 - ay0);
+  double area_b = (bx1 - bx0) * (by1 - by0);
+  double combined_area = area_a + area_b - overlap_area;
+  double epsilon = 1e-5;
+  double iou = overlap_area / (combined_area + epsilon);
+  /*
+  std::cout << "overlap_area=" << overlap_area << ", area_a=" << area_a
+            << ", area_b=" << area_b << ", combined_area=" << combined_area
+            << ", iou=" << iou << std::endl;*/
+
+  return iou;
 }

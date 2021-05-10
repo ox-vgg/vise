@@ -27,9 +27,10 @@ namespace vise {
     bool is_metadata_available() const {
       return d_is_metadata_available;
     };
+    bool is_region_metadata_available() const;
     void init_metadata_db();
     void create_metadata_db();
-    bool sqlite_table_exists(const std::string table_name);
+    bool sqlite_table_exists(const std::string table_name) const;
 
     // full text search (fts) of metadata
     void init_metadata_fts_vtable();
@@ -44,23 +45,48 @@ namespace vise {
     bool full_text_search_query_to_sql(const std::string query,
                                        std::string &sql) const ;
 
-    // file metadata
+    // file and region metadata
     void init_metadata_conf();
     void file_metadata_as_json(const uint32_t file_id,
                                std::ostringstream &json) const;
     void region_metadata_as_json(const uint32_t file_id,
                                std::ostringstream &json) const;
+    void get_region_shape(const uint32_t region_id,
+                          std::size_t &file_id,
+                          std::size_t &region_index,
+                          std::string &region_shape,
+                          std::string &region_points) const;
+    void get_region_file_info(const uint32_t region_id,
+                              std::size_t &file_id,
+                              std::size_t &region_index) const;
+
     void metadata_conf_as_json(std::ostringstream &json) const;
 
     void file_attribute_name_list(std::vector<std::string> &file_attribute_list) const;
     void write_metadata_conf(std::ostringstream &ss) const;
+    void select_fid_with_filename_like(const std::string filename_pattern,
+                                       std::vector<std::size_t> &file_id_list) const;
+    void select_rid_with_filename_like(const std::string filename_pattern,
+                                       std::vector<std::size_t> &region_id_list) const;
 
+    void select_all_regions(const std::vector<std::size_t> &fid_list,
+                            std::vector<std::size_t> &region_id_list) const;
     // group by
     void metadata_group_stat(const std::string groupby,
                              std::map<std::string, uint32_t> &group_stat) const;
     void metadata_groupby(const std::string groupby,
                           const std::string group,
                           std::vector<uint32_t> &flist) const;
+
+    // util
+    std::string get_metadata_db_fn() const {
+      return d_metadata_db_fn.string();
+    };
+    void get_copy_of_metadata(const std::string source_table_name,
+                              const std::string destination_db_filename,
+                              const std::string destination_table_name,
+                              bool &success,
+                              std::string &message) const;
   private:
     std::string d_pname;
     boost::filesystem::path d_project_data_dir;

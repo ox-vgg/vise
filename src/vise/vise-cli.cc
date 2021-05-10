@@ -8,6 +8,7 @@
 #include "vise_version.h"
 #include "vise_util.h"
 #include "http_server.h"
+#include "cli_resources.h"
 
 #include <string>
 #include <map>
@@ -26,54 +27,59 @@
 #include <memory>
 #include <cstdlib>
 
-void print_usage(std::string visecli_exec="vise-cli") {
-  std::cout << "\nUsage::\n"
-            << visecli_exec << " --run-mode=[create-project | serve-project | web-ui | create-visual-vocabulary | ...]\n"
-            << "  --vise-home=DIR --port=PORT --nthread=NTHREAD --http_uri_namespace=NS ...\n"
-            << "  PROJECT1_NAME:CONF_FILENAME PROJECT2_NAME:CONF_FILENAME ...\n"
-            << "\nSome Examples:\n"
-            << "a) to access all features of VISE using the web address http://localhost:10011/my_vise/\n"
-            << "$ " << visecli_exec << " --run-mode=web-ui --vise-home=/home/xyz/.vise/ --port=10011 --nthread=8 --http_uri_namespace=/my_vise/\n"
-            << "b) to create a project whose configuration file is stored in /data/Oxford-Buildings/data/conf.txt\n"
-            << "$ " << visecli_exec << " --run-mode=create-project --nthread=32 Oxford-Buildings:/data/Oxford-Buildings/data/conf.txt" << std::endl
-            << "c) to allow users to search two projects (e.g. P1, P2) using the web address http://localhost:80/demo/\n"
-            << "$ " << visecli_exec << " --run-mode=serve-project --port=80 --http_uri_namespace=/demo/ P1:/p1/data/conf.txt P2:/p2/data/conf.txt" << std::endl
-            << "d) to create a visual group\n"
-            << "$ " << visecli_exec << " --run-mode=create-visual-group --id=negative-groups\n"
-            << "  --max-matches=50 --min-score=100 --nthread=16 --select-filename=^negative/.*"
-            << std::endl;
+namespace vise {
+  void print_version() {
+    std::cout << VISE_FULLNAME << " (" << VISE_NAME << ") "
+              << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH
+              << std::endl;
+  }
+
+  void print_help() {
+    std::cout << vise::VISE_CLI_HELP_STR << std::endl;
+  }
 }
 
 int main(int argc, char **argv) {
-  std::cout << VISE_FULLNAME << " (" << VISE_NAME << ") "
-            << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH
-            << std::endl;
-  std::string visecli_exec_name = boost::filesystem::path(argv[0]).filename().string();
+  if(argc == 1) { // no command line arguments
+    vise::print_help();
+    return 0;
+  }
+
   std::unordered_map<std::string, std::string> cli_args;
   std::unordered_map<std::string, std::string> pname_pconf_list;
   bool cli_arg_ok = vise::parse_cli_args(argc, argv, cli_args, pname_pconf_list);
 
-  // sanity check of command line arguments
-  if(argc == 1 ||
-     cli_args.count("help") == 1 ||
-     !cli_arg_ok ||
-     cli_args.count("run-mode") == 0) {
-    print_usage(visecli_exec_name);
+  if(cli_arg_ok == false) {
+    std::cout << "failed to parse command line arguments"
+              << std::endl;
+    return 1;
+  }
+
+  if(cli_args.count("version") == 1) {
+    vise::print_version();
     return 0;
   }
-  if(cli_args.at("run-mode") == "create-project" ||
-     cli_args.at("run-mode") == "create-visual-vocabularly" ) {
+
+  if(cli_args.count("help") == 1 ||  // --help
+     cli_args.count("cmd") == 0) {   // if --cmd is missing
+    vise::print_help();
+    return 0;
+  }
+
+  if(cli_args.at("cmd") == "create-project" ||
+     cli_args.at("cmd") == "create-visual-vocabularly" ) {
     if(pname_pconf_list.size() != 1) {
-      std::cout << "--run-mode={create-project, create-visual-vocabulary} accepts only a single PROJECT_NAME:CONF_FILENAME parameter."
+      std::cout << "--cmd={create-project, create-visual-vocabulary} accepts "
+                << "only a single PROJECT_NAME:CONF_FILENAME parameter."
                 << std::endl;
       return 1;
     }
   }
 
-  if(cli_args.at("run-mode") == "web-ui") {
+  if(cli_args.at("cmd") == "web-ui") {
     // sanity check
     if(pname_pconf_list.size() != 0) {
-      std::cout << "--run-mode=web-ui does not accept PROJECT_NAME:CONF_FILENAME parameter."
+      std::cout << "--cmd=web-ui does not accept PROJECT_NAME:CONF_FILENAME parameter."
                 << std::endl;
       return 1;
     }
@@ -83,7 +89,7 @@ int main(int argc, char **argv) {
     vise::init_default_vise_settings(vise_settings);
     for(itr=cli_args.begin(); itr!=cli_args.end(); ++itr) {
       if(vise_settings.count(itr->first)) {
-	vise_settings[itr->first] = itr->second;
+        vise_settings[itr->first] = itr->second;
       }
     }
 
@@ -92,8 +98,8 @@ int main(int argc, char **argv) {
     server.start();
     return 0;
   }
-  
-  if(cli_args.at("run-mode") == "create-project") {
+
+  if(cli_args.at("cmd") == "create-project") {
     std::unordered_map<std::string, std::string>::const_iterator itr;
     for( itr=pname_pconf_list.begin(); itr!=pname_pconf_list.end(); ++itr) {
       std::string pname = itr->first;
@@ -114,7 +120,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  if(cli_args.at("run-mode") == "create-visual-vocabulary") {
+  if(cli_args.at("cmd") == "create-visual-vocabulary") {
     std::unordered_map<std::string, std::string>::const_iterator itr;
     for( itr=pname_pconf_list.begin(); itr!=pname_pconf_list.end(); ++itr) {
       std::string pname = itr->first;
@@ -141,12 +147,19 @@ int main(int argc, char **argv) {
     }
   }
 
-  if(cli_args.at("run-mode") == "serve-project") {
+  if(cli_args.at("cmd") == "serve-project") {
     if(pname_pconf_list.size() == 0) {
-      std::cout << "--run-mode=serve-project requires at least one PROJECT_NAME:CONF_FILENAME parameter."
+      std::cout << "--cmd=serve-project requires at least one PROJECT_NAME:CONF_FILENAME parameter."
                 << std::endl;
       return 1;
     }
+    if(cli_args.count("http-www-dir") == 0) {
+      std::cout << "--http-www-dir must be provided and should point to a folder containing "
+                << "all VISE web application files."
+                << std::endl;
+      return 1;
+    }
+
     std::unordered_map<std::string, std::string>::const_iterator itr;
     for( itr=pname_pconf_list.begin(); itr!=pname_pconf_list.end(); ++itr) {
       std::string pname = itr->first;
@@ -158,6 +171,7 @@ int main(int argc, char **argv) {
         return 1;
       }
     }
+
     std::map<std::string, std::string> vise_settings;
     vise::init_default_vise_settings(vise_settings);
     for(itr=cli_args.begin(); itr!=cli_args.end(); ++itr) {
@@ -171,14 +185,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if(cli_args.at("run-mode") == "create-visual-group") {
+  if(cli_args.at("cmd") == "create-visual-group") {
     if(pname_pconf_list.size() != 1) {
-      std::cout << "--run-mode=create-visual-group requires only one PROJECT_NAME:CONF_FILENAME parameter."
+      std::cout << "--cmd=create-visual-group requires only one PROJECT_NAME:CONF_FILENAME parameter."
                 << std::endl;
       return 1;
     }
-    if(cli_args.count("id") == 0) {
-      std::cout << "you must specify a unique id for visual group using --id parameter."
+    if(cli_args.count("vgroup-id") == 0) {
+      std::cout << "you must specify a unique id for visual group using --vgroup-id parameter."
                 << std::endl;
       return 1;
     }
@@ -196,14 +210,16 @@ int main(int argc, char **argv) {
     bool success = false;
     std::string message;
     bool block_until_done = true;
-    existing_project.create_visual_group(cli_args, success, message, block_until_done);
+
+    existing_project.create_vgroup(cli_args, block_until_done, success, message);
     if(!success) {
       std::cout << "failed: " << message << std::endl;
     }
     return 0; // as we know there is only one project to be processed
   }
 
-  std::cout << "Unknown --run-mode=" << cli_args.at("run-mode") << std::endl;
-  print_usage(visecli_exec_name);
+  std::cout << "Unknown --cmd=" << cli_args.at("cmd")
+            << std::endl << "use --help for more details."
+            << std::endl;
   return 1;
 }

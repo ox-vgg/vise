@@ -23,9 +23,9 @@ void project_manager::process_http_request(http_request const &request,
   // if http_uri_namespace is defined,
   // we only respond to queries under that namespace
   std::string request_uri_without_ns(request.d_uri);
-  if(d_conf.count("http_uri_namespace")) {
-    if(d_conf.at("http_uri_namespace") != "") {
-      std::string ns = d_conf.at("http_uri_namespace");
+  if(d_conf.count("http-namespace")) {
+    if(d_conf.at("http-namespace") != "") {
+      std::string ns = d_conf.at("http-namespace");
       if(request.d_uri.size() < ns.size()) {
         uri_namespace_mismatch_4xx_response(response);
         return;
@@ -146,7 +146,7 @@ void project_manager::handle_get(http_request const &request,
   }
   if(uri[1] == "" || uri[1] == "index.html") {
     // redirect localhost:port/ to localhost:port/_ui/index.html
-    response.redirect_to(d_conf.at("http_uri_namespace") + "home");
+    response.redirect_to(d_conf.at("http-namespace") + "home");
     return;
   }
 
@@ -183,7 +183,7 @@ void project_manager::handle_get(http_request const &request,
     if (uri[2].front() == '_') {
       // project command that do not trigger loading of a project
       if (uri[2] == "_cover_image") {
-        boost::filesystem::path image_dir(d_conf.at("vise_store"));
+        boost::filesystem::path image_dir(d_conf.at("vise-project-dir"));
         image_dir = image_dir / pname;
         image_dir = image_dir / "image";
         if(!boost::filesystem::exists(image_dir)) {
@@ -401,7 +401,7 @@ void project_manager::handle_delete(http_request const &request,
       start = start + pname.size();
       asset = request.d_uri.substr(start);
     }
-    boost::filesystem::path fn = d_conf.at("vise_store");
+    boost::filesystem::path fn = d_conf.at("vise-project-dir");
     fn = fn / pname;
     fn = fn / "image";
     fn = fn / asset;
@@ -417,7 +417,7 @@ void project_manager::handle_delete(http_request const &request,
 
 void project_manager::serve_from_www_store(std::string res_uri,
                                            http_response &response) const {
-  boost::filesystem::path file_loc(d_conf.at("www_store"));
+  boost::filesystem::path file_loc(d_conf.at("http-www-dir"));
   file_loc = file_loc / res_uri;
   file_send(file_loc, response);
 }
@@ -495,13 +495,8 @@ void project_manager::handle_project_get_request(std::string const pname,
     return;
   }
 
-  if(uri[2] == "image_graph") {
-    project_image_graph(pname, param, response);
-    return;
-  }
-
-  if(uri[2] == "image_group") {
-    project_image_group(pname, param, response);
+  if(uri[2] == "visual_group") {
+    project_visual_group(pname, param, response);
     return;
   }
 
@@ -535,7 +530,7 @@ void project_manager::handle_project_get_request(std::string const pname,
       if(d_projects.at(pname)->app_dir_exists()) {
         asset_dir = d_projects.at(pname)->pconf("app_dir");
       } else {
-        asset_dir = d_conf.at("www_store");
+        asset_dir = d_conf.at("http-www-dir");
       }
     } else if(asset_type == "image_small") {
       start = start + pname.size() + 12;
@@ -601,7 +596,7 @@ void project_manager::handle_project_post_request(std::string const pname,
 //
 
 bool project_manager::project_exists(std::string pname) const {
-  boost::filesystem::path project_dir = d_conf.at("vise_store");
+  boost::filesystem::path project_dir = d_conf.at("vise-project-dir");
   project_dir = project_dir / pname;
 
   if (boost::filesystem::exists(project_dir)) {
@@ -621,7 +616,7 @@ bool project_manager::project_is_loaded(std::string pname) const {
 
 bool project_manager::project_create(std::string pname) {
   try {
-    boost::filesystem::path vise_store = d_conf.at("vise_store");
+    boost::filesystem::path vise_store = d_conf.at("vise-project-dir");
     boost::filesystem::path project_dir = vise_store / pname;
     boost::filesystem::create_directory(project_dir);
     return true;
@@ -658,7 +653,7 @@ void project_manager::project_index_create(std::string pname,
     d_projects.at(pname)->conf_reload();
     d_projects.at(pname)->index_create(success, message, block_until_done);
     std::ostringstream redirect_url;
-    redirect_url << d_conf.at("http_uri_namespace") << pname << "/index_status";
+    redirect_url << d_conf.at("http-namespace") << pname << "/index_status";
     response.redirect_to(redirect_url.str());
   } else {
     response.set_status(412);
@@ -1123,26 +1118,26 @@ void project_manager::project_home(std::string pname,
   case vise::project_state::SET_CONFIG:
     {
       std::ostringstream redirect_url;
-      redirect_url << d_conf.at("http_uri_namespace") << pname << "/configure";
+      redirect_url << d_conf.at("http-namespace") << pname << "/configure";
       response.redirect_to(redirect_url.str());
       break;
     }
   case vise::project_state::INDEX_ONGOING:
     {
       std::ostringstream redirect_url;
-      redirect_url << d_conf.at("http_uri_namespace") << pname << "/index_status";
+      redirect_url << d_conf.at("http-namespace") << pname << "/index_status";
       response.redirect_to(redirect_url.str());
       break;
     }
   case vise::project_state::BROKEN_INDEX:
     ss << "<h1>Incomplete Visual Index</h1><p>Visual index files for project [" << pname << "] are broken and therefore cannot be loaded. This can happen if the indexing process gets terminated prematurely.</p>";
-    ss << "<p><form method=\"post\" action=\"" << d_conf.at("http_uri_namespace") << pname << "/_index_create\"><input type=\"submit\" value=\"Resume Process to Fix Broken Index\"></form></p><p>If you do not need this project any more, you can delete it from VISE settings panel in the home page.</p>";
+    ss << "<p><form method=\"post\" action=\"" << d_conf.at("http-namespace") << pname << "/_index_create\"><input type=\"submit\" value=\"Resume Process to Fix Broken Index\"></form></p><p>If you do not need this project any more, you can delete it from VISE settings panel in the home page.</p>";
     response.set_html_payload(ss.str());
     break;
   case vise::project_state::SEARCH_READY:
     {
       std::ostringstream redirect_url;
-      redirect_url << d_conf.at("http_uri_namespace") << pname << "/filelist";
+      redirect_url << d_conf.at("http-namespace") << pname << "/filelist";
       response.redirect_to(redirect_url.str());
       break;
     }
@@ -1433,7 +1428,7 @@ void project_manager::project_configure(std::string pname,
                                         http_response &response) const {
   if(d_projects.at(pname)->index_is_done()) {
     std::ostringstream uri;
-    uri << d_conf.at("http_uri_namespace") << pname << "/";
+    uri << d_conf.at("http-namespace") << pname << "/";
     response.redirect_to(uri.str());
     return;
   }
@@ -1475,7 +1470,7 @@ void project_manager::project_index_status(std::string pname,
   } else {
     if(d_projects.at(pname)->index_is_done()) {
       std::ostringstream uri;
-      uri << d_conf.at("http_uri_namespace") << pname << "/";
+      uri << d_conf.at("http-namespace") << pname << "/";
       response.redirect_to(uri.str());
       return;
     } else {
@@ -1530,7 +1525,7 @@ void project_manager::project_external_search(std::string pname,
   response.set_html_payload(html.str());
 }
 
-void project_manager::project_image_graph(std::string pname,
+void project_manager::project_visual_group(std::string pname,
                                           std::map<std::string, std::string> const &param,
                                           http_response &response) const {
   if( !project_is_loaded(pname) ) {
@@ -1545,10 +1540,32 @@ void project_manager::project_image_graph(std::string pname,
     return;
   }
 
+  if(param.count("group_id") == 0) {
+    response.set_status(412);
+    response.set_payload("group_id missing");
+    return;
+  }
+
+  std::string vgroup_id = param.at("group_id");
   std::ostringstream json;
   json << "{\"PNAME\":\"" << pname << "\","
+       << "\"FLIST_SIZE\":" << d_projects.at(pname)->fid_count() << ","
        << "\"GROUP\":";
-  d_projects.at(pname)->get_image_graph(param, json);
+
+  if(param.count("set_id")) {
+    // show a particular set
+    std::string set_id_str(param.at("set_id"));
+    d_projects.at(pname)->get_vgroup_set(vgroup_id, set_id_str, json);
+  } else {
+    if(param.count("file_id")) {
+      // show only the sets that contains a particlar file-id
+      std::string file_id_str(param.at("file_id"));
+      d_projects.at(pname)->get_vgroup_set_with_file_id(vgroup_id, file_id_str, json);
+    } else {
+      // show all sets
+      d_projects.at(pname)->get_vgroup(vgroup_id, param, json);
+    }
+  }
   json << "}";
 
   if(param.count("response_format") == 1 &&
@@ -1561,52 +1578,11 @@ void project_manager::project_image_graph(std::string pname,
          << "<body>\n"
          << HTML_SVG_ASSETS
          << "<script>\n"
-         << "// JS code generated automatically by src/vise/project_manager.cc::project_image_graph()\n"
+         << "// JS code generated automatically by src/vise/project_manager.cc::project_visual_group()\n"
          << "var _vise_data = " << json.str() << ";\n"
          << "</script>\n"
          << "<script src=\"app/vise_common.js\"></script>\n"
-         << "<script src=\"app/project_image_graph.js\"></script>\n"
-         << vise::HTML_TAIL;
-    response.set_html_payload(html.str());
-  }
-}
-
-void project_manager::project_image_group(std::string pname,
-                                          std::map<std::string, std::string> const &param,
-                                          http_response &response) const {
-  if( !project_is_loaded(pname) ) {
-    response.set_status(412);
-    response.set_payload("project not loaded yet");
-    return;
-  }
-
-  if (!d_projects.at(pname)->index_is_loaded()) {
-    response.set_status(412);
-    response.set_payload("project index not loaded");
-    return;
-  }
-
-  std::ostringstream json;
-  json << "{\"PNAME\":\"" << pname << "\","
-       << "\"GROUP\":";
-  d_projects.at(pname)->get_image_group(param, json);
-  json << "}";
-
-  if(param.count("response_format") == 1 &&
-     param.at("response_format") == "json" ) {
-    response.set_json_payload(json.str());
-  } else {
-    // default response format is HTML
-    std::ostringstream html;
-    html << vise::PROJECT_HTML_HEAD
-         << "<body>\n"
-         << HTML_SVG_ASSETS
-         << "<script>\n"
-         << "// JS code generated automatically by src/vise/project_manager.cc::project_image_group()\n"
-         << "var _vise_data = " << json.str() << ";\n"
-         << "</script>\n"
-         << "<script src=\"app/vise_common.js\"></script>\n"
-         << "<script src=\"app/project_image_group.js\"></script>\n"
+         << "<script src=\"app/project_visual_group.js\"></script>\n"
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
@@ -1657,7 +1633,7 @@ void project_manager::vise_home(std::map<std::string, std::string> const &param,
 void project_manager::project_pname_list(std::vector<std::string> &pname_list) const {
   pname_list.clear();
 
-  boost::filesystem::path vise_store(d_conf.at("vise_store"));
+  boost::filesystem::path vise_store(d_conf.at("vise-project-dir"));
   boost::filesystem::directory_iterator end_itr;
   for (boost::filesystem::directory_iterator it(vise_store); it!=end_itr; ++it) {
     if (boost::filesystem::is_directory(it->path())) {
@@ -1727,10 +1703,10 @@ void project_manager::vise_project_create(std::map<std::string, std::string> con
 
   if(response_format == "json") {
     json << "{\"STATUS\":\"ok\","
-         << "\"PROJECT_URI\":\"" << d_conf.at("http_uri_namespace") << pname << "/" << "\"}";
+         << "\"PROJECT_URI\":\"" << d_conf.at("http-namespace") << pname << "/" << "\"}";
     response.set_json_payload(json.str());
   } else {
-    json << d_conf.at("http_uri_namespace") << pname << "/";
+    json << d_conf.at("http-namespace") << pname << "/";
     response.redirect_to(json.str());
   }
   return;
@@ -1763,14 +1739,14 @@ void project_manager::vise_project_delete(std::map<std::string, std::string> con
         d_projects.erase(pitr);
       }
 
-      boost::filesystem::path project_dir = boost::filesystem::path(d_conf.at("vise_store")) / pname;
+      boost::filesystem::path project_dir = boost::filesystem::path(d_conf.at("vise-project-dir")) / pname;
       uint32_t del_count = boost::filesystem::remove_all(project_dir);
       std::cout << "deleted project " << pname << " ("
                 << del_count << " files)" << std::endl;
     }
 
     std::ostringstream redirect_url;
-    redirect_url << d_conf.at("http_uri_namespace") << "settings";
+    redirect_url << d_conf.at("http-namespace") << "settings";
     response.redirect_to(redirect_url.str());
   }
   catch (std::exception& ex) {
@@ -1806,7 +1782,7 @@ void project_manager::vise_project_unload(std::map<std::string, std::string> con
   }
 
   std::ostringstream redirect_url;
-  redirect_url << d_conf.at("http_uri_namespace") << "settings";
+  redirect_url << d_conf.at("http-namespace") << "settings";
   response.redirect_to(redirect_url.str());
 }
 
@@ -1815,7 +1791,7 @@ void project_manager::vise_settings(std::map<std::string, std::string> const &pa
   std::ostringstream json;
   json << "{\"VISE_FULLNAME\":\"" << VISE_FULLNAME << "\""
        << ",\"VISE_NAME\":\"" << VISE_NAME << "\""
-       << ",\"VISE_STORE\":\"" << d_conf.at("vise_store") << "\""
+       << ",\"VISE_STORE\":\"" << d_conf.at("vise-project-dir") << "\""
        << ",\"VERSION\":\"" << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH << "\""
        << ",\"SETTINGS\":{";
 
@@ -1887,7 +1863,6 @@ void project_manager::vise_settings_save(std::string &settings_formdata,
     }
   }
 
-  vise::init_vise_settings_comments(conf); // set the comments
   const boost::filesystem::path visehome = vise::vise_home();
   boost::filesystem::path vise_settings = visehome / "vise_settings.txt";
   bool result = vise::configuration_save(conf, vise_settings.string());
@@ -2205,7 +2180,7 @@ void project_manager::serve_only_4xx_response(http_response &response) const {
        << "<ul>";
   std::map<std::string, std::unique_ptr<vise::project> >::const_iterator itr;
   for(itr=d_projects.begin(); itr!=d_projects.end(); ++itr) {
-    html << "<li><a href=\"" << d_conf.at("http_uri_namespace") << itr->first << "/\">" << itr->first << "</a></li>";
+    html << "<li><a href=\"" << d_conf.at("http-namespace") << itr->first << "/\">" << itr->first << "</a></li>";
   }
   html << "</ul>"
        << vise::HTML_EMPTY_TAIL;
@@ -2220,7 +2195,7 @@ void project_manager::uri_namespace_mismatch_4xx_response(http_response &respons
   html << vise::VISE_HTML_HEAD
        << "<body>\n"
        << "<p>Resources hosted by <a href=\"www.robots.ox.ac.uk/~vgg/software/vise/\">VISE</a> are available at: <a href=\""
-       << d_conf.at("http_uri_namespace") << "\">" << d_conf.at("http_uri_namespace") << "</a></p>"
+       << d_conf.at("http-namespace") << "\">" << d_conf.at("http-namespace") << "</a></p>"
        << vise::HTML_EMPTY_TAIL;
   response.set_html_payload(html.str());
 }

@@ -1,6 +1,6 @@
 /**
  *
- * @desc code to build HTML user interface for /{PNAME}/image_group endpoint
+ * @desc code to build HTML user interface for /{PNAME}/visual_group endpoint
  * @author Abhishek Dutta <adutta@robots.ox.ac.uk>
  * @date 26 Jan. 2021
  *
@@ -24,9 +24,9 @@ toolbar.appendChild(pageinfo);
 var content = document.createElement('div');
 content.setAttribute('id', 'content');
 var group_search_panel = document.createElement('div');
-group_search_panel.setAttribute('class', 'image_group_search_panel');
+group_search_panel.setAttribute('class', 'visual_group_search_panel');
 var group_panel = document.createElement('div');
-group_panel.setAttribute('class', 'image_group_panel');
+group_panel.setAttribute('class', 'visual_group_panel');
 content.appendChild(group_search_panel);
 content.appendChild(group_panel);
 
@@ -61,12 +61,12 @@ function _vise_self_check_is_ok() {
 function _vise_show_group_ui() {
   _vise_set_project_pagetools(pagetools);
 
-  var group_icon = _vise_common_get_svg_button('micon_group', 'Show Image Group');
+  var group_icon = _vise_common_get_svg_button('micon_group', 'Show Visual Group');
   var group_link = document.createElement('a');
   if( _vise_data.GROUP.hasOwnProperty('group_id') ) {
-    group_link.setAttribute('href', 'image_group?group_id=' + _vise_data.GROUP['group_id']);
+    group_link.setAttribute('href', 'visual_group?group_id=' + _vise_data.GROUP['group_id']);
   } else {
-    group_link.setAttribute('href', 'image_group');
+    group_link.setAttribute('href', 'visual_group');
   }
   group_link.appendChild(group_icon);
   pagetools.appendChild(group_link);
@@ -80,7 +80,7 @@ function _vise_show_group_ui() {
       var html = '<h3>Image Groups</h3><p>' + _vise_data.GROUP['MESSAGE'] + '</p><ul>';
       for(var i=0; i<_vise_data.GROUP['group_id_list'].length; ++i) {
         var group_id = _vise_data.GROUP['group_id_list'][i];
-        html += '<li><a href="image_group?group_id=' + group_id + '">' + group_id + '</a></li>';
+        html += '<li><a href="visual_group?group_id=' + group_id + '">' + group_id + '</a></li>';
       }
       html += '</ul>'
       group_panel.innerHTML = html;
@@ -93,13 +93,19 @@ function _vise_show_group_ui() {
   if(_vise_data.GROUP.hasOwnProperty('set_id') &&
      _vise_data.GROUP.hasOwnProperty('file_id_list') &&
      _vise_data.GROUP.hasOwnProperty('filename_list') ) {
-    // show details of a set from the image_group
+    // show details of a set from the visual_group
     _vise_init_set_content();
   } else {
-    // show image_group filtered by set_size
-    _vise_init_group_toolbar();
-    _vise_init_group_filter_toolbar();
-    _vise_init_group_content();
+    if(_vise_data.GROUP.hasOwnProperty('file_id') &&
+       _vise_data.GROUP.hasOwnProperty('set_id_list')) {
+      // show a list of sets that contain a file-id
+      _vise_init_set_file_id_content();
+    } else {
+      // show visual_group filtered by set_size
+      _vise_init_group_toolbar();
+      _vise_init_group_filter_toolbar();
+      _vise_init_group_content();
+    }
   }
 }
 
@@ -132,7 +138,7 @@ function _vise_init_group_toolbar() {
 	  } else {
       var SET_PER_PAGE = _vise_data.GROUP['set_index_list'].length;
       var new_end = Math.min(_vise_data.GROUP['set_index_range'][1], new_start + SET_PER_PAGE);
-      var url = [ 'image_group?group_id=' + _vise_data.GROUP['group_id'] ];
+      var url = [ 'visual_group?group_id=' + _vise_data.GROUP['group_id'] ];
       url.push('set_size=' + _vise_data.GROUP['set_size']);
       url.push('from=' + new_start);
       url.push('to=' + new_end);
@@ -160,7 +166,7 @@ function _vise_init_group_toolbar() {
     prev = document.createElement('span');
   } else {
     prev = document.createElement('a');
-    var url = [ 'image_group?group_id=' + _vise_data.GROUP['group_id'] ];
+    var url = [ 'visual_group?group_id=' + _vise_data.GROUP['group_id'] ];
     url.push('set_size=' + _vise_data.GROUP['set_size']);
     url.push('from=' + prev_start);
     url.push('to=' + prev_end);
@@ -177,7 +183,7 @@ function _vise_init_group_toolbar() {
     next = document.createElement('span');
   } else {
     next = document.createElement('a');
-    var url = [ 'image_group?group_id=' + _vise_data.GROUP['group_id'] ];
+    var url = [ 'visual_group?group_id=' + _vise_data.GROUP['group_id'] ];
     url.push('set_size=' + _vise_data.GROUP['set_size']);
     url.push('from=' + next_start);
     url.push('to=' + next_end);
@@ -208,7 +214,7 @@ function _vise_init_group_filter_toolbar() {
 	    this.value = _vise_data.GROUP['set_id'];
 	    return;
 	  } else {
-      var url = [ 'image_group?group_id=' + _vise_data.GROUP['group_id'] ];
+      var url = [ 'visual_group?group_id=' + _vise_data.GROUP['group_id'] ];
       url.push('set_id=' + new_set_id);
       window.location.href = url.join('&');
     }
@@ -216,6 +222,36 @@ function _vise_init_group_filter_toolbar() {
   jumpinfo_container.innerHTML = '';
   jumpinfo_container.appendChild(jumpinfo1);
   jumpinfo_container.appendChild(set_id_input);
+
+  // show set containing a file
+  var fileset_container = document.createElement('div');
+  var fileset_info = document.createElement('span');
+  fileset_info.innerHTML = 'or, show all the sets containing the file id.&nbsp;';
+  var file_id_input = document.createElement('input');
+  file_id_input.setAttribute('type', 'text');
+  file_id_input.setAttribute('style', 'width:6em; ');
+  var sample_file_id = Math.floor(_vise_data['FLIST_SIZE']/2);
+  file_id_input.setAttribute('placeholder', 'e.g. ' + sample_file_id );
+  file_id_input.setAttribute('pattern', '[0-9]{1,10}');
+  file_id_input.setAttribute('title', 'Enter a file id between 0 and ' + _vise_data['FLIST_SIZE'] + ' to show the visual group sets that contains the file.');
+  file_id_input.addEventListener('change', function(e) {
+    var new_file_id = parseInt(this.value);
+	  if(isNaN(new_file_id)) {
+	    this.value = '';
+	    return;
+	  }
+	  if(new_file_id < 0 || new_file_id >= _vise_data['FLIST_SIZE']) {
+	    this.value = '';
+	    return;
+	  } else {
+      var url = [ 'visual_group?group_id=' + _vise_data.GROUP['group_id'] ];
+      url.push('file_id=' + new_file_id);
+      window.location.href = url.join('&');
+    }
+  });
+  fileset_container.innerHTML = '';
+  fileset_container.appendChild(fileset_info);
+  fileset_container.appendChild(file_id_input);
 
   // set size
   var set_size_container = document.createElement('div');
@@ -239,7 +275,7 @@ function _vise_init_group_filter_toolbar() {
   }
   set_size_input.addEventListener('change', function(e) {
     var new_set_size = this.options[this.selectedIndex].value;
-    var url = [ 'image_group?group_id=' + _vise_data.GROUP['group_id'] ];
+    var url = [ 'visual_group?group_id=' + _vise_data.GROUP['group_id'] ];
     url.push('set_size=' + new_set_size);
     window.location.href = url.join('&');
   });
@@ -247,6 +283,7 @@ function _vise_init_group_filter_toolbar() {
 
   group_search_panel.innerHTML = '';
   group_search_panel.appendChild(jumpinfo_container);
+  group_search_panel.appendChild(fileset_container);
   group_search_panel.appendChild(set_size_container);
 }
 
@@ -277,7 +314,7 @@ function _vise_init_group_content() {
     var set_id_container = document.createElement('span');
     set_id_container.setAttribute('class', 'set_id');
     set_id_container.setAttribute('title', 'Permanent link to this set');
-    var set_url = '<a href="image_group?group_id='  + _vise_data.GROUP['group_id'] + '&set_id=' + setdata['set_id'] + '">Set Id. ' + setdata['set_id'] + '</a>';
+    var set_url = '<a href="visual_group?group_id='  + _vise_data.GROUP['group_id'] + '&set_id=' + setdata['set_id'] + '">Set Id. ' + setdata['set_id'] + '</a>';
 
     set_id_container.innerHTML = set_url;
     set_info_container.appendChild(set_index_container);
@@ -288,16 +325,16 @@ function _vise_init_group_content() {
     var set_matches = document.createElement('div');
     set_matches.setAttribute('class', 'set_matches');
     for (var i=0; i<setdata['filename_list'].length; ++i) {
-      var set_match_figure = document.createElement('figure');
+      //var set_match_figure = document.createElement('figure');
       var set_match_img = document.createElement('img');
       set_match_img.setAttribute('src', 'image_small/' + setdata['filename_list'][i]);
-      var set_match_caption = document.createElement('figcaption');
-      set_match_caption.innerHTML = '[' + (i+1) + '] : ' + setdata['filename_list'][i];
-      set_match_figure.appendChild(set_match_img);
-      set_match_figure.appendChild(set_match_caption);
+      set_match_img.setAttribute('data-setindex', set_index);
+      set_match_img.setAttribute('data-fileindex', i);
+      set_match_img.addEventListener('load', _vise_on_img_load_highlight_set_img_region);
       var set_match_a = document.createElement('a');
       set_match_a.setAttribute('href', 'file?file_id=' + setdata['file_id_list'][i]);
-      set_match_a.appendChild(set_match_figure);
+      set_match_a.setAttribute('title', '[' + setdata['file_id_list'][i] + '] : ' + setdata['filename_list'][i]);
+      set_match_a.appendChild(set_match_img);
       set_panel.appendChild(set_match_a);
     }
 
@@ -335,7 +372,7 @@ function _vise_init_set_content() {
 	    this.value = _vise_data.GROUP['set_id'];
 	    return;
 	  } else {
-      var url = [ 'image_group?group_id=' + _vise_data.GROUP['group_id'] ];
+      var url = [ 'visual_group?group_id=' + _vise_data.GROUP['group_id'] ];
       url.push('set_id=' + new_set_id);
       window.location.href = url.join('&');
     }
@@ -351,33 +388,98 @@ function _vise_init_set_content() {
   // title
   var set_info_container = document.createElement('div');
   set_info_container.setAttribute('class', 'set_info');
-  var set_index_container = document.createElement('span');
-  set_index_container.setAttribute('class', 'set_index');
-  set_index_container.innerHTML = '';
   var set_id_container = document.createElement('span');
   set_id_container.setAttribute('class', 'set_id');
-  set_id_container.setAttribute('title', 'Permanent link to this set');
+  set_id_container.setAttribute('title', 'Unique identifier for this set');
   set_id_container.innerHTML = 'Set Id. ' + setdata['set_id'];
-  set_info_container.appendChild(set_index_container);
   set_info_container.appendChild(set_id_container);
   set_panel.appendChild(set_info_container);
 
   // match
-  var set_matches = document.createElement('div');
-  set_matches.setAttribute('class', 'set_matches');
   for (var i=0; i<setdata['filename_list'].length; ++i) {
-    var set_match_figure = document.createElement('figure');
     var set_match_img = document.createElement('img');
+    set_match_img.setAttribute('data-fileindex', i);
     set_match_img.setAttribute('src', 'image_small/' + setdata['filename_list'][i]);
-    var set_match_caption = document.createElement('figcaption');
-    set_match_caption.innerHTML = '[' + (i+1) + '] : ' + setdata['filename_list'][i];
-    set_match_figure.appendChild(set_match_img);
-    set_match_figure.appendChild(set_match_caption);
+    set_match_img.addEventListener('load', _vise_on_img_load_highlight_img_region);
+
     var set_match_a = document.createElement('a');
     set_match_a.setAttribute('href', 'file?file_id=' + setdata['file_id_list'][i]);
-    set_match_a.appendChild(set_match_figure);
+    set_match_a.setAttribute('title', '[' + setdata['file_id_list'][i] + '] ' + setdata['filename_list'][i]);
+    set_match_a.appendChild(set_match_img);
     set_panel.appendChild(set_match_a);
   }
 
   group_panel.appendChild(set_panel);
+}
+
+
+function _vise_init_set_file_id_content() {
+  group_panel.innerHTML = '';
+  if(_vise_data.GROUP['set_id_list'].length === 0) {
+    group_panel.innerHTML = '<p>Empty set.</p>';
+    return;
+  }
+
+  group_search_panel.innerHTML = '';
+  var file_id = _vise_data.GROUP['file_id'];
+  var file_id_link = '<a href="file?file_id=' + file_id + '">' + file_id + '</a>';
+  var info = document.createElement('span');
+  info.innerHTML = 'File id ' + file_id_link + ' is contained in following sets:';
+  group_search_panel.appendChild(info);
+  for(var i=0; i<_vise_data.GROUP['set_id_list'].length; ++i) {
+    var setid = _vise_data.GROUP['set_id_list'][i];
+    var span = document.createElement('span');
+    var url = [ 'visual_group?group_id=' + _vise_data.GROUP['group_id'] ];
+    url.push('set_id=' + setid);
+    if(i !== 0) {
+      span.innerHTML = ',&nbsp;';
+    } else {
+      span.innerHTML = '&nbsp;';
+    }
+    span.innerHTML += '<a href="' + url.join('&') + '">' + setid + '</a>';
+    group_search_panel.appendChild(span);
+  }
+}
+
+function _vise_on_img_load_highlight_img_region(e) {
+  var file_index = parseInt(e.target.dataset.fileindex);
+  var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
+  svg.setAttribute('style', 'height:' + e.target.height + 'px;width:' + e.target.width + 'px;');
+
+  var x = _vise_data.GROUP['region_points_list'][file_index][0];
+  var y = _vise_data.GROUP['region_points_list'][file_index][1];
+  var width = _vise_data.GROUP['region_points_list'][file_index][2];
+  var height = _vise_data.GROUP['region_points_list'][file_index][3];
+  var scale = e.target.height / e.target.naturalHeight;
+
+  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+  rshape.setAttribute('x', Math.floor(x*scale));
+  rshape.setAttribute('y', Math.floor(y*scale));
+  rshape.setAttribute('width', Math.floor(width*scale));
+  rshape.setAttribute('height', Math.floor(height*scale));
+
+  svg.appendChild(rshape);
+  e.target.parentNode.appendChild(svg);
+}
+
+function _vise_on_img_load_highlight_set_img_region(e) {
+  var set_index = parseInt(e.target.dataset.setindex);
+  var file_index = parseInt(e.target.dataset.fileindex);
+  var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
+  svg.setAttribute('style', 'height:' + e.target.height + 'px;width:' + e.target.width + 'px;');
+
+  var x = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][0];
+  var y = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][1];
+  var width = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][2];
+  var height = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][3];
+  var scale = e.target.height / e.target.naturalHeight;
+
+  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+  rshape.setAttribute('x', Math.floor(x*scale));
+  rshape.setAttribute('y', Math.floor(y*scale));
+  rshape.setAttribute('width', Math.floor(width*scale));
+  rshape.setAttribute('height', Math.floor(height*scale));
+
+  svg.appendChild(rshape);
+  e.target.parentNode.appendChild(svg);
 }

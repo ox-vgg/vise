@@ -19,13 +19,15 @@ vise::project::project(std::string pname,
     d_state(project_state::UNKNOWN),
     d_is_index_load_ongoing(false),
     d_is_metadata_ready(false),
-    d_app_dir_exists(false)
+    d_app_dir_exists(false),
+    d_vgroup_task_progress_table("vgroup_task_progress"),
+    d_vgroup_match_table("vgroup_match"),
+    d_vgroup_metadata_table("vgroup_metadata"),
+    d_vgroup_region_table("vgroup_region"),
+    d_vgroup_table("vgroup"),
+    d_vgroup_inv_table("vgroup_inv")
 {
   d_project_dir = boost::filesystem::path(d_pconf_fn).parent_path().parent_path();
-  std::cout << "PRECONDITION: " << std::endl
-            << "- the project configuration file is saved as $PROJECT_DIR/data/conf.txt" << std::endl
-            << "- $PROJECT_DIR=" << d_project_dir.string() << std::endl
-            << "- $PROJECT_DIR is the folder in which VISE will store all the project's data" << std::endl;
   if(d_pconf_fn.filename() != "conf.txt") {
     std::cout << "PRECONDITION FAILED: configuration filename must be conf.txt" << std::endl;
     d_state = project_state::INIT_FAILED;
@@ -55,6 +57,11 @@ vise::project::project(std::string pname,
     return;
   }
 
+  std::cout << "Assuming that the VISE project folder is organized as follows: " << std::endl
+            << "  - project base directory     : " << d_project_dir.string() << std::endl
+            << "  - project configuration file : " << d_pconf_fn.string() << std::endl
+            << "  - project images directory   : " << d_image_dir.string() << std::endl;
+
   success = false;
   std::string message;
   search_engine_init(d_pconf.at("search_engine"), success, message);
@@ -72,7 +79,7 @@ vise::project::project(std::string pname,
     }
 
     // load the name of groups allowed to be queried
-    init_group_id_list();
+    init_vgroup_id_list();
   }
 }
 
@@ -86,7 +93,7 @@ vise::project::project(std::string pname,
 {
   std::cout << "project(): constructing " << pname << " ..."
             << std::endl;
-  d_project_dir = boost::filesystem::path(d_conf.at("vise_store")) / pname;
+  d_project_dir = boost::filesystem::path(d_conf.at("vise-project-dir")) / pname;
   d_pconf_fn = d_project_dir / "data";
   d_pconf_fn = d_pconf_fn / "conf.txt";
   bool save_conf = false;
@@ -147,7 +154,7 @@ vise::project::project(std::string pname,
   } else {
     if(d_state == vise::project_state::SEARCH_READY) {
       // load the name of groups allowed to be queried
-      init_group_id_list();
+      init_vgroup_id_list();
     }
   }
 
@@ -339,7 +346,9 @@ bool vise::project::use_preset_conf_1() {
   std::cout << "use_preset_conf_1()" << std::endl;
 
   // load generic visual vocabulary configuration
-  boost::filesystem::path generic_vvoc_dir(d_conf.at("generic_visual_vocabulary"));
+  boost::filesystem::path generic_vvoc_dir(d_conf.at("vise-asset-dir"));
+  generic_vvoc_dir = generic_vvoc_dir / "relja-retrival";
+  generic_vvoc_dir = generic_vvoc_dir / "visual-vocabulary";
   boost::filesystem::path generic_vvoc_conf_fn = generic_vvoc_dir / "generic_visual_vocab_conf.txt";
   std::cout << "generic_vvoc_conf_fn=" << generic_vvoc_conf_fn << std::endl;
   std::map<std::string, std::string> generic_vvoc_conf;
@@ -847,9 +856,9 @@ void vise::project::register_external_image(const std::string &image_data,
 //
 // visual group
 //
-void vise::project::create_visual_group(const std::unordered_map<std::string, std::string> &params,
-                                        bool &success, std::string &message,
-                                        bool &block_until_done) const {
+void vise::project::create_vgroup(const std::unordered_map<std::string, std::string> &params,
+                                  const bool block_until_done,
+                                  bool &success, std::string &message) const {
   if(d_state != vise::project_state::SEARCH_READY) {
     success = false;
     message = "project state must be SEARCH_READY for creating a visual group";
@@ -862,111 +871,1332 @@ void vise::project::create_visual_group(const std::unordered_map<std::string, st
     return;
   }
 
-  d_search_engine->create_visual_group(params, success, message, block_until_done);
-}
-
-void vise::project::get_image_graph(std::map<std::string, std::string> const &param,
-                                     std::ostringstream &json) const {
-  if(d_state != vise::project_state::SEARCH_READY) {
-    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
-         << "\"project state must be SEARCH_READY for querying a visual group\"}";
+  if(params.count("vgroup-id") == 0) {
+    success = false;
+    message = "visual group id missing, define using --vgroup-id=VISUAL-GROUP-NAME";
     return;
   }
 
-  if(!d_search_engine) {
-    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
-         << "\"search engine not initialized yet\"}";
+  std::string vgroup_id = params.at("vgroup-id");
+
+  // select files that will be used a query
+  std::vector<std::size_t> all_qid_list;
+  std::string filename_like = "%";
+  if(params.count("filename-like")) {
+    filename_like = params.at("filename-like");
+  }
+  if(params.at("query-type") == "file") {
+    d_metadata->select_fid_with_filename_like(filename_like,
+                                              all_qid_list);
+  } else {
+    d_metadata->select_rid_with_filename_like(filename_like,
+                                              all_qid_list);
+  }
+  if(all_qid_list.size() == 0) {
+    message = "no matching files or regions";
+    success = false;
     return;
   }
+  std::cout << "vise::project::" << d_pname << " : pattern " << filename_like
+            << " matched " << all_qid_list.size() << " files or regions" << std::endl;
 
-  if(param.count("group_id")) {
-    std::string group_id(param.at("group_id"));
-    if(d_group_id_list.count(group_id)) {
-      d_search_engine->get_image_graph(group_id, param, json);
-    } else {
-      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
-           << "\"group " << group_id << " does not exist\"}";
+  // initialize group db tables and list of file_id that needs to be processed
+  std::vector<std::size_t> todo_qid_list;
+  std::unordered_map<std::string, std::string> vgroup_metadata(params);
+
+  // check progress to see if we need to resume from previous state
+  std::set<std::size_t> done_qid_list;
+  get_vgroup_task_progress(vgroup_id, done_qid_list, success, message);
+  if(!success) {
+    return;
+  }
+  if(done_qid_list.size()) {
+    for(std::size_t i=0; i<all_qid_list.size(); ++i) {
+      if(done_qid_list.count(all_qid_list[i]) == 0) {
+        todo_qid_list.push_back(all_qid_list[i]);
+      }
+    }
+    if(todo_qid_list.size()) {
+      std::cout << "vise::project::" << d_pname << " : resuming computations "
+                << "from file_id=" << todo_qid_list.at(0) << "(" << done_qid_list.size()
+                << " already processed, " << todo_qid_list.size()
+                << " remaining)" << std::endl;
     }
   } else {
-    if(d_group_id_list.size()) {
-      std::ostringstream ss;
-      std::set<std::string>::const_iterator itr = d_group_id_list.begin();
-      ss << "\"" << *itr << "\"";
-      for(++itr; itr != d_group_id_list.end(); ++itr) {
-        ss << ",\"" << *itr << "\"";
-      }
-      json << "{\"STATUS\":\"group_index\",\"MESSAGE\":"
-           << "\"The following image graphs are available:\""
-           << ",\"group_id_list\":[" << ss.str() << "]}";
-    } else {
-      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
-           << "\"image graphs are not available\"}";
+    // start from beginning
+    std::cout << "vise::project::" << d_pname << " : create_vgroup() "
+              << "is starting from the beginning" << std::endl;
+    todo_qid_list = all_qid_list;
+    init_vgroup_db(vgroup_id, vgroup_metadata, success, message);
+    if(!success) {
       return;
     }
   }
-}
 
-void vise::project::get_image_group(std::map<std::string, std::string> const &param,
-                                     std::ostringstream &json) const {
-  if(d_state != vise::project_state::SEARCH_READY) {
-    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
-         << "\"project state must be SEARCH_READY for querying a visual group\"}";
-    return;
-  }
-
-  if(!d_search_engine) {
-    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
-         << "\"search engine not initialized yet\"}";
-    return;
-  }
-
-  if(param.count("group_id")) {
-    std::string group_id(param.at("group_id"));
-    if(d_group_id_list.count(group_id)) {
-      d_search_engine->get_image_group(group_id, param, json);
-    } else {
-      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
-           << "\"group " << group_id << " does not exist\"}";
-    }
-  } else {
-    if(d_group_id_list.size()) {
-      std::ostringstream ss;
-      std::set<std::string>::const_iterator itr = d_group_id_list.begin();
-      ss << "\"" << *itr << "\"";
-      for(++itr; itr != d_group_id_list.end(); ++itr) {
-        ss << ",\"" << *itr << "\"";
-      }
-      json << "{\"STATUS\":\"group_index\",\"MESSAGE\":"
-           << "\"The following image groups are available:\""
-           << ",\"group_id_list\":[" << ss.str() << "]}";
-    } else {
-      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
-           << "\"image graphs are not available\"}";
+  // create match graph
+  if(todo_qid_list.size()) {
+    vgroup_match_graph(vgroup_id, vgroup_metadata, todo_qid_list, success, message);
+    if(!success) {
       return;
     }
+  } else {
+    std::cout << "vise::project:: full visual group match graph already exists"
+              << std::endl;
   }
+
+  // find connected components of match graph
+  vgroup_connected_components(vgroup_id, vgroup_metadata, success, message);
 }
 
-void vise::project::init_group_id_list() {
-  d_group_id_list.clear();
 
-  if(d_pconf.count("group_id_list")) {
-    std::vector<std::string> group_id_list = vise::split(d_pconf.at("group_id_list"), ',');
+void vise::project::init_vgroup_id_list() {
+  d_vgroup_id_list.clear();
+
+  if(d_pconf.count("visual-group-id-list")) {
+    std::vector<std::string> vgroup_id_list = vise::split(d_pconf.at("visual-group-id-list"), ',');
     std::ostringstream ss;
-    for(std::size_t i=0; i<group_id_list.size(); ++i) {
-      std::string group_id(group_id_list.at(i));
+    for(std::size_t i=0; i<vgroup_id_list.size(); ++i) {
+      std::string vgroup_id(vgroup_id_list.at(i));
       std::string message;
       bool success;
-      d_search_engine->is_visual_group_valid(group_id, success, message);
+      is_visual_group_valid(vgroup_id, success, message);
       if(success) {
-        d_group_id_list.insert(group_id);
-        ss << group_id << ",";
+        d_vgroup_id_list.insert(vgroup_id);
+        ss << vgroup_id << ",";
+
+        // pre-load visual group metadata
+        std::unordered_map<std::string, std::string> vgroup_metadata;
+        load_vgroup_metadata(vgroup_id, vgroup_metadata);
+        d_vgroup_metadata_list[vgroup_id] = vgroup_metadata;
       } else {
-        std::cout << "vise::project : DISCARD group " << group_id << ", REASON="
+        std::cout << "vise::project : DISCARD group " << vgroup_id << ", REASON="
                   << message << std::endl;
       }
     }
-    std::cout << "vise::project : initialized following " << d_group_id_list.size()
-              << " groups: " << ss.str() << std::endl;
+    std::cout << "vise::project : initialized following " << d_vgroup_id_list.size()
+              << " visual groups: " << ss.str() << std::endl;
+  }
+}
+
+void vise::project::load_vgroup_metadata(const std::string vgroup_id,
+                                         std::unordered_map<std::string, std::string> &vgroup_metadata) const {
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+
+  sqlite3 *db = nullptr;
+  std::string vgroup_db_fn = get_vgroup_db_filename(vgroup_id);
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READONLY,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    std::cout << "failed to load metadata for visual group ["
+              << vgroup_id << "] database" << std::endl;
+    sqlite3_close_v2(db);
+    return;
+  }
+
+  std::string sql = "SELECT * FROM `" + d_vgroup_metadata_table + "`";
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    std::cout << "failed to query metadata table" << std::endl;
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  if(rc != SQLITE_ROW) {
+    std::cout << "failed to load visual group metadata" << std::endl;
+    sqlite3_close_v2(db);
+    return;
+  }
+  int ncols = sqlite3_column_count(stmt);
+  vgroup_metadata.clear();
+  for(std::size_t i=0; i<ncols; ++i) {
+    std::ostringstream ss;
+    ss << sqlite3_column_text(stmt, i);
+    std::string value = ss.str();
+    ss.str("");
+    ss << sqlite3_column_name(stmt, i);
+    std::string key = ss.str();
+    vgroup_metadata[key] = value;
+  }
+  sqlite3_finalize(stmt);
+  sqlite3_close_v2(db);
+}
+
+void vise::project::is_visual_group_valid(const std::string vgroup_id,
+                                          bool &success,
+                                          std::string &message) const {
+  // initialize sqlite db
+  sqlite3 *db = nullptr;
+  std::string vgroup_db_fn = get_vgroup_db_filename(vgroup_id);
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READONLY,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    success = false;
+    message = "failed to load visual group database";
+    sqlite3_close_v2(db);
+    return;
+  }
+
+  std::ostringstream ss;
+  ss << "SELECT COUNT(type) from sqlite_master where type='table' and name IN ("
+     << "'" << d_vgroup_task_progress_table << "',"
+     << "'" << d_vgroup_match_table << "',"
+     << "'" << d_vgroup_metadata_table << "',"
+     << "'" << d_vgroup_table << "',"
+     << "'" << d_vgroup_inv_table << "');";
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+  std::string sql(ss.str());
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    success = false;
+    message = "failed to retrieve details about tables from visual group database";
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  int ncols = sqlite3_column_count(stmt);
+  if(ncols != 1) {
+    sqlite3_close_v2(db);
+    success = false;
+    message = "malformed group database";
+    return;
+  }
+
+  unsigned int table_count = sqlite3_column_int(stmt, 0);
+  sqlite3_finalize(stmt);
+  if(table_count == 5) {
+    success = true;
+    message = "found all required tables in visual group database";
+  } else {
+    success = false;
+    message = "missing required tables in visual group database";
+  }
+  sqlite3_close_v2(db);
+}
+
+std::string vise::project::get_vgroup_db_filename(const std::string vgroup_id) const {
+  boost::filesystem::path vgroup_db_fn;
+  if(vgroup_id.size()) {
+    vgroup_db_fn = d_data_dir / (vgroup_id + ".sqlite");
+  } else {
+    vgroup_db_fn = d_data_dir / "unknown_group.sqlite";
+    std::cout << "relja_retrival:: get_vgroup_db_filename() got empty group_id, "
+              << "so using vgroup_db_filename = " << vgroup_db_fn
+              << std::endl;
+  }
+  return vgroup_db_fn.string();
+}
+
+void vise::project::get_vgroup_task_progress(const std::string vgroup_id,
+                                             std::set<std::size_t> &query_id_list,
+                                             bool &success,
+                                             std::string &message) const {
+  query_id_list.clear();
+
+  sqlite3 *db = nullptr;
+  std::string vgroup_db_fn = get_vgroup_db_filename(vgroup_id);
+  if(!boost::filesystem::exists( boost::filesystem::path(vgroup_db_fn))) {
+    success = true;
+    message = "visual group database does not yet exist";
+    return;
+  }
+
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READONLY,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    success = false;
+    message = "failed to open existing visual group database file";
+    return;
+  }
+
+  int rc;
+  std::string sql;
+  sqlite3_stmt *stmt;
+  const char *tail;
+
+  // check if table exists
+  sql = "SELECT COUNT(type) from sqlite_master where type='table' and name='" + d_vgroup_task_progress_table + "';";
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    success = false;
+    message = "failed to query database";
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  unsigned int table_count = sqlite3_column_int(stmt, 0);
+  sqlite3_finalize(stmt);
+  if(table_count == 0) {
+    success = true;
+    message = "progress from previous session does not exist";
+    return;
+  }
+
+  // fetch match progress
+  sql = "SELECT `query_id` FROM " + d_vgroup_task_progress_table;
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    success = false;
+    message = "failed to read existing " + d_vgroup_task_progress_table;
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  while(rc == SQLITE_ROW) {
+    query_id_list.insert(sqlite3_column_int(stmt, 0));
+    rc = sqlite3_step(stmt);
+  }
+  sqlite3_finalize(stmt);
+  if(sqlite3_close_v2(db) == SQLITE_OK) {
+    success = true;
+    message = "retrieved visual group task progress data";
+  } else {
+    success = false;
+    message = "failed to retrive visual group task progress data";
+  }
+}
+
+void vise::project::init_vgroup_db(const std::string vgroup_id,
+                                   std::unordered_map<std::string, std::string> &vgroup_metadata,
+                                   bool &success,
+                                   std::string &message) const {
+
+  std::string vgroup_db_fn = get_vgroup_db_filename(vgroup_id);
+  sqlite3 *db = nullptr;
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    success = false;
+    message = "failed to initialize visual group database";
+    return;
+  }
+
+  int rc;
+  char *err_msg;
+  std::string sql;
+  std::ostringstream ss;
+  ss << "BEGIN TRANSACTION;"
+     << "CREATE TABLE IF NOT EXISTS `" << d_vgroup_match_table << "`("
+     << "`query_id` INTEGER NOT NULL, "
+     << "`match_id` INTEGER NOT NULL, "
+     << "`score` REAL NOT NULL, "
+     << "`H` TEXT NOT NULL);"
+     << "CREATE TABLE IF NOT EXISTS `" << d_vgroup_task_progress_table
+     << "`(`query_id` INTEGER PRIMARY KEY, "
+     << "`match_time_sec` REAL);";
+  sql = ss.str();
+  rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+  if(vgroup_metadata.size()) {
+    std::ostringstream metadata_table_sql;
+    std::ostringstream metadata_row_sql;
+    metadata_table_sql << "CREATE TABLE `" << d_vgroup_metadata_table << "`(";
+    metadata_row_sql << "INSERT INTO `" << d_vgroup_metadata_table << "` VALUES(";
+    std::unordered_map<std::string, std::string>::const_iterator itr = vgroup_metadata.begin();
+    metadata_table_sql << "`" << itr->first << "` TEXT";
+    metadata_row_sql << "'" << itr->second << "'";
+    itr++;
+    for(; itr!=vgroup_metadata.end(); ++itr) {
+      metadata_table_sql << ",`" << itr->first << "` TEXT";
+      metadata_row_sql << ",'" << itr->second << "'";
+    }
+    metadata_table_sql << ");";
+    metadata_row_sql << ");";
+    sql = metadata_table_sql.str();
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+    sql = metadata_row_sql.str();
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+  }
+
+  // write everything
+  sql = "END TRANSACTION";
+  rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+  if(rc != SQLITE_OK) {
+    message = "failed to create tables in visual group database";
+    success = false;
+    if(err_msg != NULL) {
+      sqlite3_free(err_msg);
+    }
+    return;
+  }
+
+  if(vgroup_metadata.count("query-type") == 1 &&
+     vgroup_metadata.at("query-type") == "region") {
+    // insert existing regions from metadata_db
+    std::string metadata_db_fn = d_metadata->get_metadata_db_fn();
+    std::ostringstream ss;
+    ss << "BEGIN TRANSACTION;"
+       << "ATTACH DATABASE '" << metadata_db_fn << "' AS METADATA;"
+       << "CREATE TABLE '" << d_vgroup_region_table << "' AS "
+       << "SELECT region_id,file_id,region_index,region_shape,region_points "
+       << "FROM METADATA.region_metadata" << ";"
+       << "END TRANSACTION;";
+    sql = ss.str();
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+    if(rc != SQLITE_OK) {
+      message = "failed to import regions from metadata db";
+      success = false;
+      if(err_msg != NULL) {
+        sqlite3_free(err_msg);
+      }
+    }
+  }
+
+  sqlite3_close_v2(db);
+}
+
+void vise::project::vgroup_match_graph(const std::string vgroup_id,
+                                       const std::unordered_map<std::string, std::string> &vgroup_metadata,
+                                       const std::vector<std::size_t> &query_id_list,
+                                       bool &success,
+                                       std::string &message) const {
+  unsigned int nthread = 1;
+  if(vgroup_metadata.count("nthread-search")) {
+    nthread = std::stoi(vgroup_metadata.at("nthread-search"));
+  } else {
+    if(d_pconf.count("nthread-search")) {
+      nthread = std::stoi(d_pconf.at("nthread-search"));
+    }
+  }
+
+  std::size_t max_matches_count = 100;
+  if(vgroup_metadata.count("max-matches")) {
+    max_matches_count = std::stoi(vgroup_metadata.at("max-matches"));
+  }
+  float min_match_score = 10;
+  if(vgroup_metadata.count("min-match-score")) {
+    min_match_score = std::stof(vgroup_metadata.at("min-match-score"));
+  }
+
+  float match_iou_threshold = 0.9;
+  if(vgroup_metadata.count("match-iou-threshold")) {
+    match_iou_threshold = std::stof(vgroup_metadata.at("match-iou-threshold"));
+  }
+
+  std::cout << "vise::project:: create_vgroup_match_graph()"
+            << " nthread=" << nthread
+            << ", max-matches-count=" << max_matches_count
+            << ", min-match-score=" << min_match_score
+            << ", match-iou-threshold=" << match_iou_threshold
+            << std::endl;
+
+  sqlite3 *db = nullptr;
+  std::string sql;
+  int rc;
+  char *err_msg;
+  sqlite3_stmt *stmt;
+  const char *tail;
+  std::string vgroup_db_fn = get_vgroup_db_filename(vgroup_id);
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    success = false;
+    message = "failed to initialize visual group database";
+    return;
+  }
+
+  // build a map of file_id and region_index
+  std::unordered_map<std::size_t, int> file_id_region_index_map;
+  std::unordered_map<std::size_t, std::set<std::size_t> > file_id_to_region_id_list;
+  std::unordered_map<std::size_t, std::vector<float> > region_id_region_points_map;
+  sql = "SELECT region_id, file_id, region_index, region_points FROM " + d_vgroup_region_table;
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    success = false;
+    message = "failed to query visual group region table";
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  std::size_t region_id = 0; // we need this to add new regions
+  while(rc == SQLITE_ROW) {
+    region_id = sqlite3_column_int(stmt, 0);
+    std::size_t file_id = sqlite3_column_int(stmt, 1);
+    std::size_t region_index = sqlite3_column_int(stmt, 2);
+    file_id_region_index_map[file_id] = region_index;
+
+    if(file_id_to_region_id_list.count(file_id) == 0) {
+      file_id_to_region_id_list[file_id] = std::set<std::size_t>();
+    }
+    file_id_to_region_id_list[file_id].insert(region_id);
+
+    std::ostringstream ss;
+    ss << sqlite3_column_text(stmt, 3);
+    std::vector<std::string> region_points = vise::split(ss.str(), ',');
+    region_id_region_points_map[region_id] = std::vector<float>();
+    for(std::size_t k=0; k<region_points.size(); ++k) {
+      region_id_region_points_map[region_id].push_back( std::stof(region_points[k]) );
+    }
+    rc = sqlite3_step(stmt);
+  }
+  sqlite3_finalize(stmt);
+  std::size_t next_region_id = region_id + 1;
+
+  unsigned int processed_query_count = 0;
+  for(std::size_t qindex=0; qindex<query_id_list.size(); ++qindex) {
+    std::size_t query_id = query_id_list.at(qindex);
+    vise::search_query query;
+    query.d_max_result_count = max_matches_count;
+    if(vgroup_metadata.at("query-type") == "file") {
+      // query using full file image
+      query.d_file_id = query_id;
+      query.is_region_query = false;
+      std::cout << "file_id=" << query_id << " : ";
+    } else {
+      get_query_region(query_id, query);
+      std::cout << "query (fid,rid)=(" << query.d_file_id << "," << query_id << ") : ";
+    }
+
+    sql = "BEGIN TRANSACTION";
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+    uint32_t tstart = vise::getmillisecs();
+    std::vector<vise::search_result> search_result_list;
+    d_search_engine->index_search(query, search_result_list);
+    int match_count = 0;
+    // first match corresponds to the query image (since, this is internal query)
+    // so we ignore the first result
+    for ( uint32_t i = 1; i < search_result_list.size(); ++i ) {
+      float score = (float) search_result_list[i].d_score;
+      if(score < min_match_score) {
+        continue; // skip this match
+      }
+      std::size_t match_fid = search_result_list[i].d_file_id;;
+      if(vgroup_metadata.at("query-type") == "file") {
+        std::ostringstream ss;
+        ss << "INSERT INTO `" << d_vgroup_match_table << "` VALUES("
+           << query_id << "," << match_fid
+           << "," << score << ","
+           << "'" << search_result_list[i].H_to_csv() << "');";
+        sql = ss.str();
+        rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+        std::cout << "(" << match_fid << "," << score << ") ";
+      } else {
+        // create a new region entry in vgroup_region table
+        // insert a reference to this new region in match table
+        std::size_t new_region_index = 0;
+        if(file_id_region_index_map.count(match_fid) == 1) {
+          file_id_region_index_map[match_fid] = file_id_region_index_map[match_fid] + 1;
+          new_region_index = file_id_region_index_map[match_fid];
+        } else {
+          file_id_region_index_map[match_fid] = new_region_index;
+        }
+        vise::search_query match_region;
+        get_match_region(query, search_result_list[i], match_region);
+
+        // check if match region overlaps with existing regions in that file
+        bool is_match_region_new = true;
+        std::size_t match_region_id = next_region_id;
+        double match_region_iou = 0;
+        std::set<std::size_t>::const_iterator itr = file_id_to_region_id_list[match_fid].begin();
+        for(; itr!=file_id_to_region_id_list[match_fid].end(); ++itr) {
+          std::size_t region_id = *itr;
+          std::vector<float> region_points = region_id_region_points_map[region_id];
+          std::vector<float> match_region_points;
+          match_region.to_region_points(match_region_points);
+          double match_iou = vise::iou(region_points, match_region_points);
+          if(match_iou > match_iou_threshold) {
+            is_match_region_new = false;
+            match_region_id = region_id;
+            match_region_iou = match_iou;
+            break;
+          }
+        }
+        std::ostringstream match_ss;
+        match_ss << "INSERT INTO `" << d_vgroup_match_table << "` VALUES("
+                 << query_id << "," << match_region_id
+                 << "," << score << ","
+                 << "'" << search_result_list[i].H_to_csv() << "');";
+        sql = match_ss.str();
+        rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+        if(is_match_region_new) {
+          std::ostringstream region_ss;
+          region_ss   << "INSERT INTO `" << d_vgroup_region_table << "`"
+                      << "(region_id,file_id,region_index,region_shape,region_points) "
+                      << "VALUES(" << next_region_id << "," << match_fid << ","
+                      << new_region_index << ",'rect','"
+                      << match_region.to_region_points_csv() << "')";
+          sql = region_ss.str();
+          rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+          file_id_to_region_id_list[match_fid].insert(next_region_id);
+          region_id_region_points_map[next_region_id] = std::vector<float>();
+          match_region.to_region_points(region_id_region_points_map[next_region_id]);
+          std::cout << "(" << match_fid << "," << next_region_id << "*," << score << ") ";
+          next_region_id = next_region_id + 1;
+        } else {
+          std::cout << "(" << match_fid << "," << next_region_id << "," << score << ") ";
+        }
+      }
+      match_count = match_count + 1;
+    }
+    uint32_t tend = vise::getmillisecs();
+    double telapsed = ((double) (tend - tstart)) / 1000.0;
+    std::ostringstream progress;
+    progress << "INSERT INTO `" << d_vgroup_task_progress_table
+             << "` VALUES(" + std::to_string(query_id) << ","
+             << std::to_string(telapsed) + ");";
+    sql = progress.str();
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+    sql = "END TRANSACTION";
+    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+    if(rc != SQLITE_OK) {
+      if(err_msg != NULL) {
+        sqlite3_free(err_msg);
+        message = "failed to insert data for query_id=" + std::to_string(query_id) + " into " + d_vgroup_match_table;
+        success = false;
+        sqlite3_close_v2(db);
+        return;
+      }
+    }
+    std::cout << std::endl;
+    processed_query_count = processed_query_count + 1;
+  }
+  success = true;
+  message = "done : processed " + std::to_string(processed_query_count) + " images";
+  sqlite3_close_v2(db);
+}
+
+// create groups of visually similar images
+// i.e. find all the connected components of the match graph
+void vise::project::vgroup_connected_components(const std::string vgroup_id,
+                                                const std::unordered_map<std::string, std::string> &vgroup_metadata,
+                                                bool &success,
+                                                std::string &message) const {
+  std::cout << "vise::project:: computing connected components from match graph"
+            << std::endl;
+  uint32_t tstart = vise::getmillisecs();
+
+  // initialize sqlite db
+  std::string sql;
+  int rc;
+  char *err_msg;
+  sqlite3_stmt *stmt;
+  const char *tail;
+  sqlite3 *db = nullptr;
+  std::string vgroup_db_fn = get_vgroup_db_filename(vgroup_id);
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READWRITE,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    success = false;
+    message = "failed to load visual group database";
+    sqlite3_close_v2(db);
+    return;
+  }
+
+  // check if table exists
+  sql = "SELECT COUNT(type) from sqlite_master where type='table' and name='" + d_vgroup_table + "';";
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    success = false;
+    message = "failed to query visual group database";
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  unsigned int table_count = sqlite3_column_int(stmt, 0);
+  sqlite3_finalize(stmt);
+  if(table_count == 1) {
+    success = false;
+    message = "connected components already computed";
+    sqlite3_close_v2(db);
+    return;
+  }
+
+  // create vgroup tables
+  std::string query_type = "file";
+  if(vgroup_metadata.count("query-type")) {
+    query_type = vgroup_metadata.at("query-type");
+  }
+
+  std::ostringstream ss;
+  ss << "BEGIN TRANSACTION;"
+     << "CREATE TABLE `" << d_vgroup_table << "`("
+     << "`set_id` INTEGER PRIMARY KEY, "
+     << "`set_size` INTEGER NOT NULL, "
+     << "`member_id_list` TEXT NOT NULL, "
+     << "`query_id` INTEGER NOT NULL);"
+     << "CREATE TABLE `" << d_vgroup_inv_table << "`("
+     << "`member_id` INTEGER PRIMARY KEY, "
+     << "`set_id` INTEGER NOT NULL);";
+  ss << "END TRANSACTION;";
+  sql = ss.str();
+  rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+  if(rc != SQLITE_OK) {
+    success = false;
+    message = "failed to create visual group tables";
+    sqlite3_close_v2(db);
+    return;
+  }
+
+  double vgroup_min_score = 0.0;
+  if(vgroup_metadata.count("vgroup-min-score")) {
+    vgroup_min_score = std::stof(vgroup_metadata.at("vgroup-min-score"));
+  } else {
+    // get default score threshold (if it exists)
+    sql = "SELECT `vgroup-min-score` FROM " + d_vgroup_metadata_table + " LIMIT 1";
+    rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+    if(rc == SQLITE_OK) {
+      rc = sqlite3_step(stmt);
+      if(rc == SQLITE_ROW) {
+        vgroup_min_score = sqlite3_column_double(stmt, 0);
+      }
+      sqlite3_finalize(stmt);
+    }
+  }
+  std::unordered_map<std::size_t, std::set<std::size_t> > match_graph;
+  std::unordered_map<std::size_t, uint8_t> vertex_flag;
+  sql = "SELECT query_id,match_id,score from " + d_vgroup_match_table;
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    success = false;
+    message = "failed to read table containing match graph edges";
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  while(rc == SQLITE_ROW) {
+    std::size_t query_id = sqlite3_column_int(stmt, 0);
+    std::size_t match_id = sqlite3_column_int(stmt, 1);
+    double score = sqlite3_column_double(stmt, 2);
+    if(score < vgroup_min_score) {
+      rc = sqlite3_step(stmt);
+      continue;
+    }
+
+    // insert undirected edge between query and match
+    if(match_graph.find(query_id) == match_graph.end()) {
+      match_graph[query_id] = std::set<std::size_t>();
+    }
+    if(match_graph.find(match_id) == match_graph.end()) {
+      match_graph[match_id] = std::set<std::size_t>();
+    }
+    match_graph[query_id].insert(match_id);
+    match_graph[match_id].insert(query_id);
+
+    // maintain vertex list
+    if(vertex_flag.count(query_id) == 0) {
+      vertex_flag[query_id] = 0;
+    }
+    if(vertex_flag.count(match_id) == 0) {
+      vertex_flag[match_id] = 0;
+    }
+    rc = sqlite3_step(stmt);
+  }
+  sqlite3_finalize(stmt);
+
+  std::cout << "vise::project:: vgroup-min-score=" << vgroup_min_score
+            << ", match graph vertices=" << vertex_flag.size()
+            << ", number of queries=" << match_graph.size()
+            << std::endl;
+
+  // perform depth first search to find all the connected components
+  sql = "BEGIN TRANSACTION";
+  rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+  std::unordered_map<std::size_t, std::set<std::size_t> >::const_iterator itr;
+  std::size_t set_id = 0;
+  std::unordered_map<std::size_t, std::set<std::size_t> > image_groups;
+  for(itr=match_graph.begin(); itr!=match_graph.end(); ++itr) {
+    std::size_t query_id = itr->first;
+
+    if(vertex_flag[query_id] == 1) {
+      continue; // discard already visited nodes
+    }
+    std::set<std::size_t> match_id_list(itr->second);
+    std::set<std::size_t> visited_nodes;
+    std::set<std::size_t>::const_iterator mitr = match_id_list.begin();
+    for(; mitr != match_id_list.end(); ++mitr) {
+      std::size_t match_id = *mitr;
+      if(vertex_flag[match_id] == 1) {
+        continue; // discard already visited nodes
+      }
+      vertex_flag[match_id] = 1;
+      visited_nodes.insert(match_id);
+      depth_first_search(match_graph, vertex_flag, match_id, visited_nodes);
+    }
+    if(visited_nodes.size() == 0) {
+      continue; // discard empty components
+    }
+    //visited_nodes.push_back(query_id); // add query node
+    image_groups[set_id] = visited_nodes;
+
+    // save image group to database
+    std::ostringstream image_group_row;
+    std::ostringstream image_group_inv_rows;
+    std::set<std::size_t>::const_iterator visited_nodes_itr = visited_nodes.begin();
+    image_group_row << "INSERT INTO `" << d_vgroup_table << "` VALUES("
+                    << set_id << "," << visited_nodes.size()
+                    << ",'" << *visited_nodes_itr;
+    image_group_inv_rows << "INSERT INTO `" << d_vgroup_inv_table << "` VALUES("
+                         << *visited_nodes_itr << "," << set_id << ")";
+    visited_nodes_itr++;
+    for(; visited_nodes_itr != visited_nodes.end(); ++visited_nodes_itr) {
+      image_group_row << "," << *visited_nodes_itr;
+      image_group_inv_rows << ",(" << *visited_nodes_itr << "," << set_id << ")";
+    }
+    image_group_row << "'," << query_id << ");";
+    image_group_inv_rows << ";";
+    rc = sqlite3_exec(db, image_group_row.str().c_str(), NULL, NULL, &err_msg);
+    rc = sqlite3_exec(db, image_group_inv_rows.str().c_str(), NULL, NULL, &err_msg);
+
+    // move to next set
+    set_id = set_id + 1;
+  }
+  sql = "END TRANSACTION";
+  rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+  if(rc != SQLITE_OK) {
+    std::cout << "vise::project:: visual group error (" << err_msg << ")" << std::endl;
+    if(err_msg != NULL) {
+      sqlite3_free(err_msg);
+    }
+  }
+  sqlite3_close_v2(db);
+  uint32_t tend = vise::getmillisecs();
+  std::cout << "vise::project:: visual group contains " << set_id
+            << " connected components (found in "
+            << (tend - tstart) << " ms)"
+            << std::endl;
+}
+
+void vise::project::depth_first_search(const std::unordered_map<std::size_t, std::set<std::size_t> > &match_graph,
+                                       std::unordered_map<std::size_t, uint8_t> &vertex_flag,
+                                       std::size_t vertex,
+                                       std::set<std::size_t> &visited_nodes) const {
+  if(match_graph.count(vertex) == 0) {
+    return; // this vertex is not connected to any other nodes
+  }
+
+  std::set<std::size_t> match_file_id_list( match_graph.at(vertex) );
+  std::set<std::size_t>::const_iterator mitr = match_file_id_list.begin();
+  for(; mitr != match_file_id_list.end(); ++mitr) {
+    std::size_t visited_vertex = *mitr;
+    if(vertex_flag[visited_vertex] == 1) {
+      continue; // discard visited vertices
+    }
+    vertex_flag[visited_vertex] = 1;
+    visited_nodes.insert(visited_vertex);
+    depth_first_search(match_graph, vertex_flag, visited_vertex, visited_nodes);
+  }
+}
+
+void vise::project::get_query_region(const std::size_t query_id,
+                                     vise::search_query &query) const {
+  // query using region
+  std::size_t file_id;
+  std::size_t region_index;
+  std::string region_shape;
+  std::string region_points_str;
+  d_metadata->get_region_shape(query_id,
+                               file_id,
+                               region_index,
+                               region_shape,
+                               region_points_str);
+  if(region_shape != "rect") {
+    std::cout << "ignoring unknown region shape type "
+              << region_shape << std::endl;
+    return;
+  }
+  std::vector<float> region_points;
+  vise::csv_string_to_float_array(region_points_str, region_points);
+  if(region_points.size() != 4) {
+    std::cout << "ignoring malformed region shape: "
+              << region_points_str << std::endl;
+    return;
+  }
+  query.d_file_id = file_id;
+  query.d_x = region_points[0];
+  query.d_y = region_points[1];
+  query.d_width = region_points[2];
+  query.d_height = region_points[3];
+  query.is_region_query = true;
+}
+
+void vise::project::get_match_region(const vise::search_query &query,
+                                     const vise::search_result &result,
+                                     vise::search_query &match_region) const {
+  int qx1 = query.d_x;
+  int qy1 = query.d_y;
+  int qx2 = qx1 + query.d_width;
+  int qy2 = qy1 + query.d_height;
+
+  match_region.d_filename = result.d_filename;
+  match_region.d_file_id = result.d_file_id;
+  match_region.is_region_query = true;
+
+  match_region.d_x = result.d_H[0] * qx1 + result.d_H[1] * qy1 + result.d_H[2];
+  match_region.d_y = result.d_H[3] * qx1 + result.d_H[4] * qy1 + result.d_H[5];
+  int mx2 = result.d_H[0] * qx2 + result.d_H[1] * qy2 + result.d_H[2];
+  int my2 = result.d_H[3] * qx2 + result.d_H[4] * qy2 + result.d_H[5];
+  match_region.d_width  = mx2 - match_region.d_x;
+  match_region.d_height = my2 - match_region.d_y;
+}
+
+void vise::project::get_vgroup(const std::string vgroup_id,
+                               std::map<std::string, std::string> const &param,
+                               std::ostringstream &json) const {
+  if(!is_vgroup_available(vgroup_id)) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"visual group [" << vgroup_id << "] not available\"}";
+    return;
+  }
+
+  std::ostringstream sqlss;
+  std::string sql;
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+
+  sqlite3 *db = nullptr;
+  std::string vgroup_db_fn = get_vgroup_db_filename(vgroup_id);
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READONLY,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to load database\"}";
+    return;
+  }
+
+  // generate set size statistics
+  std::map<std::size_t, std::size_t> set_size_stat;
+  sqlss.clear();
+  sqlss.str("");
+  sqlss << "SELECT set_size, count(set_size) AS set_size_count FROM `"
+        << d_vgroup_table << "` GROUP BY set_size;";
+  sql = sqlss.str();
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to read table containing match graph edges\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  while(rc == SQLITE_ROW) {
+    std::size_t set_size = sqlite3_column_int(stmt, 0);
+    std::size_t set_size_count = sqlite3_column_int(stmt, 1);
+    set_size_stat[set_size] = set_size_count;
+    rc = sqlite3_step(stmt);
+  }
+  sqlite3_finalize(stmt);
+  if(set_size_stat.size() == 0) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"group is empty\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+
+  // find min/max set id
+  sql = "SELECT MIN(set_id), MAX(set_id) FROM `" + d_vgroup_table + "`";
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to query database\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  if(rc != SQLITE_ROW) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to find min/max set_id\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  std::size_t min_set_id = sqlite3_column_int(stmt, 0);
+  std::size_t max_set_id = sqlite3_column_int(stmt, 1);
+  sqlite3_finalize(stmt);
+
+  // prepare data for each set
+  unsigned int default_set_size = set_size_stat.begin()->first;
+  unsigned int set_size = default_set_size;
+  if(param.count("set_size")) {
+    set_size = std::stoi(param.at("set_size"));
+  }
+
+  // gather all query_file_id which has the given "set_size" number of matches
+  sqlss.clear();
+  sqlss.str("");
+  sqlss << "SELECT set_id, member_id_list FROM `" << d_vgroup_table
+        << "` WHERE set_size = " << set_size
+        << " ORDER BY set_id ASC LIMIT 20000"; // limit to prevent abuse
+  sql = sqlss.str();
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to gather member_id_list with size=" << set_size << "\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  std::vector<std::size_t> set_id_list;
+  std::vector<std::string> image_group_member_id_list;;
+  while(rc == SQLITE_ROW) {
+    std::size_t set_id = sqlite3_column_int(stmt, 0);
+    std::ostringstream ss;
+    ss << sqlite3_column_text(stmt, 1);
+    set_id_list.push_back(set_id);
+    image_group_member_id_list.push_back(ss.str());
+    rc = sqlite3_step(stmt);
+  }
+  sqlite3_finalize(stmt);
+
+  // NOTE:
+  // if query-type = "file"
+  //   member_id_list -> file_id_list
+  // if query-type = "region"
+  //   member_id_list -> region_id_list
+  std::vector<std::string> image_group_file_id_list_str;
+  std::vector<std::string> image_group_region_points_list_str;
+  if(d_vgroup_metadata_list.at(vgroup_id).count("query-type") &&
+     d_vgroup_metadata_list.at(vgroup_id).at("query-type") == "region") {
+    for(std::size_t i=0; i<image_group_member_id_list.size(); ++i) {
+      sqlss.str("");
+      sqlss << "SELECT region_id,file_id,region_points "
+            << "FROM `" << d_vgroup_region_table << "` WHERE region_id IN ("
+            << image_group_member_id_list.at(i) << ");";
+      rc = sqlite3_prepare_v2(db, sqlss.str().c_str(), -1, &stmt, &tail);
+      if(rc != SQLITE_OK) {
+        json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+             << "\"failed to query database\"}";
+        sqlite3_close_v2(db);
+        return;
+      }
+      rc = sqlite3_step(stmt);
+      std::ostringstream set_file_id_list_ss;
+      std::ostringstream set_region_points_list_ss;
+      set_file_id_list_ss << sqlite3_column_int(stmt,1);
+      set_region_points_list_ss << "[" << sqlite3_column_text(stmt,2) << "]";
+      rc = sqlite3_step(stmt);
+      while(rc == SQLITE_ROW) {
+        set_file_id_list_ss << "," << sqlite3_column_int(stmt,1);
+        set_region_points_list_ss << ",[" << sqlite3_column_text(stmt,2) << "]";
+        rc = sqlite3_step(stmt);
+      }
+      sqlite3_finalize(stmt);
+      image_group_file_id_list_str.push_back(set_file_id_list_ss.str());
+      image_group_region_points_list_str.push_back(set_region_points_list_ss.str());
+    }
+  } else {
+    image_group_file_id_list_str = image_group_member_id_list;
+  }
+  sqlite3_close_v2(db);
+
+  // pagination of set list
+  std::size_t set_index_from = 0;
+  const std::size_t MAX_SET_PER_PAGE = 10;
+  std::size_t set_index_to = MAX_SET_PER_PAGE;
+  if(param.count("from")) {
+    set_index_from = std::stoi(param.at("from"));
+  }
+  if(param.count("to")) {
+    set_index_to = std::stoi(param.at("to"));
+  }
+
+  if(set_index_from > set_id_list.size() ||
+     set_index_to > set_id_list.size()) {
+    set_index_from = 0;
+    if(set_id_list.size() < MAX_SET_PER_PAGE) {
+      set_index_to = set_id_list.size();
+    } else {
+      set_index_to = MAX_SET_PER_PAGE;
+    }
+  }
+  if(set_index_to < set_index_from) {
+    set_index_to = set_index_from + MAX_SET_PER_PAGE;
+    if(set_index_to > set_id_list.size()) {
+      set_index_to = set_id_list.size();
+    }
+  }
+
+  // prepare response json
+  std::map<std::size_t, std::size_t>::const_iterator itr = set_size_stat.begin();
+  json << "{\"group_id\":\"" << vgroup_id << "\",\"set_size_stat\":{"
+       << "\"" << itr->first << "\":" << itr->second;
+  for(++itr; itr!=set_size_stat.end(); ++itr) {
+    json << ",\"" << itr->first << "\":" << itr->second;
+  }
+  json << "},\"set_size\":" << set_size
+       << ",\"SET\":{";
+
+  std::ostringstream set_index_list_subset;
+  for(std::size_t i=set_index_from; i<set_index_to; ++i) {
+    std::size_t set_index = i;
+    std::size_t set_id = set_id_list.at(set_index);
+    if(i!=set_index_from) {
+      json << ",";
+      set_index_list_subset << ",";
+    }
+    set_index_list_subset << set_index;
+    std::string file_id_list_str = image_group_file_id_list_str.at(i);
+    json << "\"" << set_index << "\":{\"set_id\":" << set_id
+         << ",\"file_id_list\":[" << file_id_list_str << "]"
+         << ",\"region_points_list\":[" << image_group_region_points_list_str.at(i) << "]"
+         << ",\"filename_list\":[";
+    std::vector<std::string> file_id_list = vise::split(file_id_list_str, ',');
+    json << "\"" << filename(std::stoi(file_id_list.at(0))) << "\"";
+    for(std::size_t j=1; j<file_id_list.size(); ++j) {
+      json << ",\"" << filename(std::stoi(file_id_list.at(j))) << "\"";
+    }
+    json << "]}";
+  }
+  json << "},\"set_index_list\":[" << set_index_list_subset.str()
+       << "],\"set_index_range\":[0," << (set_id_list.size()) << "]"
+       << ",\"set_index_from\":" << set_index_from
+       << ",\"set_index_to\":" << set_index_to
+       << ",\"set_id_range\":[" << min_set_id << "," << max_set_id << "]}";
+}
+
+void vise::project::get_vgroup_set(const std::string vgroup_id,
+                                   const std::string set_id_str,
+                                   std::ostringstream &json) const {
+  if(!is_vgroup_available(vgroup_id)) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"visual group [" << vgroup_id << "] not available\"}";
+    return;
+  }
+
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+
+  sqlite3 *db = nullptr;
+  std::string vgroup_db_fn = get_vgroup_db_filename(vgroup_id);
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READONLY,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to load database\"}";
+    return;
+  }
+
+  // find min/max set id
+  std::string sql = "SELECT MIN(set_id), MAX(set_id) FROM `" + d_vgroup_table + "`";
+  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to query database\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  if(rc != SQLITE_ROW) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to find min/max set_id\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  std::size_t min_set_id = sqlite3_column_int(stmt, 0);
+  std::size_t max_set_id = sqlite3_column_int(stmt, 1);
+  sqlite3_finalize(stmt);
+
+  std::size_t set_id = std::stoi(set_id_str);
+  if(set_id < min_set_id || set_id > max_set_id) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"set_id should be between " << min_set_id
+         << " and " << max_set_id << "\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+
+  std::ostringstream sqlss;
+  sqlss << "SELECT set_id, member_id_list FROM `"
+        << d_vgroup_table << "` WHERE set_id=" << set_id
+        << " LIMIT 1";
+  rc = sqlite3_prepare_v2(db, sqlss.str().c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to query database\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  if(rc != SQLITE_ROW) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"set not found\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  std::ostringstream member_id_list_ss;
+  member_id_list_ss << sqlite3_column_text(stmt, 1);
+  sqlite3_finalize(stmt);
+
+  std::string file_id_list_str;
+  std::string region_points_list_str;
+  if(d_vgroup_metadata_list.at(vgroup_id).count("query-type") &&
+     d_vgroup_metadata_list.at(vgroup_id).at("query-type") == "region") {
+    sqlss.str("");
+    sqlss << "SELECT region_id,file_id,region_points "
+          << "FROM `" << d_vgroup_region_table << "` WHERE region_id IN ("
+          << member_id_list_ss.str() << ");";
+    rc = sqlite3_prepare_v2(db, sqlss.str().c_str(), -1, &stmt, &tail);
+    if(rc != SQLITE_OK) {
+      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+           << "\"failed to query database\"}";
+      sqlite3_close_v2(db);
+      return;
+    }
+    rc = sqlite3_step(stmt);
+    std::ostringstream file_id_list_ss;
+    std::ostringstream region_points_list_ss;
+    file_id_list_ss << sqlite3_column_int(stmt,1);
+    region_points_list_ss << "[" << sqlite3_column_text(stmt,2) << "]";
+    rc = sqlite3_step(stmt);
+    while(rc == SQLITE_ROW) {
+      file_id_list_ss << "," << sqlite3_column_int(stmt,1);
+      region_points_list_ss << ",[" << sqlite3_column_text(stmt,2) << "]";
+      rc = sqlite3_step(stmt);
+    }
+    sqlite3_finalize(stmt);
+    file_id_list_str = file_id_list_ss.str();
+    region_points_list_str = region_points_list_ss.str();
+  } else {
+    file_id_list_str = member_id_list_ss.str();
+  }
+  sqlite3_close_v2(db);
+
+  std::vector<std::string> file_id_list = vise::split(file_id_list_str, ',');
+  if(file_id_list.size() == 0) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"set is empty\"}";
+    return;
+  }
+
+  // prepare response
+  json << "{\"group_id\":\"" << vgroup_id << "\""
+       << ",\"set_id\":" << set_id
+       << ",\"set_id_range\":[" << min_set_id << "," << max_set_id << "]"
+       << ",\"file_id_list\":[" << file_id_list_str << "]"
+       << ",\"region_points_list\":[" << region_points_list_str << "]"
+       << ",\"filename_list\":[\""
+       << filename(std::stoi(file_id_list.at(0))) << "\"";
+  for(std::size_t i=1; i<file_id_list.size(); ++i) {
+    json << ",\"" << filename(std::stoi(file_id_list.at(i))) << "\"";
+  }
+  json << "]}";
+}
+
+void vise::project::get_vgroup_set_with_file_id(const std::string vgroup_id,
+                                                const std::string file_id_str,
+                                                std::ostringstream &json) const {
+  if(!is_vgroup_available(vgroup_id)) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"visual group [" << vgroup_id << "] not available\"}";
+    return;
+  }
+
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+
+  sqlite3 *db = nullptr;
+  std::string vgroup_db_fn = get_vgroup_db_filename(vgroup_id);
+  int sqlite_db_status = sqlite3_open_v2(vgroup_db_fn.c_str(),
+                                         &db,
+                                         SQLITE_OPEN_READONLY,
+                                         NULL);
+  if( sqlite_db_status != SQLITE_OK ) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to load database\"}";
+    return;
+  }
+
+  // find all sets containing a file_id
+  std::string query_type = "file";
+  if(d_vgroup_metadata_list.at(vgroup_id).count("query-type") &&
+     d_vgroup_metadata_list.at(vgroup_id).at("query-type") == "region") {
+    query_type = "region";
+  }
+
+  std::ostringstream member_id_list_ss;
+  std::ostringstream sqlss;
+  if(query_type == "region") {
+    // find all region-id belonging to the file-id
+    std::vector<std::string> region_id_list;
+    sqlss << "SELECT region_id FROM `"
+          << d_vgroup_region_table << "` WHERE file_id =" << file_id_str
+          << ";";
+    rc = sqlite3_prepare_v2(db, sqlss.str().c_str(), -1, &stmt, &tail);
+    if(rc != SQLITE_OK) {
+      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+           << "\"failed to query database\"}";
+      sqlite3_close_v2(db);
+      return;
+    }
+    rc = sqlite3_step(stmt);
+    if(rc != SQLITE_ROW) {
+      json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+           << "\"There are no sets that contains the file-id=" << file_id_str << "\"}";
+      sqlite3_close_v2(db);
+      return;
+    }
+    member_id_list_ss << sqlite3_column_int(stmt,0);
+    rc = sqlite3_step(stmt);
+    while(rc == SQLITE_ROW) {
+      member_id_list_ss << "," << sqlite3_column_int(stmt,0);
+      rc = sqlite3_step(stmt);
+    }
+    sqlite3_finalize(stmt);
+  } else {
+    member_id_list_ss << file_id_str;
+  }
+
+  // find all the sets that contains this file-id
+  std::vector<std::size_t> set_id_list;
+  sqlss.str("");
+  sqlss << "SELECT set_id FROM `"
+        << d_vgroup_inv_table << "` WHERE member_id IN ("
+        << member_id_list_ss.str() << ");";
+  rc = sqlite3_prepare_v2(db, sqlss.str().c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"failed to query database\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  if(rc != SQLITE_ROW) {
+    json << "{\"STATUS\":\"error\",\"MESSAGE\":"
+         << "\"There are no sets that contains the file-id=" << file_id_str << "\"}";
+    sqlite3_close_v2(db);
+    return;
+  }
+  while(rc == SQLITE_ROW) {
+    set_id_list.push_back(sqlite3_column_int(stmt,0));
+    rc = sqlite3_step(stmt);
+  }
+  sqlite3_finalize(stmt);
+  sqlite3_close_v2(db);
+
+  // prepare response
+  json << "{\"group_id\":\"" << vgroup_id << "\""
+       << ",\"file_id\":" << file_id_str
+       << ",\"set_id_list\":[" << set_id_list.at(0);
+  for(std::size_t i=1; i<set_id_list.size(); ++i) {
+    json << "," << set_id_list.at(i);
+  }
+  json << "]}";
+}
+
+bool vise::project::is_vgroup_available(const std::string vgroup_id) const {
+  if(d_vgroup_id_list.count(vgroup_id) == 1) {
+    return true;
+  } else {
+    return false;
   }
 }

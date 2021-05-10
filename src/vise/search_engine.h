@@ -53,25 +53,14 @@ namespace vise {
     virtual uint32_t fid_count() const = 0;
     virtual uint32_t fid(std::string filename) const = 0;
     virtual std::string filename(uint32_t fid) const = 0;
+    virtual void select_file_id(const std::string filename_regex, std::vector<std::size_t> &fid_list) const = 0;
+    virtual void select_all_file_id(std::vector<std::size_t> &fid_list) const = 0;
 
     virtual void conf(std::map<std::string, std::string> conf_data) = 0;
     virtual std::map<std::string, std::string> conf() const = 0;
 
     virtual void extract_image_features(const std::string &image_data,
                                         std::string &image_features) const = 0;
-
-    virtual void create_visual_group(const std::unordered_map<std::string, std::string> &params,
-                                     bool &success, std::string &message,
-                                     bool &block_until_done) const = 0;
-    virtual void is_visual_group_valid(const std::string group_id,
-                                       bool &success,
-                                       std::string &message) const = 0;
-    virtual void get_image_graph(const std::string group_id,
-                                 std::map<std::string, std::string> const &param,
-                                 std::ostringstream &json) const = 0;
-    virtual void get_image_group(const std::string group_id,
-                                 std::map<std::string, std::string> const &param,
-                                 std::ostringstream &json) const = 0;
 
   private:
     const std::string d_se_name;

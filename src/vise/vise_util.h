@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <omp.h>
+#include <cmath>
 
 #include <boost/filesystem.hpp>
 #include <Magick++.h>
@@ -106,5 +107,12 @@ namespace vise {
   // check if input image is valid
   bool is_valid_image(std::string img_fn, std::string &message);
   bool if_valid_get_image_size(std::string img_fn, std::string &message, uint32_t &width, uint32_t &height);
+
+  // parse string
+  void csv_string_to_float_array(std::string csv_string,
+                                 std::vector<float> &float_array);
+
+  double iou(std::vector<float> &a, std::vector<float> &b);
+
 }
 #endif

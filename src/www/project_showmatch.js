@@ -458,14 +458,16 @@ function _vise_toggle_canvas_get_expand_size() {
      _vise_data.QUERY.hasOwnProperty('y') &&
      _vise_data.QUERY.hasOwnProperty('width') &&
      _vise_data.QUERY.hasOwnProperty('height')) {
-    var expand_size = Math.floor(_vise_data.QUERY['width'] * 0.1);
+    //var expand_size = Math.floor(_vise_data.QUERY['width'] * 0.1);
+    var expand_size = 0;
     var ex = Math.max(0, _vise_data.QUERY['x'] - expand_size);
     var ey = Math.max(0, _vise_data.QUERY['y'] - expand_size);
     var ewidth  = Math.min(_vise_data.QUERY['width'] + 2*expand_size, query_img.naturalWidth);
     var eheight = Math.min(_vise_data.QUERY['height'] + 2*expand_size, query_img.naturalHeight);
     return [ex, ey, ewidth, eheight];
   } else {
-    var expand_size = Math.floor(query_img.naturalWidth * 0.1);
+    //var expand_size = Math.floor(query_img.naturalWidth * 0.1);
+    var expand_size = 0;
     var ex = Math.max(0, 0 - expand_size);
     var ey = Math.max(0, 0 - expand_size);
     var ewidth  = Math.min(query_img.naturalWidth + 2*expand_size, query_img.naturalWidth);

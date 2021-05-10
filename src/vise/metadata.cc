@@ -60,6 +60,19 @@ void vise::metadata::init_metadata_db() {
   }
 }
 
+bool vise::metadata::is_region_metadata_available() const {
+  if(!d_is_metadata_available) {
+    return false;
+  }
+  if(d_sqlite_db_status != SQLITE_OK) {
+    return false;
+  }
+  if(!sqlite_table_exists(d_region_metadata_table_name)) {
+    return false;
+  }
+  return true;
+}
+
 void vise::metadata::init_region_attribute_name_list() {
   d_region_attribute_name_list.clear();
 
@@ -128,7 +141,7 @@ void vise::metadata::create_metadata_db() {
   sql = "BEGIN TRANSACTION";
   rc = sqlite3_exec(d_db, sql.c_str(), NULL, NULL, &err_msg);
 
-  sql = "CREATE TABLE `file_metadata`(`file_id` INTEGER PRIMARY KEY, `filename` TEXT NOT NULL);";
+  sql = "CREATE TABLE `" + d_file_metadata_table_name + "`(`file_id` INTEGER PRIMARY KEY, `filename` TEXT NOT NULL);";
   rc = sqlite3_exec(d_db, sql.c_str(), NULL, NULL, &err_msg);
 
   boost::filesystem::path filelist_fn = d_project_data_dir / "filelist.txt";
@@ -151,7 +164,8 @@ void vise::metadata::create_metadata_db() {
     }
     // sqlite requires text to be escaped such that all single quotes (') are replaced with ('')
     vise::escape_string(filename, '\'', "''");
-    ss << "INSERT INTO `file_metadata` VALUES(" << fid << ",'" << filename << "');";
+    ss << "INSERT INTO `" << d_file_metadata_table_name << "` "
+       << "VALUES(" << fid << ",'" << filename << "');";
     sql = ss.str();
     rc = sqlite3_exec(d_db, sql.c_str(), NULL, NULL, &err_msg);
     fid = fid + 1;
@@ -401,11 +415,130 @@ void vise::metadata::file_metadata_full_text_search_group_stat(const std::string
             << ", completed in " << (tend - tstart) << " ms" << std::endl;
 }
 
+void vise::metadata::select_fid_with_filename_like(const std::string filename_pattern,
+                                                   std::vector<std::size_t> &file_id_list) const {
+  file_id_list.clear();
+  std::ostringstream ss;
+  ss << "SELECT `file_id` from `" << d_file_metadata_table_name << "`"
+     << " WHERE `filename` LIKE '" << filename_pattern << "';";
+  std::string sql(ss.str());
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+  rc = sqlite3_prepare_v2(d_db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    std::cout << "vise::metadata : filename LIKE `" << filename_pattern << "` failed, "
+              << sqlite3_errmsg(d_db)
+              << std::endl;
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  int ncols = sqlite3_column_count(stmt);
+  if(rc == SQLITE_ROW && ncols > 0) {
+    while(rc == SQLITE_ROW) {
+      file_id_list.push_back(sqlite3_column_int(stmt, 0));
+      rc = sqlite3_step(stmt);
+    }
+  }
+  sqlite3_finalize(stmt);
+}
+
+void vise::metadata::select_rid_with_filename_like(const std::string filename_pattern,
+                                                   std::vector<std::size_t> &region_id_list) const {
+  region_id_list.clear();
+  std::ostringstream ss;
+  ss << "SELECT `region_id` from `" << d_region_metadata_table_name << "`"
+     << " WHERE `file_id` IN "
+     << "(SELECT `file_id` from `" << d_file_metadata_table_name << "` "
+     << "WHERE `filename` LIKE '" << filename_pattern << "');";
+  std::string sql(ss.str());
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+  rc = sqlite3_prepare_v2(d_db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    std::cout << "vise::metadata : file_id IN filename LIKE `" << filename_pattern << "` failed, "
+              << sqlite3_errmsg(d_db)
+              << std::endl;
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  int ncols = sqlite3_column_count(stmt);
+  if(rc == SQLITE_ROW && ncols > 0) {
+    while(rc == SQLITE_ROW) {
+      region_id_list.push_back(sqlite3_column_int(stmt, 0));
+      rc = sqlite3_step(stmt);
+    }
+  }
+  sqlite3_finalize(stmt);
+}
+
+void vise::metadata::get_region_file_info(const uint32_t region_id,
+                                          std::size_t &file_id,
+                                          std::size_t &region_index) const {
+  std::ostringstream ss;
+  ss << "SELECT file_id,region_index "
+     << "FROM `" << d_region_metadata_table_name << "` "
+     << "WHERE `region_id` = " << region_id << " LIMIT 1;";
+  std::string sql(ss.str());
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+  rc = sqlite3_prepare_v2(d_db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    std::cout << "vise::metadata : failed to fetch region_id = " << region_id << ", "
+              << sqlite3_errmsg(d_db)
+              << std::endl;
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  int ncols = sqlite3_column_count(stmt);
+  if(rc == SQLITE_ROW && ncols == 2) {
+    file_id = sqlite3_column_int(stmt, 0);
+    region_index = sqlite3_column_int(stmt, 1);
+  }
+  sqlite3_finalize(stmt);
+}
+
+void vise::metadata::get_region_shape(const uint32_t region_id,
+                                      std::size_t &file_id,
+                                      std::size_t &region_index,
+                                      std::string &region_shape,
+                                      std::string &region_points) const {
+  std::ostringstream ss;
+  ss << "SELECT file_id, region_index, region_shape, region_points "
+     << "FROM `" << d_region_metadata_table_name << "` "
+     << "WHERE `region_id` = " << region_id << " LIMIT 1;";
+  std::string sql(ss.str());
+  int rc;
+  sqlite3_stmt *stmt;
+  const char *tail;
+  rc = sqlite3_prepare_v2(d_db, sql.c_str(), -1, &stmt, &tail);
+  if(rc != SQLITE_OK) {
+    std::cout << "vise::metadata : failed to fetch region_id = " << region_id << ", "
+              << sqlite3_errmsg(d_db)
+              << std::endl;
+    return;
+  }
+  rc = sqlite3_step(stmt);
+  int ncols = sqlite3_column_count(stmt);
+  if(rc == SQLITE_ROW && ncols == 4) {
+    file_id = sqlite3_column_int(stmt, 0);
+    region_index = sqlite3_column_int(stmt, 1);
+    std::ostringstream ss;
+    ss << sqlite3_column_text(stmt, 2);
+    region_shape = ss.str();
+    ss.str("");
+    ss << sqlite3_column_text(stmt, 3);
+    region_points = ss.str();
+  }
+  sqlite3_finalize(stmt);
+}
+
 //
 // util
 //
-
-bool vise::metadata::sqlite_table_exists(const std::string table_name) {
+bool vise::metadata::sqlite_table_exists(const std::string table_name) const {
   std::string sql("SELECT COUNT(type) from sqlite_master where type='table' and name='" + table_name + "';");
   int rc;
   sqlite3_stmt *stmt;
@@ -629,4 +762,32 @@ void vise::metadata::metadata_groupby(const std::string groupby,
     }
   }
   sqlite3_finalize(stmt);
+}
+
+void vise::metadata::get_copy_of_metadata(const std::string source_table_name,
+                                          const std::string destination_db_filename,
+                                          const std::string destination_table_name,
+                                          bool &success,
+                                          std::string &message) const {
+  int rc;
+  char *err_msg;
+  std::string sql;
+  std::ostringstream ss;
+  ss << "BEGIN TRANSACTION;"
+     << "ATTACH DATABASE '" << destination_db_filename << "' AS DEST;"
+     << "CREATE TABLE 'DEST." << destination_table_name << "' AS "
+     << "SELECT * FROM " << source_table_name << ";"
+     << "END TRANSACTION;";
+  sql = ss.str();
+  rc = sqlite3_exec(d_db, sql.c_str(), NULL, NULL, &err_msg);
+  if(rc != SQLITE_OK) {
+    message = "failed to execute get_copy_of_metadata: source_table=" + source_table_name + ", destination_db=" + destination_db_filename + ", destination_table=" + destination_table_name + ".";
+    std::cout << "sqlite3 error:: " << err_msg << std::endl;
+    success = false;
+    if(err_msg != NULL) {
+      sqlite3_free(err_msg);
+    }
+  } else {
+    success = true;
+  }
 }

@@ -34,7 +34,14 @@ namespace vise {
          << d_H[6] << "," << d_H[7] << "," << d_H[8] << "]}";
       return ss.str();
     }
-
+    std::string H_to_csv() {
+      std::ostringstream ss;
+      ss.precision(6);
+      ss << std::fixed
+         << d_H[0] << "," << d_H[1] << "," << d_H[2] << ","
+         << d_H[3] << "," << d_H[4] << "," << d_H[5];
+      return ss.str();
+    }
   };
 }
 #endif

@@ -8,21 +8,21 @@ vise::http_server::http_server(std::map<std::string, std::string> const &conf,
     d_conf(conf),
     d_manager(&manager)
 {
-  if (d_conf.find("address") == d_conf.end() ||
-      d_conf.find("port") == d_conf.end()
+  if (d_conf.find("http-address") == d_conf.end() ||
+      d_conf.find("http-port") == d_conf.end()
       ) {
-    std::cerr << "http_server cannot start as address and port missing in configuration!"
+    std::cerr << "http_server cannot start as http-address and http-port are missing in configuration!"
               << std::endl;
     throw std::runtime_error("address and port missing in configuration");
   }
 
-  if (d_conf.find("nthread") == d_conf.end()) {
+  if (d_conf.find("http-worker") == d_conf.end()) {
     d_thread_pool_size = 1;
   } else {
-    d_thread_pool_size = std::atoi(d_conf.at("nthread").c_str());
-	if(d_thread_pool_size == 0) {
-	  d_thread_pool_size = std::max(1, omp_get_max_threads()-2);
-	}
+    d_thread_pool_size = std::atoi(d_conf.at("http-worker").c_str());
+    if(d_thread_pool_size == 0) {
+      d_thread_pool_size = std::max(1, omp_get_max_threads()-2);
+    }
   }
 
   // add hooks to stop http server when the program exits
@@ -43,8 +43,8 @@ vise::http_server::http_server(std::map<std::string, std::string> const &conf,
                                   this));
 
   boost::asio::ip::tcp::resolver resolver( d_io_service );
-  boost::asio::ip::tcp::resolver::query query( d_conf.at("address"),
-                                               d_conf.at("port") );
+  boost::asio::ip::tcp::resolver::query query( d_conf.at("http-address"),
+                                               d_conf.at("http-port") );
   boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve( query );
 
   d_acceptor.open( endpoint.protocol() );
@@ -56,8 +56,8 @@ vise::http_server::http_server(std::map<std::string, std::string> const &conf,
   accept_new_connection();
 
   std::cout << "http_server: listening for connections at "
-            << d_conf.at("address") << ":" << d_conf.at("port")
-            << d_conf.at("http_uri_namespace")
+            << d_conf.at("http-address") << ":" << d_conf.at("http-port")
+            << d_conf.at("http-namespace")
             << " (with " << d_thread_pool_size << " threads)"
             << std::endl;
 }

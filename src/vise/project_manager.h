@@ -158,12 +158,9 @@ namespace vise {
     void project_index_status(std::string pname,
                               std::map<std::string, std::string> const &param,
                               http_response &response) const;
-    void project_image_graph(std::string pname,
-                             std::map<std::string, std::string> const &param,
-                             http_response &response) const;
-    void project_image_group(std::string pname,
-                             std::map<std::string, std::string> const &param,
-                             http_response &response) const;
+    void project_visual_group(std::string pname,
+                              std::map<std::string, std::string> const &param,
+                              http_response &response) const;
 
     bool project_exists(std::string pname) const;
     bool project_create(std::string pname);

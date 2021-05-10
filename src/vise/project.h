@@ -113,13 +113,49 @@ namespace vise {
                                          const uint32_t match_file_id,
                                          std::ostringstream &json) const;
     // visual group
-    void create_visual_group(const std::unordered_map<std::string, std::string> &params,
-                             bool &success, std::string &message,
-                             bool &block_until_done) const;
-    void get_image_graph(std::map<std::string, std::string> const &param,
-                         std::ostringstream &json) const;
-    void get_image_group(std::map<std::string, std::string> const &param,
-                         std::ostringstream &json) const;
+    void create_vgroup(const std::unordered_map<std::string, std::string> &params,
+                       const bool block_until_done,
+                       bool &success, std::string &message) const;
+    std::string get_vgroup_db_filename(const std::string vgroup_id) const;
+    void get_vgroup_task_progress(const std::string vgroup_id,
+                                  std::set<std::size_t> &query_fid_list,
+                                  bool &success,
+                                  std::string &message) const;
+    void init_vgroup_db(const std::string vgroup_id,
+                        std::unordered_map<std::string, std::string> &vgroup_metadata,
+                        bool &success, std::string &message) const;
+    void vgroup_match_graph(const std::string vgroup_id,
+                            const std::unordered_map<std::string, std::string> &vgroup_metadata,
+                            const std::vector<std::size_t> &query_id_list,
+                            bool &success, std::string &message) const;
+
+    void vgroup_connected_components(const std::string vgroup_id,
+                                     const std::unordered_map<std::string, std::string> &vgroup_metadata,
+                                     bool &success,
+                                     std::string &message) const;
+
+    void depth_first_search(const std::unordered_map<std::size_t, std::set<std::size_t> > &match_graph,
+                            std::unordered_map<std::size_t, uint8_t> &vertex_flag,
+                            std::size_t vertex,
+                            std::set<std::size_t> &visited_nodes) const;
+    void get_match_region(const vise::search_query &query,
+                          const vise::search_result &result,
+                          vise::search_query &match_region) const;
+    void get_query_region(const std::size_t query_id,
+                          vise::search_query &query) const;
+    void is_visual_group_valid(const std::string vgroup_id,
+                               bool &success,
+                               std::string &message) const;
+    void get_vgroup(const std::string vgroup_id,
+                    std::map<std::string, std::string> const &param,
+                    std::ostringstream &json) const;
+    void get_vgroup_set(const std::string vgroup_id,
+                        const std::string set_id_str,
+                        std::ostringstream &json) const;
+    void get_vgroup_set_with_file_id(const std::string vgroup_id,
+                                     const std::string file_id_str,
+                                     std::ostringstream &json) const;
+    bool is_vgroup_available(const std::string vgroup_id) const;
   private:
     std::string d_pname;
     boost::filesystem::path d_project_dir;
@@ -158,8 +194,17 @@ namespace vise {
     bool init_project_data_dir(bool create_data_dir_if_missing=false);
 
     // visual group
-    std::set<std::string> d_group_id_list;
-    void init_group_id_list();
+    std::set<std::string> d_vgroup_id_list;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string> > d_vgroup_metadata_list;
+    const std::string d_vgroup_task_progress_table;
+    const std::string d_vgroup_match_table;
+    const std::string d_vgroup_metadata_table;
+    const std::string d_vgroup_region_table;
+    const std::string d_vgroup_table;
+    const std::string d_vgroup_inv_table;
+    void init_vgroup_id_list();
+    void load_vgroup_metadata(const std::string vgroup_id,
+                              std::unordered_map<std::string, std::string> &vgroup_metadata) const;
   };
 }
 #endif
