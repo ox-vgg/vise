@@ -53,95 +53,89 @@ spatialVerifV2::queryExecute( rr::indexEntry &queryRep, std::vector<indScorePair
   spatialQueryExecute(queryRep, queryRes, NULL, NULL, toReturn, true);
 }
 
-
-
 void
-spatialVerifV2::spatialQueryExecute(rr::indexEntry &queryRep,
-                                    std::vector<indScorePair> &queryRes,
-                                    std::map<uint32_t, homography> *Hs,
-                                    std::set<uint32_t> *ignoreDocs,
-                                    uint32_t toReturn,
-                                    bool queryFirst,
-                                    bool forgetFirst,
-                                    const unsigned int nthread) const {
-  //assert( !forgetFirst || queryFirst );
-  ASSERT(queryRep.id_size()==queryRep.x_size() || queryRep.id_size()==queryRep.qx_size());
-  ASSERT(queryRep.id_size()==queryRep.y_size() || queryRep.id_size()==queryRep.qy_size());
-  ASSERT( ignoreDocs==NULL ); // TODO
+spatialVerifV2::spatialQueryExecute(
+        rr::indexEntry &queryRep,
+        std::vector<indScorePair> &queryRes,
+        std::map<uint32_t, homography> *Hs,
+        std::set<uint32_t> *ignoreDocs,
+        uint32_t toReturn,
+        bool queryFirst,
+        bool forgetFirst,
+        const unsigned int nthread) const {
 
-  uint32_t spatialDepthEff= spatParams_.spatialDepth;
+    assert( !forgetFirst || queryFirst );
+    ASSERT(queryRep.id_size()==queryRep.x_size() || queryRep.id_size()==queryRep.qx_size());
+    ASSERT(queryRep.id_size()==queryRep.y_size() || queryRep.id_size()==queryRep.qy_size());
+    ASSERT( ignoreDocs==NULL ); // TODO
 
-  if (ignoreDocs!=NULL) {
-    spatialDepthEff+= ignoreDocs->size();
-  }
+    uint32_t spatialDepthEff= spatParams_.spatialDepth;
 
-  ASSERT(verifyFromIidx_);
-  uniqEntries ue;
-  iidx_->getUniqEntries(queryRep, ue);
-  precompUEIterator ueIter(ue);
+    if (ignoreDocs!=NULL)
+        spatialDepthEff+= ignoreDocs->size();
 
-  std::vector<indScorePair> initial_query_results;
-  if (queryFirst){
-    uint32_t toReturnFirst= toReturn;
-    if (toReturn!=0 && toReturnFirst < spatialDepthEff ) {
-      toReturnFirst= spatialDepthEff;
+    ASSERT(verifyFromIidx_);
+    uniqEntries ue;
+    iidx_->getUniqEntries(queryRep, ue);
+    precompUEIterator ueIter(ue);
+
+    if (queryFirst){
+        uint32_t toReturnFirst= toReturn;
+        if (toReturn!=0 && toReturnFirst < spatialDepthEff )
+            toReturnFirst= spatialDepthEff;
+        std::vector<indScorePair> queryResDummy;
+        firstRetriever_->queryExecute( queryRep, &ueIter, forgetFirst ? queryResDummy : queryRes, toReturnFirst );
+        // queryExecute could change queryRep, so check it hasn't changed id_size
+        ASSERT(ueIter.getNum()==static_cast<uint32_t>(queryRep.id_size()));
     }
-    firstRetriever_->queryExecute( queryRep, &ueIter, initial_query_results, toReturnFirst );
-    // queryExecute could change queryRep, so check it hasn't changed id_size
-    ASSERT(ueIter.getNum()==static_cast<uint32_t>(queryRep.id_size()));
-  }
 
-  if (spatialDepthEff > initial_query_results.size()) {
-    spatialDepthEff = initial_query_results.size();
-  }
+    if (spatialDepthEff>queryRes.size())
+        spatialDepthEff= queryRes.size();
 
-  // create ellipses of the query
-  std::vector<ellipse> ellipses1;
-  createEllipses(queryRep, ellipses1);
+    // create ellipses of the query
+    std::vector<ellipse> ellipses1;
+    createEllipses(queryRep, ellipses1);
 
-  // which docIDs to verify?
-  std::vector<uint32_t> docIDtoVerify(spatialDepthEff);
-  for (uint32_t i= 0; i<spatialDepthEff; ++i) {
-    docIDtoVerify[i]= initial_query_results[i].first;
-  }
-  std::sort(docIDtoVerify.begin(), docIDtoVerify.end());
+    // which docIDs to verify?
+    std::vector<uint32_t> docIDtoVerify(spatialDepthEff);
+    for (uint32_t i= 0; i<spatialDepthEff; ++i)
+        docIDtoVerify[i]= queryRes[i].first;
+    std::sort(docIDtoVerify.begin(), docIDtoVerify.end());
 
-  // prepare for DAAT output (returns ind into unique queryRep.id's)
-  std::vector<int> uniqIndToInd;
-  ue.getUniqIndToInd(uniqIndToInd);
+    // prepare for DAAT output (returns ind into unique queryRep.id's)
+    std::vector<int> uniqIndToInd;
+    ue.getUniqIndToInd(uniqIndToInd);
 
-  // create DAAT iterator
-  ueIter.reset();
-  daat daatIter(&ueIter, &docIDtoVerify);
+    // create DAAT iterator
+    ueIter.reset();
+    daat daatIter(&ueIter, &docIDtoVerify);
 
-  // prepare parallel
+    // prepare parallel
 
-  boost::mutex daatLock;
+    boost::mutex daatLock;
 
-  // synchronous DAAT call is relatively expensive so the gain of using
-  // multiple threads is not large (maybe re-evalaute this?)
-  /*
-  uint32_t conf_nthread = vise::configuration_get_nthread();
-  uint32_t const numWorkerThreads= std::min(
-                                            static_cast<uint32_t>(detectUseThreads() ? conf_nthread : 1),
-                                            spatialDepthEff);
-  */
-  std::vector<queueWorker<Result> const *> workers;
-  for (uint32_t iThread= 0; iThread < nthread; ++iThread) {
-    workers.push_back( new spatWorker(ellipses1, ue, daatIter, daatLock, uniqIndToInd, spatParams_, elUnquant_, sameRandomObj_) );
-  }
+    // synchronous DAAT call is relatively expensive so the gain of using
+    // multiple threads is not large (maybe re-evalaute this?)
+    uint32_t const numWorkerThreads= std::min(
+        static_cast<uint32_t>(detectUseThreads() ? 10 : 1),
+        spatialDepthEff);
 
-  spatManager manager( forgetFirst, initial_query_results, queryRes, spatParams_, spatialDepthEff, Hs );
+    std::vector<queueWorker<Result> const *> workers;
+    for (uint32_t iThread= 0; iThread < numWorkerThreads; ++iThread)
+        workers.push_back( new spatWorker(ellipses1, ue, daatIter, daatLock, uniqIndToInd, spatParams_, elUnquant_, sameRandomObj_) );
 
-  // start the threads
+    spatManager manager( queryRes, spatParams_, spatialDepthEff, Hs );
 
-  threadQueue<Result>::start(
-                             spatialDepthEff, workers, manager
-                             );
-  // cleanup
-  util::delPointerVector(workers);
+    // start the threads
 
-  retriever::sortResults( queryRes, spatialDepthEff, toReturn );
+    threadQueue<Result>::start(
+        spatialDepthEff, workers, manager
+    );
+
+    // cleanup
+    util::delPointerVector(workers);
+
+    retriever::sortResults( queryRes, spatialDepthEff, toReturn );
 }
 
 void spatialVerifV2::get_matches_using_features(const std::string &image_features,
@@ -497,64 +491,44 @@ spatialVerifV2::getPutativeMatches(
 }
 
 
-
-spatialVerifV2::spatManager::spatManager(bool forget_initial_results,
-                                         std::vector<indScorePair> &initial_query_results,
-                                         std::vector<indScorePair> &queryRes,
-                                         spatParams const &spatParamsObj,
-                                         uint32_t spatialDepthEff,
-                                         std::map<uint32_t, homography> *Hs)
-  : d_forget_initial_results(forget_initial_results),
-    d_initial_query_results(&initial_query_results),
-    queryRes_(&queryRes), spatParams_(&spatParamsObj), spatialDepthEff_(spatialDepthEff), Hs_(Hs) {
+spatialVerifV2::spatManager::spatManager(
+        std::vector<indScorePair> &queryRes,
+        spatParams const &spatParamsObj,
+        uint32_t spatialDepthEff,
+        std::map<uint32_t, homography> *Hs)
+        : queryRes_(&queryRes), spatParams_(&spatParamsObj), spatialDepthEff_(spatialDepthEff), Hs_(Hs) {
 }
 
 
 
 void
-spatialVerifV2::spatManager::operator() (uint32_t resInd, Result &result) {
-  // Result = <docID, <score,#inliers>, H>
-  if(result.first.second.second >= spatParams_->minInliers ) {
-    uint32_t docID= result.first.first;
-    double score = result.first.second.first;
-    uint32_t i;
-    for (i= 0; i<spatialDepthEff_; ++i) {
-      if(d_initial_query_results->at(i).first == docID) {
-        score = score + d_initial_query_results->at(i).second;
-        break;
-      }
-    }
-    queryRes_->push_back( std::make_pair(docID, score) );
-    if (Hs_!=NULL)
-      (*Hs_)[docID]= result.second;
-  } else {
-    if(!d_forget_initial_results) {
-      uint32_t docID= result.first.first;
-      uint32_t i;
-      for (i= 0; i<spatialDepthEff_; ++i) {
-        if(d_initial_query_results->at(i).first == docID) {
-          double score = d_initial_query_results->at(i).second;
-          queryRes_->push_back( std::make_pair(docID, score) );
-          if (Hs_!=NULL) {
+spatialVerifV2::spatManager::operator() (uint32_t resInd, Result &result){
+
+    if (result.first.second.second >= spatParams_->minInliers){
+        // success
+        uint32_t docID= result.first.first;
+        uint32_t i;
+        for (i= 0; i<spatialDepthEff_ && queryRes_->at(i).first!=docID; ++i);
+        ASSERT(i<spatialDepthEff_);
+        queryRes_->at(i).second+= result.first.second.first;
+        if (Hs_!=NULL)
             (*Hs_)[docID]= result.second;
-          }
-          break;
-        }
-      }
     }
-  }
+
 }
 
+
+
 spatialVerifV2::spatWorker::spatWorker(
-                                       std::vector<ellipse> const &ellipses1,
-                                       uniqEntries const &ue,
-                                       daat &daatIter,
-                                       boost::mutex &daatLock,
-                                       std::vector<int> const &uniqIndToInd,
-                                       spatParams const &spatParamsObj,
-                                       ellipseUnquantizer const &elUnquant,
-                                       sameRandomUint32 const &sameRandomObj) :
-  ellipses1_(&ellipses1), ue_(&ue), daatIter_(&daatIter), daatLock_(&daatLock), uniqIndToInd_(&uniqIndToInd), spatParams_(&spatParamsObj), elUnquant_(&elUnquant), sameRandomObj_(&sameRandomObj){
+        std::vector<ellipse> const &ellipses1,
+        uniqEntries const &ue,
+        daat &daatIter,
+        boost::mutex &daatLock,
+        std::vector<int> const &uniqIndToInd,
+        spatParams const &spatParamsObj,
+        ellipseUnquantizer const &elUnquant,
+        sameRandomUint32 const &sameRandomObj) :
+        ellipses1_(&ellipses1), ue_(&ue), daatIter_(&daatIter), daatLock_(&daatLock), uniqIndToInd_(&uniqIndToInd), spatParams_(&spatParamsObj), elUnquant_(&elUnquant), sameRandomObj_(&sameRandomObj){
 }
 
 
@@ -562,64 +536,62 @@ spatialVerifV2::spatWorker::spatWorker(
 void
 spatialVerifV2::spatWorker::operator() (uint32_t resInd, Result &result) const {
 
-  // iterate DAAT to get putative matches
-  bool foundEntry= false;
-  std::vector< std::pair<uint32_t,uint32_t> > const *entryInd= NULL;
-  std::vector<uint32_t> const *nonEmptyEntryInd= NULL;
+    // iterate DAAT to get putative matches
+    bool foundEntry= false;
+    std::vector< std::pair<uint32_t,uint32_t> > const *entryInd= NULL;
+    std::vector<uint32_t> const *nonEmptyEntryInd= NULL;
 
-  boost::mutex::scoped_lock daatLock(*daatLock_);
+    boost::mutex::scoped_lock daatLock(*daatLock_);
 
-  while (!daatIter_->isEnd()){
+    while (!daatIter_->isEnd()){
 
-    daatIter_->advance();
-    if (!daatIter_->getMatches(entryInd, nonEmptyEntryInd))
-      continue;
+        daatIter_->advance();
+        if (!daatIter_->getMatches(entryInd, nonEmptyEntryInd))
+            continue;
 
-    foundEntry= true;
-    break;
-  }
+        foundEntry= true;
+        break;
+    }
 
-  if (!foundEntry){
-    result.first.second.first= 0;
-    return;
-  }
+    if (!foundEntry){
+        result.first.second.first= 0;
+        return;
+    }
 
-  std::vector<uint32_t> const nonEmptyEntryIndC= *nonEmptyEntryInd;
-  entryIndC_.resize( entryInd->size() );
-  // copy only nonEmpty entryInd
-  for (uint32_t iInd= 0; iInd<nonEmptyEntryInd->size(); ++iInd){
-    uint32_t uniqInd= nonEmptyEntryInd->at(iInd);
-    entryIndC_[uniqInd]= entryInd->at(uniqInd);
-  }
+    std::vector<uint32_t> const nonEmptyEntryIndC= *nonEmptyEntryInd;
+    entryIndC_.resize( entryInd->size() );
+    // copy only nonEmpty entryInd
+    for (uint32_t iInd= 0; iInd<nonEmptyEntryInd->size(); ++iInd){
+        uint32_t uniqInd= nonEmptyEntryInd->at(iInd);
+        entryIndC_[uniqInd]= entryInd->at(uniqInd);
+    }
 
-  uint32_t docID= daatIter_->getDocID();
+    uint32_t docID= daatIter_->getDocID();
 
-  daatLock.unlock();
+    daatLock.unlock();
 
-  // form putative matches
-  getPutativeMatches(*ue_, *uniqIndToInd_,
-                     nonEmptyEntryIndC, entryIndC_,
-                     *elUnquant_,
-                     ellipses2_, putativeMatches_);
+    // form putative matches
+    getPutativeMatches(*ue_, *uniqIndToInd_,
+                       nonEmptyEntryIndC, entryIndC_,
+                       *elUnquant_,
+                       ellipses2_, putativeMatches_);
 
-  // do matching
-  uint32_t numInliers= 0;
+    // do matching
+    uint32_t numInliers= 0;
+    double score=
+        detRansac::match(
+                      *sameRandomObj_,
+                      numInliers,
+                      *ellipses1_, ellipses2_,
+                      putativeMatches_,
+                      NULL,
+                      spatParams_->errorThr,
+                      spatParams_->lowAreaChange, spatParams_->highAreaChange,
+                      spatParams_->maxReest,
+                      &result.second, NULL
+                    );
 
-  double score=
-    detRansac::match(
-                     *sameRandomObj_,
-                     numInliers,
-                     *ellipses1_, ellipses2_,
-                     putativeMatches_,
-                     NULL,
-                     spatParams_->errorThr,
-                     spatParams_->lowAreaChange, spatParams_->highAreaChange,
-                     spatParams_->maxReest,
-                     &result.second, NULL
-                     );
-
-  // <docID, <score,#inliers>, H>
-  result.first.first= docID;
-  result.first.second.first= score;
-  result.first.second.second= numInliers;
+    result.first.first= docID;
+    result.first.second.first= score;
+    result.first.second.second= numInliers;
 }

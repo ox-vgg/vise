@@ -164,16 +164,12 @@ private:
 
   class spatManager : public queueManager<Result> {
   public:
-    spatManager(bool forget_initial_results,
-                std::vector<indScorePair> &initial_query_results,
-                std::vector<indScorePair> &queryRes,
+    spatManager(std::vector<indScorePair> &queryRes,
                 spatParams const &spatParamsObj,
                 uint32_t spatialDepthEff,
                 std::map<uint32_t, homography> *Hs= NULL);
     void operator() (uint32_t resInd, Result &result);
   private:
-    bool d_forget_initial_results;
-    std::vector<indScorePair> *d_initial_query_results;
     std::vector<indScorePair> *queryRes_;
     spatParams const *spatParams_;
     uint32_t spatialDepthEff_;
@@ -209,7 +205,6 @@ private:
 
     DISALLOW_COPY_AND_ASSIGN(spatWorker)
   };
-
 private:
   DISALLOW_COPY_AND_ASSIGN(spatialVerifV2)
 };

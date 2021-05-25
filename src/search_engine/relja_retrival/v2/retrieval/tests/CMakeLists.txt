@@ -58,4 +58,20 @@ else(APPLE)
 		${Boost_LIBRARIES}
 		OpenMP::OpenMP_CXX
 	)
+
+	add_executable( retv2_temp retv2_temp.cpp )
+	target_link_libraries( retv2_temp
+	    dataset_v2
+	    evaluator_v2
+	    hamming
+	    proto_db
+	    proto_db_file
+	    proto_index
+	    spatial_verif_v2
+	    feat_standard
+	    tfidf_v2
+	    ${ImageMagick_LIBRARIES}
+            ${Boost_LIBRARIES}
+            OpenMP::OpenMP_CXX
+	)
 endif(APPLE)
