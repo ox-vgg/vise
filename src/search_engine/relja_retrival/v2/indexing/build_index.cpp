@@ -204,7 +204,6 @@ namespace buildIndex {
     std::map<uint32_t, buildResultSemiSorted> results_;
     std::ofstream *d_logf;
     vise::task_progress *d_progress;
-
     DISALLOW_COPY_AND_ASSIGN(buildManagerSemiSorted)
   };
 
@@ -215,7 +214,9 @@ namespace buildIndex {
     // make sure results are saved sorted by job/docID!
     results_[jobID]= result;
     if(result.second.first == 0 && result.second.second == 0) {
-      (*d_logf) << "index:: SKIPPED=" << result.first << ", REASON=either image is malformed (i.e. widht or height is 0) or there are no features." << std::endl;
+      (*d_logf) << "index:: WARNING: " << result.first
+                << " is either malformed (i.e. width or height is 0) or there are no features."
+                << std::endl;
     }
 
     if (jobID==nextID_){
@@ -404,16 +405,14 @@ namespace buildIndex {
 
     float *itD= descs;
 
-    // assign each feature to a clusters
     VlKDForestSearcher* kd_forest_searcher = vl_kdforest_new_searcher(kd_forest_);
-
     VlKDForestNeighbor cluster;
     for (uint32_t iFeat=0; iFeat<numFeats; ++iFeat){
       ellipse const &region= regions[iFeat];
-
       vl_kdforestsearcher_query(kd_forest_searcher, &cluster, 1, (descs + iFeat*numDims_));
-      wordIDsUnique.push_back( cluster.index );
-      wordIDs->AddAlreadyReserved( cluster.index );
+      uint32_t cluster_id = cluster.index;
+      wordIDsUnique.push_back(cluster_id);
+      wordIDs->AddAlreadyReserved(cluster_id);
       qx->AddAlreadyReserved( round(region.x) );
       qy->AddAlreadyReserved( round(region.y) );
       a->AddAlreadyReserved( region.a );
@@ -422,11 +421,11 @@ namespace buildIndex {
 
       if (emb_->doesSomething()){
         float *thisDesc= itD;
-        float const *itC= clstCentres_->clstC_flat + cluster.index * numDims_;
+        float const *itC= clstCentres_->clstC_flat + cluster_id * numDims_;
         float const *endC= itC + numDims_;
         for (; itC!=endC; ++itC, ++itD)
           *itD -= *itC;
-        emb_->add(thisDesc, cluster.index);
+        emb_->add(thisDesc, cluster_id);
       }
 
     }
@@ -1065,7 +1064,7 @@ namespace buildIndex {
       clstCentres clstCentres_obj( clstFn.c_str(), true );
       if (rank==0) {
         logf << "index:: Loading " << clstCentres_obj.numClst
-             << "cluster centres of dimension " << clstCentres_obj.numDims
+             << " cluster centres of dimension " << clstCentres_obj.numDims
              << " - DONE ("<< timing::toc(t0) <<" ms)"
              << std::endl;
       }
@@ -1078,7 +1077,7 @@ namespace buildIndex {
       // build kd-tree for nearest neighbour search
       // to assign cluster-id for each descriptor
       std::size_t num_trees = 8;
-      std::size_t max_num_checks = 512;
+      std::size_t max_num_checks = 1024;
       VlKDForest* kd_forest = vl_kdforest_new( VL_TYPE_FLOAT, clstCentres_obj.numDims, num_trees, VlDistanceL2 );
       vl_kdforest_set_max_num_comparisons(kd_forest, max_num_checks);
       vl_kdforest_build(kd_forest, clstCentres_obj.numClst, clstCentres_obj.clstC_flat);
@@ -1124,15 +1123,15 @@ namespace buildIndex {
       uint32_t totalFeats= 0;
 
       if (useThreads){
-
         std::vector<queueWorker<buildResultSemiSorted> const *> workers;
-        for (uint32_t i= 0; i<nthread; ++i)
+        for (uint32_t i= 0; i<nthread; ++i) {
           workers.push_back( new buildWorkerSemiSorted(
                                                        tmpDir, imagelistFn, databasePath,
                                                        featGetter_obj,
                                                        kd_forest,
                                                        &clstCentres_obj,
                                                        embFactory) );
+        }
 
         logf << "index:: workers count = " << workers.size() << std::endl;
 

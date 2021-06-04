@@ -26,6 +26,30 @@ namespace buildIndex {
                              const unsigned int nthread,
                              vise::task_progress *progress = nullptr);
 
+  void compute_centroids(float *descriptors_rootsift,
+                         const std::vector<uint32_t> &descriptor_cluster_assignment,
+                         const uint32_t descriptor_count,
+                         const uint32_t descriptor_dimension,
+                         const uint32_t bow_cluster_count,
+                         float *cluster_centers,
+                         uint32_t *cluster_descriptor_count,
+                         std::ofstream &logf);
+
+  void save_clusters(const std::string cluster_data_fn,
+                     const uint32_t bow_cluster_count,
+                     const uint32_t descriptor_dimension,
+                     const uint32_t iter,
+                     const uint32_t cluster_num_iteration,
+                     const uint32_t descriptor_count,
+                     const float cluster_distance_sum,
+                     const uint32_t random_seed,
+                     const std::vector<float> &cluster_centers,
+                     std::ofstream &logf);
+
+  void convert_sift_to_rootsift(uint8_t *descriptors_sift,
+                                const uint32_t descriptor_dimension,
+                                const uint32_t descriptor_count,
+                                float *descriptors_rootsift);
 }
 
 #endif

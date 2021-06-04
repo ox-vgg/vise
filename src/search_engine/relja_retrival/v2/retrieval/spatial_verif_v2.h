@@ -109,7 +109,7 @@ public:
     rr::indexEntry queryRep;
     getQueryRep(queryObj, queryRep);
     bool use_initial_results = true;
-    bool forget_initial_results = true;
+    bool forget_initial_results = false;
     spatialQueryExecute( queryRep, queryRes, &Hs, NULL, toReturn, use_initial_results, forget_initial_results, nthread );
   }
 

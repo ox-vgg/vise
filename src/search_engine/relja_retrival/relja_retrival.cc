@@ -348,7 +348,7 @@ void vise::relja_retrival::create_index() {
   ss >> hamm_embedding_bits;
 
   std::ostringstream feat_getter_param;
-  feat_getter_param << "hesaff-sift";
+  feat_getter_param << "hesaff-rootsift";
   if (d_pconf.count("sift_scale_3")) {
     feat_getter_param << "-scale3";
   }
@@ -487,7 +487,7 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     index_status_f.close();
 
     // delete d_traindesc_fn as it is no longer needed, @todo: review this action in future
-    std::cout << "deleting traindesc file: " << d_traindesc_fn << std::endl;
+    d_log << "deleting traindesc file (no longer needed): " << d_traindesc_fn << std::endl;
     boost::filesystem::remove(d_traindesc_fn);
 
     callback();
@@ -635,7 +635,7 @@ void vise::relja_retrival::index_load(bool &success,
       use_root_sift = false;
     }
     std::ostringstream feat_getter_param;
-    feat_getter_param << "hesaff-sift";
+    feat_getter_param << "hesaff-rootsift";
     if (d_pconf.count("sift_scale_3")) {
       feat_getter_param << "-scale3";
     }

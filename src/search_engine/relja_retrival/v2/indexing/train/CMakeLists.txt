@@ -12,7 +12,7 @@ target_link_libraries( train_assign
     image_util
     par_queue
     same_random
-    ${VLFEAT_LIB} 
+    ${VLFEAT_LIB}
     ${Boost_LIBRARIES} )
 
 add_library( train_descs STATIC train_descs.cpp )
