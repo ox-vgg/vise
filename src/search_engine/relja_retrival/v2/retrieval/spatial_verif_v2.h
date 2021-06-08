@@ -109,7 +109,7 @@ public:
     rr::indexEntry queryRep;
     getQueryRep(queryObj, queryRep);
     bool use_initial_results = true;
-    bool forget_initial_results = false;
+    bool forget_initial_results = true;
     spatialQueryExecute( queryRep, queryRes, &Hs, NULL, toReturn, use_initial_results, forget_initial_results, nthread );
   }
 
@@ -164,12 +164,16 @@ private:
 
   class spatManager : public queueManager<Result> {
   public:
-    spatManager(std::vector<indScorePair> &queryRes,
+    spatManager(bool forget_initial_results,
+                std::vector<indScorePair> &initial_query_results,
+                std::vector<indScorePair> &queryRes,
                 spatParams const &spatParamsObj,
                 uint32_t spatialDepthEff,
                 std::map<uint32_t, homography> *Hs= NULL);
     void operator() (uint32_t resInd, Result &result);
   private:
+    bool d_forget_initial_results;
+    std::vector<indScorePair> *d_initial_query_results;
     std::vector<indScorePair> *queryRes_;
     spatParams const *spatParams_;
     uint32_t spatialDepthEff_;
@@ -205,6 +209,7 @@ private:
 
     DISALLOW_COPY_AND_ASSIGN(spatWorker)
   };
+
 private:
   DISALLOW_COPY_AND_ASSIGN(spatialVerifV2)
 };
