@@ -361,7 +361,7 @@ bool vise::project::use_preset_conf_1() {
   // load generic visual vocabulary configuration
   boost::filesystem::path generic_vvoc_dir(d_conf.at("vise-asset-dir"));
   generic_vvoc_dir = generic_vvoc_dir / "relja_retrival";
-  generic_vvoc_dir = generic_vvoc_dir / "visual-vocabulary";
+  generic_vvoc_dir = generic_vvoc_dir / "visual_vocabulary";
   generic_vvoc_dir = generic_vvoc_dir / "latest";
   boost::filesystem::path generic_vvoc_conf_fn = generic_vvoc_dir / "generic_visual_vocab_conf.txt";
   std::cout << "generic_vvoc_conf_fn=" << generic_vvoc_conf_fn << std::endl;
