@@ -59,6 +59,7 @@ int CALLBACK WinMain(
     _In_ int       nCmdShow
 )
 {
+  /*
   // @todo: remove for release
   // for debugging Windows 10 builds
   FILE* fp;
@@ -67,6 +68,7 @@ int CALLBACK WinMain(
   freopen_s(&fp, "CONIN$", "r", stdin);
   freopen_s(&fp, "CONOUT$", "w", stdout);
   freopen_s(&fp, "CONOUT$", "w", stderr);
+  */
 
   vise::init_vise_settings(::vise_settings);
   char exec_path[MAX_PATH];

@@ -260,7 +260,7 @@ function _vise_show_admintool() {
   project_del_container.appendChild(form);
 
   var note = document.createElement('p');
-  note.innerHTML = 'Note: All projects are stored at <code>' + _vise_data.VISE_STORE + '</code>. To delete a project, you can delete the corresponding folder in this store. Windows locks the VISE project folders when the VISE application is running and therefore you should close the VISE application before manually deleting the project folder. Due to this constraint, it is <strong>not possible</strong> to delete projects using this interface in Windows.';
+  note.innerHTML = 'Note: All projects are stored at <code>' + _vise_data['SETTINGS']['vise-home-dir'] + '</code>. To delete a project, you can delete the corresponding folder in this store. Windows locks the VISE project folders when the VISE application is running and therefore you should close the VISE application before manually deleting the project folder. Due to this constraint, it is <strong>not possible</strong> to delete projects using this interface in Windows.';
   project_del_container.appendChild(note);
 
   admintool_container.appendChild(title);
