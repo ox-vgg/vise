@@ -34,39 +34,32 @@ target_link_libraries(connection project_manager)
 add_library(http_server STATIC http_server.cc)
 target_link_libraries(http_server vise_util project_manager http_request http_response connection ${Boost_LIBRARIES})
 
-if (WIN32)
-	add_executable(VISE WIN32 vise.cc ${WINDOWS_RESOURCE_FILENAME})
+if(WIN32)
+	add_executable(VISE WIN32 vise-gui-win.cc ${WINDOWS_RESOURCE_FILENAME})
 	target_link_libraries(VISE vise_util http_server ${ImageMagick_LIBRARIES})
-
-	#add_executable(VISE vise.cc)
-	#target_link_libraries(VISE vise_util http_server ${ImageMagick_LIBRARIES})
-
 	install(TARGETS VISE DESTINATION bin)
+
+  # vise-cli is not yet ready for release
+  #add_executable(vise-cli vise-cli.cc)
+  #target_link_libraries(vise-cli vise_util http_server ${ImageMagick_LIBRARIES})
+  #install(TARGETS vise-cli DESTINATION bin)
 endif(WIN32)
-if(APPLE)
-	add_executable(vise vise.cc)
-	target_link_libraries(vise vise_util http_server ${ImageMagick_LIBRARIES} -lvl)
-else(APPLE)
+
+if(UNIX AND NOT APPLE)
 	add_executable(vise vise.cc)
 	target_link_libraries(vise vise_util http_server ${ImageMagick_LIBRARIES})
-endif(APPLE)
-
-add_executable(vise-cli vise-cli.cc)
-if(APPLE)
-  target_link_libraries(vise-cli vise_util http_server ${ImageMagick_LIBRARIES} -lvl)
-else(APPLE)
+  add_executable(vise-cli vise-cli.cc)
   target_link_libraries(vise-cli vise_util http_server ${ImageMagick_LIBRARIES})
-endif(APPLE)
+  add_executable(project_manager_test project_manager_test.cc)
+  target_link_libraries( project_manager_test project_manager http_request http_response project vise_util)
+endif(UNIX AND NOT APPLE)
 
-#add_executable(unit_tests unit_tests.cc)
-#target_link_libraries(unit_tests vise_util ${Boost_LIBRARIES})
-
-add_executable(project_manager_test project_manager_test.cc)
 if(APPLE)
+  ## MacOS
+	add_executable(vise vise.cc)
+	target_link_libraries(vise vise_util http_server ${ImageMagick_LIBRARIES} -lvl)
+  add_executable(vise-cli vise-cli.cc)
+  target_link_libraries(vise-cli vise_util http_server ${ImageMagick_LIBRARIES} -lvl)
+  add_executable(project_manager_test project_manager_test.cc)
   target_link_libraries( project_manager_test project_manager http_request http_response project vise_util -lvl)
-else(APPLE)
-  target_link_libraries(project_manager_test project_manager http_request http_response project vise_util)
 endif(APPLE)
-
-#add_test(NAME unit_tests COMMAND unit_tests WORKING_DIRECTORY ${VISE_SOURCE_ROOT_DIR})
-#add_test(NAME project_manager_test COMMAND project_manager_test WORKING_DIRECTORY ${VISE_SOURCE_ROOT_DIR})

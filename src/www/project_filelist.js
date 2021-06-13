@@ -44,7 +44,7 @@ search_panel_mode.setAttribute('value', _vise_data['FLIST_MODE']);
 var help_panel = document.createElement('div');
 help_panel.setAttribute('id', 'help_panel');
 help_panel.setAttribute('class', 'hide');
-help_panel.innerHTML = '<table><tr><th>Search Keyword</th><th>Result</th></tr><tr><td>Aesop</td><td>find metadata containing the exact word "Aesop" (misses Aesopus)</td></tr><tr><td>Aesop*</td><td>Finds metadata containing words starting with Aesop (e.g. Aesop, Aesopus, ...)</td></tr><tr><td>Aesopus <strong>AND</strong> Venice</td><td>finds all metadata containing keywords "Aesopus" and "Venice"</td></tr><tr><td>Aesopus <strong>OR</strong> Venice</td><td>finds all metadata either containing keyword "Aesopus" or keyword "Venice"</td></tr><tr><td>Aesopus <strong>NOT</strong> Venice</td><td>finds all metadata containing keyword "Aesopus" but not the keyword "Venice"</td></tr><tr><td>year=1460</td><td>finds all metadata with "year" attribute value as 1460</td></tr></tr><tr><td>year=(1460,1490)</td><td>finds all metadata with "year" attribute value between 1460 and 1490</td></tr></table>';
+help_panel.innerHTML = '<table><tr><th>Search Keyword</th><th>Result</th></tr><tr><td>Aesop</td><td>find metadata containing the exact word "Aesop" (misses Aesopus)</td></tr><tr><td>Aesop*</td><td>Finds metadata containing words starting with Aesop (e.g. Aesop, Aesopus, ...)</td></tr><tr><td>Aesopus <strong>AND</strong> Venice</td><td>finds all metadata containing keywords "Aesopus" and "Venice"</td></tr><tr><td>Aesopus <strong>OR</strong> Venice</td><td>finds all metadata either containing keyword "Aesopus" or keyword "Venice"</td></tr><tr><td>Aesopus <strong>NOT</strong> Venice</td><td>finds all metadata containing keyword "Aesopus" but not the keyword "Venice"</td></tr></table>';
 /*
 if(_vise_data.hasOwnProperty('METADATA_CONF')) {
   if(_vise_data['METADATA_CONF'].hasOwnProperty('file_attributes_id_list')) {
@@ -244,7 +244,7 @@ function _vise_init_filelist_search_toolbar() {
   if(_vise_data.hasOwnProperty('FLIST_QUERY')) {
     search_input.setAttribute('value', _vise_data['FLIST_QUERY']);
   }
-  search_input.setAttribute('placeholder', 'Enter a search keyword (e.g. Aesopus AND Venice)');
+  search_input.setAttribute('placeholder', 'Enter a search keyword');
   search_input.addEventListener('change', function(e) {
     if(this.value === '') {
       search_panel_mode.setAttribute('value', 'all'); // switch to full text search mode

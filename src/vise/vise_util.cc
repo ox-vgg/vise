@@ -153,63 +153,70 @@ void vise::init_default_vise_settings(std::map<std::string, std::string> &vise_s
 void vise::init_vise_settings(std::map<std::string, std::string> &vise_settings) {
   const boost::filesystem::path visehome = vise::vise_home();
   boost::filesystem::path vise_settings_fn = visehome / "vise_settings.txt";
-  //std::cout << "Using VISE application configuration from: " << vise_settings_fn << std::endl;
 
   if(!boost::filesystem::exists(vise_settings_fn)) {
     // use default configuration for VISE
-    boost::filesystem::path vise_store = visehome / "store";
-    boost::filesystem::path www_store = visehome / "www";
-    boost::filesystem::path asset_store = visehome / "asset";
+    boost::filesystem::path project_dir = visehome / "project";
+    boost::filesystem::path asset_dir = visehome / "asset";
+    boost::filesystem::path www_dir = visehome / "www";
 
     if(!boost::filesystem::exists(visehome)) {
       boost::filesystem::create_directories(visehome);
-      boost::filesystem::create_directory(vise_store);
-      boost::filesystem::create_directory(www_store);
-      boost::filesystem::create_directory(asset_store);
+      boost::filesystem::create_directory(project_dir);
+      boost::filesystem::create_directory(asset_dir);
+      boost::filesystem::create_directory(www_dir);
     }
-    boost::filesystem::path generic_visual_vocabulary(asset_store);
+    boost::filesystem::path generic_visual_vocabulary(asset_dir);
+    generic_visual_vocabulary = generic_visual_vocabulary / "relja_retrival";
     generic_visual_vocabulary = generic_visual_vocabulary / "visual_vocabulary";
-    generic_visual_vocabulary = generic_visual_vocabulary / "voc100k_hamm32_800x800_imcount90k_nbd512";
+    generic_visual_vocabulary = generic_visual_vocabulary / "latest";
 
     vise_settings.clear();
-    vise_settings["vise_store"] = vise_store.string();
-    vise_settings["www_store"] = www_store.string();
-    vise_settings["asset_store"] = asset_store.string();
-    vise_settings["address"] = "localhost";
-    vise_settings["port"] = "9669";
-    vise_settings["nthread"] = "0";
-    vise_settings["generic_visual_vocabulary"] = generic_visual_vocabulary.string();
-    vise_settings["http_uri_namespace"] = "/";
+    vise_settings["vise-home-dir"] = visehome.string();
+    vise_settings["vise-project-dir"] = project_dir.string();
+    vise_settings["vise-asset-dir"] = asset_dir.string();
+    vise_settings["http-www-dir"] = www_dir.string();
+    vise_settings["generic-visual-vocabulary"] = generic_visual_vocabulary.string();
+    vise_settings["http-address"] = "localhost";
+    vise_settings["http-port"] = "9669";
+    vise_settings["http-worker"] = "2";
+    vise_settings["http-namespace"] = "/";
+    vise_settings["nthread-indexing"] = "-1"; // use all threads
 
     vise::configuration_save(vise_settings, vise_settings_fn.string());
   } else {
     vise_settings.clear();
     vise::configuration_load(vise_settings_fn.string(), vise_settings);
+
     bool settings_changed = false;
-    if(vise_settings.count("asset_store") == 0) {
-      boost::filesystem::path asset_store = visehome / "asset";
-      boost::filesystem::create_directory(asset_store);
-      vise_settings["asset_store"] = asset_store.string();
+    if(vise_settings.count("vise-asset-dir") == 0) {
+      boost::filesystem::path asset_dir = visehome / "asset";
+      boost::filesystem::create_directory(asset_dir);
+      vise_settings["vise-asset-dir"] = asset_dir.string();
       settings_changed = true;
     }
-    if(vise_settings.count("generic_visual_vocabulary") == 0) {
-      boost::filesystem::path asset_store = visehome / "asset";
-      boost::filesystem::path generic_visual_vocabulary(asset_store);
+    if(vise_settings.count("generic-visual-vocabulary") == 0) {
+      boost::filesystem::path asset_dir = visehome / "asset";
+      boost::filesystem::path generic_visual_vocabulary(asset_dir);
+      generic_visual_vocabulary = generic_visual_vocabulary / "relja_retrival";
       generic_visual_vocabulary = generic_visual_vocabulary / "visual_vocabulary";
-      generic_visual_vocabulary = generic_visual_vocabulary / "voc100k_hamm32_800x800_imcount90k_nbd512";
-      vise_settings["generic_visual_vocabulary"] = generic_visual_vocabulary.string();
+      generic_visual_vocabulary = generic_visual_vocabulary / "latest";
+      vise_settings["generic-visual-vocabulary"] = generic_visual_vocabulary.string();
       settings_changed = true;
     }
-    if(vise_settings.count("http_uri_namespace") == 0) {
-      vise_settings["http_uri_namespace"] = "/";
+    if(vise_settings.count("http-namespace") == 0) {
+      vise_settings["http-namespace"] = "/";
       settings_changed = true;
     } else {
-      if(vise_settings.at("http_uri_namespace").back() != '/') {
-        std::string ns_with_slash = vise_settings.at("http_uri_namespace") + "/";
-        vise_settings["http_uri_namespace"] = ns_with_slash;
+      if(vise_settings.at("http-namespace").back() != '/') {
+        std::string ns_with_slash = vise_settings.at("http-namespace") + "/";
+        vise_settings["http-namespace"] = ns_with_slash;
       }
     }
-
+    if(vise_settings.count("nthread-indexing") == 0) {
+      vise_settings["nthread-indexing"] = "-1";
+      settings_changed = true;
+    }
     if(settings_changed) {
       vise::configuration_save(vise_settings, vise_settings_fn.string());
     }
@@ -594,7 +601,7 @@ uint32_t vise::getmillisecs() {
 boost::filesystem::path vise::vise_home() {
 #ifdef _WIN32
   boost::filesystem::path home(std::getenv("LOCALAPPDATA"));
-  boost::filesystem::path vise_home_dir = home / "vise";
+  boost::filesystem::path vise_home_dir = home / "VISE";
 #else
   boost::filesystem::path home(std::getenv("HOME"));
   std::string vise_dirname(".vise");

@@ -39,8 +39,9 @@ if(APPLE)
 		OpenMP::OpenMP_CXX
 		-lvl
 	)
+endif(APPLE)
 
-else(APPLE)
+if(UNIX AND NOT APPLE)
 	add_executable( test_oxford_buildings test_oxford_buildings.cc )
 	target_link_libraries( test_oxford_buildings
 		vise_util
@@ -74,4 +75,4 @@ else(APPLE)
             ${Boost_LIBRARIES}
             OpenMP::OpenMP_CXX
 	)
-endif(APPLE)
+endif()

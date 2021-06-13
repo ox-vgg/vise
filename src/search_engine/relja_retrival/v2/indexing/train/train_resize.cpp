@@ -238,6 +238,7 @@ namespace buildIndex {
            << "resize_dimension=" << resize_dimension << std::endl;
       logf << "preprocess:: converting " << type_conv_img_count
            << " images to JPEG format" << " (see " << filestat_fn << ")" << std::endl;
+      logf << "preprocess:: using " << nthread << " threads" << std::endl;
     }
 
 #ifdef RR_MPI

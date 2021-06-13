@@ -87,9 +87,18 @@ vise::project::project(std::string pname,
 // project supplied by the user
 vise::project::project(std::string pname,
                        std::map<std::string, std::string> const &vise_conf)
-  : d_pname(pname), d_conf(vise_conf), d_state(project_state::UNKNOWN),
+  : d_pname(pname),
+    d_conf(vise_conf),
+    d_state(project_state::UNKNOWN),
     d_is_index_load_ongoing(false),
-    d_app_dir_exists(false)
+    d_is_metadata_ready(false),
+    d_app_dir_exists(false),
+    d_vgroup_task_progress_table("vgroup_task_progress"),
+    d_vgroup_match_table("vgroup_match"),
+    d_vgroup_metadata_table("vgroup_metadata"),
+    d_vgroup_region_table("vgroup_region"),
+    d_vgroup_table("vgroup"),
+    d_vgroup_inv_table("vgroup_inv")
 {
   std::cout << "project(): constructing " << pname << " ..."
             << std::endl;
@@ -153,11 +162,15 @@ vise::project::project(std::string pname,
     }
   } else {
     if(d_state == vise::project_state::SEARCH_READY) {
+      d_metadata = std::unique_ptr<vise::metadata>(new vise::metadata(d_pname, d_data_dir));
+      if(d_metadata->is_metadata_available()) {
+        d_is_metadata_ready = true;
+      }
+
       // load the name of groups allowed to be queried
       init_vgroup_id_list();
     }
   }
-
 }
 
 vise::project::~project() {
@@ -347,8 +360,9 @@ bool vise::project::use_preset_conf_1() {
 
   // load generic visual vocabulary configuration
   boost::filesystem::path generic_vvoc_dir(d_conf.at("vise-asset-dir"));
-  generic_vvoc_dir = generic_vvoc_dir / "relja-retrival";
+  generic_vvoc_dir = generic_vvoc_dir / "relja_retrival";
   generic_vvoc_dir = generic_vvoc_dir / "visual-vocabulary";
+  generic_vvoc_dir = generic_vvoc_dir / "latest";
   boost::filesystem::path generic_vvoc_conf_fn = generic_vvoc_dir / "generic_visual_vocab_conf.txt";
   std::cout << "generic_vvoc_conf_fn=" << generic_vvoc_conf_fn << std::endl;
   std::map<std::string, std::string> generic_vvoc_conf;

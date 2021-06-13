@@ -131,7 +131,9 @@ namespace buildIndex {
     logf << "cluster:: assigning initial clusters to random descriptors ... " << std::endl;
     std::vector<uint32_t> descriptors_index_list( descriptor_count );
 #pragma omp parallel for
-    for ( std::size_t i = 0; i < descriptor_count; ++i ) {
+    // use index variable of type "long long int" instead of "std::size_t"
+    // because Windows MSVC compiler required OpenMP index variables to be signed integer
+    for ( long long int i = 0; i < descriptor_count; ++i ) {
       descriptors_index_list[i] = i;
     }
 
@@ -140,7 +142,7 @@ namespace buildIndex {
     std::random_shuffle( descriptors_index_list.begin(), descriptors_index_list.end() );
 
 #pragma omp parallel for
-    for ( std::size_t ci = 0; ci<bow_cluster_count; ++ci ) {
+    for ( long long int ci = 0; ci<bow_cluster_count; ++ci ) {
       float *descriptor = descriptors_rootsift.data() + descriptors_index_list[ci] * descriptor_dimension;
       float *cluster = cluster_centers.data() + ci * descriptor_dimension;
       for ( std::size_t j = 0; j < descriptor_dimension; ++j ) {
@@ -341,7 +343,7 @@ namespace buildIndex {
                                 float *descriptors_rootsift) {
     std::vector<uint32_t> descriptors_sum(descriptor_count, 0);
 #pragma omp parallel for
-    for ( std::size_t i = 0; i < descriptor_count; ++i ) {
+    for ( long long int i = 0; i < descriptor_count; ++i ) {
       uint8_t *descriptor = descriptors_sift + i * descriptor_dimension;
       for(std::size_t j=0; j<descriptor_dimension; ++j) {
         descriptors_sum[i] += descriptor[j];

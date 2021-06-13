@@ -1,0 +1,26 @@
+# CI/CD configuration for VGG Image Search Engine (VISE)
+# https://gitlab.com/vgg/vise
+# https://www.robots.ox.ac.uk/~vgg/software/vise/
+#
+# Author: Abhishek Dutta <adutta@robots.ox.ac.uk>
+# Date  : 13-June-2021
+
+stages:
+  - build
+  - test
+
+Windows-10-Build:
+  stage: build
+  tags:
+    - vgg-windows-10-builder
+  script:
+    - echo "Building VISE for Windows 64 bit"
+    - cmd.exe /Q /C "C:\Users\tlm\code\vise\scripts\dist\build-win64.cmd"
+
+Windows-10-Test:
+  stage: test
+  tags:
+    - vgg-windows-10-builder
+  script:
+    - echo "Testing VISE on Oxford-Buildings-100 subset"
+    - C:\Users\tlm\build\vise\release\Win64\tests\Release\test_oxford_buildings oxford-buildings-100 "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\images" "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\gt" 0.03 "C:\Users\tlm\build\vise\tests"

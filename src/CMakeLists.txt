@@ -26,7 +26,8 @@ set (VISE_NAME "VISE")
 set (VISE_FULLNAME "VGG Image Search Engine")
 set (VISE_VERSION_MAJOR "2")
 set (VISE_VERSION_MINOR "0")
-set (VISE_VERSION_PATCH "0-beta5")
+string(TIMESTAMP TODAY_TIMESTAMP "%Y%m%d")
+set (VISE_VERSION_PATCH "0-build-${TODAY_TIMESTAMP}")
 configure_file (
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h.in"
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
@@ -40,7 +41,7 @@ if (WIN32)
   message("************************************************************")
   message("************ Compiling for Windows Platform ****************")
   message("************************************************************")
-  SET(WINDOWS_RESOURCE_FILENAME "${CMAKE_CURRENT_SOURCE_DIR}/res/win/vise.rc")
+  SET(WINDOWS_RESOURCE_FILENAME "${CMAKE_SOURCE_DIR}/res/win/vise.rc")
 
   SET (VLFEAT_LIB "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21\\bin\\win64\\vl.lib")
   SET (VLFEAT_INCLUDE_DIR "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21")
@@ -51,6 +52,9 @@ if (WIN32)
   SET (Protobuf_FIND_VERSION "2.6.1")
   SET (Protobuf_PROTOC_EXECUTABLE "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\protoc.exe")
   SET (Protobuf_LIBRARIES "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\libprotobuf.lib")
+  SET (SQLite3_INCLUDE_DIR "C:\\Users\\tlm\\dep\\vise\\sqlite3\\sqlite-3350500")
+  SET (SQLite3_LIBRARY "C:\\Users\\tlm\\dep\\vise\\sqlite3\\sqlite-3350500\\sqlite3.lib")
+
   SET (Protobuf_USE_STATIC_LIBS ON)
   SET (Protobuf_DEBUG OFF)
 
@@ -116,15 +120,23 @@ endif (WIN32)
 include_directories( ${EIGEN3_INCLUDE_DIR} )
 
 ## vlfeat
-if(NOT DEFINED ${VLFEAT_LIB})
-  set(VLFEAT_LIB "-lvl")
-endif()
-if(NOT DEFINED ${VLFEAT_INCLUDE_DIR})
-  set(VLFEAT_INCLUDE_DIR "${CMAKE_PREFIX_PATH}include/vl")
-endif()
+if (WIN32)
+  include_directories( ${VLFEAT_INCLUDE_DIR} )
+else (WIN32)
+  if(NOT DEFINED ${VLFEAT_LIB})
+    set(VLFEAT_LIB "-lvl")
+  endif()
+  if(NOT DEFINED ${VLFEAT_INCLUDE_DIR})
+    set(VLFEAT_INCLUDE_DIR "${CMAKE_PREFIX_PATH}include/vl")
+  endif()
+
+endif (WIN32)
 
 ## sqlite
 find_package(SQLite3)
+if (WIN32)
+  include_directories( ${SQLite3_INCLUDE_DIR} )
+endif (WIN32)
 
 message("Boost_LIBRARY_DIRS: " ${Boost_LIBRARY_DIRS})
 message("Boost_INCLUDE_DIRS: " ${Boost_INCLUDE_DIRS})
@@ -167,9 +179,11 @@ include_directories( search_engine/relja_retrival/v2/evaluation )
 include_directories( search_engine/relja_retrival/v2/indexing )
 include_directories( search_engine/relja_retrival/v2/indexing/train )
 include_directories( search_engine/relja_retrival/v2/retrieval )
+include_directories( vise )
 
 add_subdirectory( "search_engine" )
 add_subdirectory( "vise" )
+add_subdirectory( "tests" )
 
 ##
 ## Packaging installer using cpack
@@ -242,8 +256,8 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
 
   # move demo projects to VISE application data folder
   list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  SetShellVarContext current")
-  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  CreateDirectory \\\"$LOCALAPPDATA\\\\VISE\\\\store\\\"")
-  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  CopyFiles \\\"$INSTDIR\\\\demo_projects\\\\*\\\" \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\store\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  CreateDirectory \\\"$LOCALAPPDATA\\\\VISE\\\\project\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  CopyFiles \\\"$INSTDIR\\\\demo_projects\\\\*\\\" \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\project\\\"")
   list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  CopyFiles \\\"$INSTDIR\\\\asset\\\\*\\\" \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\asset\\\"")
   list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  CopyFiles \\\"$INSTDIR\\\\www\\\\*\\\" \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\www\\\"")
   list( APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "  RMDir /r \\\"$INSTDIR\\\\demo_projects\\\"")
@@ -255,7 +269,7 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
 
   # remove application files during uninstall
   list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  SetShellVarContext current")
-  list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  RMDir /r \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\store\\\"")
+  list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  RMDir /r \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\project\\\"")
   list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  RMDir /r \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\asset\\\"")
   list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  RMDir /r \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\\www\\\"")
   list( APPEND CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "  RMDir /r \\\"$LOCALAPPDATA\\\\${VISE_NAME}\\\"")

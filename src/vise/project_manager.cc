@@ -42,11 +42,10 @@ void project_manager::process_http_request(http_request const &request,
   std::map<std::string, std::string> param;
   vise::decompose_uri(request_uri_without_ns, uri, param);
 
-#ifndef NDEBUG
   std::ostringstream ss;
   ss << "project_manager: " << request.d_method << " " << request.d_uri;
   std::cout << ss.str() << std::endl;
-#endif
+
   //request.parse_urlencoded_form_data();
   //vise::print_vector("uri", uri);
   //vise::print_map("param", param);

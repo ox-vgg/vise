@@ -33,6 +33,7 @@ namespace vise {
             std::map<std::string, std::string> const &vise_conf);
     project(project const &p);
     ~project();
+
     void index_create(bool &success, std::string &message, bool block_until_done=false);
     void index_load(bool &success, std::string &message);
     void index_unload(bool &success, std::string &message);

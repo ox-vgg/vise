@@ -13,3 +13,13 @@ target_link_libraries( evaluator_v2
     retriever
     thread_queue
     ${Boost_LIBRARIES} )
+
+add_library( evaluator_oxford STATIC evaluator_oxford.cpp )
+target_link_libraries( evaluator_oxford
+    dataset_v2
+    eval_query.pb
+    multi_query
+    proto_db_file
+    retriever
+    thread_queue
+    ${Boost_LIBRARIES} )

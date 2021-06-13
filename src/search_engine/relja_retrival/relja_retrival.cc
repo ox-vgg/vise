@@ -36,6 +36,9 @@ vise::relja_retrival::relja_retrival(boost::filesystem::path pconf_fn,
 
   if(d_pconf.count("nthread-indexing")) {
     d_nthread_indexing = std::stoi(d_pconf.at("nthread-indexing"));
+  } else {
+    // use all available threads
+    d_nthread_indexing = omp_get_max_threads();
   }
   if(d_pconf.count("nthread-search")) {
     d_nthread_search = std::stoi(d_pconf.at("nthread-search"));
@@ -175,6 +178,10 @@ void vise::relja_retrival::preprocess_images() {
 
 void vise::relja_retrival::extract_train_descriptors() {
   std::ostringstream feat_getter_param;
+  // We use hesaff-sift instead of hesaff-rootsift because the
+  // clustering code converts SIFT descriptors to RootSIFT during
+  // the clustering process. Storing RootSIFT on disk is more
+  // expensive as compared to storing SIFT.
   feat_getter_param << "hesaff-sift";
   if (d_pconf.count("sift_scale_3")) {
     feat_getter_param << "-scale3";
@@ -487,8 +494,9 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     index_status_f.close();
 
     // delete d_traindesc_fn as it is no longer needed, @todo: review this action in future
-    d_log << "deleting traindesc file (no longer needed): " << d_traindesc_fn << std::endl;
-    boost::filesystem::remove(d_traindesc_fn);
+    d_log << "You can safely delete the following traindesc file as it is no longer needed: "
+          << d_traindesc_fn << std::endl;
+    //boost::filesystem::remove(d_traindesc_fn);
 
     callback();
   } catch(std::exception &e) {
@@ -648,7 +656,7 @@ void vise::relja_retrival::index_load(bool &success,
     // build kd-tree for nearest neighbour search
     // to assign cluster-id for each descriptor
     std::size_t num_trees = 8;
-    std::size_t max_num_checks = 512;
+    std::size_t max_num_checks = 1024;
     d_kd_forest = vl_kdforest_new(VL_TYPE_FLOAT,
                                   d_clst_centres->numDims,
                                   num_trees,
