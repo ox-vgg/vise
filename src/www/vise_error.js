@@ -26,10 +26,14 @@ document.body.appendChild(content);
 if( !_vise_self_check_is_ok()) {
   console.log('self check failed');
 } else {
-  var home_icon = _vise_common_get_svg_button('micon_home', 'VISE Home');
+  var vise_logo = document.createElementNS(_VISE_SVG_NS, 'svg');
+  vise_logo.setAttributeNS(null, 'viewBox', '0 0 240 80');
+  vise_logo.innerHTML = '<use xlink:href="#vise_logo"></use><title>VGG Image Search Engine (VISE)</title>';
+  vise_logo.setAttributeNS(null, 'style', 'height:0.8em; padding-right:1em;');
+
   var home_link = document.createElement('a');
-  home_link.setAttribute('href', '/home');
-  home_link.appendChild(home_icon);
+  home_link.setAttribute('href', 'home');
+  home_link.appendChild(vise_logo);
 
   pname.innerHTML = '';
   pname.appendChild(home_link);

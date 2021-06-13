@@ -89,7 +89,7 @@ function _vise_show_about() {
   p1.innerHTML = 'VGG Image Search Engine (VISE) is a free and <a href="https://gitlab.com/vgg/vise">open source</a> software for visual search of large collection of images using image region as a search query. VISE is developed and maintained by Visual Geometry Group (<a href="https://www.robots.ox.ac.uk/~vgg/">VGG</a>) in Department of Engineering Science of the Oxford University. VISE is released under a <a href="https://gitlab.com/vgg/vise/-/blob/master/src/LICENSE.txt">license</a> that allows unrestricted use in academic research projects and commercial industrial applications.';
 
   var p2 = document.createElement('p');
-  p2.innerHTML = 'VISE builds on the C++ codebase developed by <a href="http://www.robots.ox.ac.uk/~relja/">Relja Arandjelovic</a> during his DPhil / Postdoc at the Visual Geometry Group in 2014. VISE is developed and maintained by <a href="mailto:adutta _at_ robots.ox.ac.uk">Abhishek Dutta</a> under the supervision of <a href="https://www.robots.ox.ac.uk/~az/">Prof. Andrew Zisserman</a>.';
+  p2.innerHTML = 'VISE builds on the C++ codebase developed by <a href="http://www.robots.ox.ac.uk/~relja/">Dr. Relja Arandjelovic</a> during his DPhil / Postdoc at the Visual Geometry Group in 2014. VISE is developed and maintained by <a href="mailto:adutta _at_ robots.ox.ac.uk">Dr. Abhishek Dutta</a>. <a href="https://www.robots.ox.ac.uk/~az/">Prof. Andrew Zisserman</a> guides and supports development of VISE.';
 
   var p3 = document.createElement('p');
   p3.innerHTML = 'Development and maintenance of VISE software has been supported by the following research grants:';
