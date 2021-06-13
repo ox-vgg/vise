@@ -29,8 +29,8 @@ IF EXIST %BUILD_BASE_FOLDER_WIN64% (
    -DCMAKE_GENERATOR_PLATFORM=x64 ^
    -DCMAKE_TOOLCHAIN_FILE="C:\Users\tlm\dep\vise\vcpkg\scripts\buildsystems\vcpkg.cmake" ^
    %VISE_SOURCE_PATH%
-   msbuild ALL_BUILD.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 /nologo /p:configuration=Release
-   msbuild PACKAGE.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 /nologo /p:configuration=Release
+   msbuild ALL_BUILD.vcxproj -maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release
+   msbuild PACKAGE.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release
 )
 
 cd %CURRENT_PATH%
