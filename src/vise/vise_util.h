@@ -24,6 +24,8 @@
 #include <boost/filesystem.hpp>
 #include <Magick++.h>
 
+#include "vise_version.h"
+
 /*
 #ifndef ASSERT
 #define ASSERT(expression) if (!(expression)) { std::cerr << "Precondition failed: " #expression " in "  << __FUNCTION__ << " (" __FILE__ ":" << __LINE__ << ")\n"; exit(1); }

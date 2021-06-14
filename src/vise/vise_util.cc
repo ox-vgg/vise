@@ -217,6 +217,9 @@ void vise::init_vise_settings(std::map<std::string, std::string> &vise_settings)
       vise_settings["nthread-indexing"] = "-1";
       settings_changed = true;
     }
+    if(vise_settings.count("this-file-saved-by") == 0) {
+      settings_changed = true;
+    }
     if(settings_changed) {
       vise::configuration_save(vise_settings, vise_settings_fn.string());
     }
@@ -264,6 +267,12 @@ bool vise::configuration_save(std::map<std::string, std::string> &conf,
               << filename << "]" << std::endl;
     return false;
   }
+
+  // automatically add a marker of the VISE version saving this conf
+  std::ostringstream ss;
+  ss << VISE_NAME << "-" << VISE_VERSION_MAJOR
+     << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH;
+  conf["this-file-saved-by"] = ss.str();
 
   std::map<std::string, std::string>::const_iterator itr;
   for(itr = conf.begin(); itr != conf.end(); ++itr) {

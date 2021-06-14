@@ -1,9 +1,9 @@
 ## [2.0.0] - June 14, 2021
   * removed dependency on Python:
     - clustering of visual features done using vlfeat's kdtree implementation (added dependency on vlfeat)
-    - frontend is based solely on HTML/CSS/Javascript (previously, it VISE used a python cherrypy based server for generating frontend)
-  * Simplified user interface based solely on HTML/CSS/Javascript
-    - Many work load transferred from backend server to user's web browser
+  * Simplified user interface which is now based solely on HTML/CSS/Javascript
+    - frontend is based solely on HTML/CSS/Javascript (previously, VISE used a python cherrypy based server for generating frontend)
+    - many work load transferred from backend server to user's web browser
     - VISE server only generates basic HTML pages containing dynamic data stored as Javascript variable
     - web browser renders the page based on dynamic data contained in Javascript variable
     - VISE servers sends homography matrix and web browser uses Javascript and HTML canvas to generate registered images and required visualisations
@@ -17,12 +17,11 @@
   * a basic GUI application to launch VISE server in Windows 10
   * faster indexing of projects using generic visual vocabulary
     - VISE ships with a generic visual vocabulary computed using 53629 images
-    - this speeds up the process of indexing (at the loss of some search accuracy) of new projects   
+    - this speeds up the process of indexing (at the loss of some search accuracy) of new projects
   * rewrote VISE http server
     - all functionality of VISE software is now exposed using a REST HTTP API
     - multiple worker threads handle HTTP requests
-  * source code now compiles in GNU/Linux (gcc), Windows 10 (Visual C++) and MacOS (Clang)
-  * software features that have been implemented by not yet fully tested and therefore have been queued for future release:
+  * following software features that have been implemented but not yet fully tested have been queued for future release:
     - visual grouping of images
     - metadata import and search
 

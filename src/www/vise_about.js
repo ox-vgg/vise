@@ -98,7 +98,7 @@ function _vise_show_about() {
   p3.appendChild(ul);
 
   var p4 = document.createElement('p');
-  p4.innerHTML = 'For more details, see the VISE software page at: <a href="https://robots.ox.ac.uk/vgg/software/vise/">https://robots.ox.ac.uk/vgg/software/vise/</a>.';
+  p4.innerHTML = 'For more details, see the VISE software page at: <a href="https://www.robots.ox.ac.uk/~vgg/software/vise/">https://www.robots.ox.ac.uk/~vgg/software/vise/</a>.';
 
   vise_info.appendChild(p1);
   vise_info.appendChild(p2);
