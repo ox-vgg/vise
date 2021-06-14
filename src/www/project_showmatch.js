@@ -100,6 +100,7 @@ function _vise_self_check_is_ok() {
 
 function _vise_init_show_match_ui() {
   _vise_set_project_pagetools(pagetools);
+  _vise_init_showmatch_toolbar();
 
   _vise_querymatch_panel_show();
 
@@ -117,6 +118,15 @@ function _vise_init_show_match_ui() {
     console.log('failed to load images');
     console.log(err_list);
   });
+}
+
+function _vise_init_showmatch_toolbar() {
+  pageinfo.innerHTML = '';
+
+  var back = document.createElement('a');
+  back.innerHTML = 'Back to search results';
+  back.setAttribute('href', 'javascript:history.back()');
+  pageinfo.appendChild(back);
 }
 
 function _vise_querymatch_panel_show() {
@@ -292,6 +302,7 @@ function _vise_togglepanel_show() {
 
   toggle_canvas = document.createElement('canvas');
   var toggle = document.createElement('div');
+  toggle.setAttribute('title', 'Click on the image to toggle between query and match region');
   var tcaption = document.createElement('p');
   var tspeed = document.createElement('input');
   tspeed.setAttribute('type', 'range');
@@ -409,6 +420,7 @@ function _vise_togglepanel_show() {
     });
     toggle_canvas.addEventListener('mousemove', function(e) {
       return; // disable as this feature is quite distracting
+      /*
       if(is_manual_toggle_mode) {
         if(mouse_move_count > 10) {
           _vise_toggle_canvas_toggle();
@@ -417,6 +429,7 @@ function _vise_togglepanel_show() {
           mouse_move_count = mouse_move_count + 1;
         }
       }
+      */
     });
 	  if(toggle_canvas_timer) {
 		  clearTimeout(toggle_canvas_timer);
