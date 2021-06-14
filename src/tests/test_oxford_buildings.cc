@@ -43,6 +43,14 @@ int main(int argc, char **argv) {
   std::chrono::steady_clock::time_point tstart = std::chrono::steady_clock::now();
 
   std::string test_id(argv[1]);
+  if(test_id != "oxford-buildings-100" && 
+      test_id != "oxford-buildings-5k") {
+    std::cout << "TEST_ID must be in "
+              << "{oxford-buildings-100,oxford-buildings-5k}"
+              << std::endl;
+    return 1;
+  }
+
   boost::filesystem::path imdir(argv[2]);
   boost::filesystem::path gtdir(argv[3]);
   std::string tolerance_str(argv[4]);

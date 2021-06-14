@@ -46,12 +46,8 @@ if(WIN32)
 endif(WIN32)
 
 if(UNIX AND NOT APPLE)
-	add_executable(vise vise.cc)
-	target_link_libraries(vise vise_util http_server ${ImageMagick_LIBRARIES})
   add_executable(vise-cli vise-cli.cc)
   target_link_libraries(vise-cli vise_util http_server ${ImageMagick_LIBRARIES})
-  add_executable(project_manager_test project_manager_test.cc)
-  target_link_libraries( project_manager_test project_manager http_request http_response project vise_util)
 endif(UNIX AND NOT APPLE)
 
 if(APPLE)
