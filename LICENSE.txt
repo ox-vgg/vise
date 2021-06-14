@@ -1,4 +1,4 @@
-Copyright (c) 2017-2020, Abhishek Dutta, Relja Arandjelovic, Visual Geometry Group, Oxford University.
+Copyright (c) 2021, Abhishek Dutta, Relja Arandjelovic, Andrew Zisserman, Visual Geometry Group, Oxford University.
 
 All rights reserved.
 
