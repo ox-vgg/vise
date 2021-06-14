@@ -59,7 +59,7 @@ if(_vise_data.hasOwnProperty('METADATA_CONF')) {
 var reset_form = document.createElement('form');
 reset_form.setAttribute('class', 'hide');
 reset_form.setAttribute('method', 'GET');
-reset_form.setAttribute('action', '/' + _vise_data['PNAME'] + '/filelist');
+reset_form.setAttribute('action', 'filelist');
 document.body.appendChild(reset_form);
 
 // check existence of everything we need
@@ -161,7 +161,7 @@ function _vise_init_filelist_toolbar() {
     // group selector
     var group_form = document.createElement('form');
     group_form.setAttribute('method', 'GET');
-    group_form.setAttribute('action', '/' + _vise_data['PNAME'] + '/filelist');
+    group_form.setAttribute('action', 'filelist');
     group_form.addEventListener('change', function(e) {
       e.target.parentNode.submit();
     });
@@ -243,7 +243,7 @@ function _vise_init_filelist_toolbar() {
 function _vise_init_filelist_search_toolbar() {
   var search_form = document.createElement('form');
   search_form.setAttribute('method', 'GET');
-  search_form.setAttribute('action', '/' + _vise_data['PNAME'] + '/filelist');
+  search_form.setAttribute('action', 'filelist');
   search_form.setAttribute('id', 'search_form');
   var search_input = document.createElement('input');
   search_input.setAttribute('type', 'text');
