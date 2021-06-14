@@ -36,6 +36,7 @@ content.appendChild(settings_container);
 content.appendChild(tool_container);
 
 var local_file_selector = document.createElement('input');
+local_file_selector.setAttribute('title', 'Press Ctrl + A in the web browser\'s file selector to select all files in a folder');
 local_file_selector.setAttribute('type', 'file');
 local_file_selector.setAttribute('multiple', '');
 local_file_selector.setAttribute('accept', 'image/*');
@@ -163,7 +164,7 @@ function _vise_init_configure_files() {
 
   var local = document.createElement('div');
   var label1 = document.createElement('span');
-  label1.innerHTML = 'Select local files (press <span class="key">Ctrl</span> + <span class="key">A</span> to select all files in a folder)&nbsp;';
+  label1.innerHTML = 'Select local files&nbsp;';
   local.appendChild(label1);
   local.appendChild(local_file_selector); // local_file_selector already initialized as global var.
   upload_progress.setAttribute('class', 'hide');
