@@ -254,7 +254,7 @@ function _vise_init_filelist_search_toolbar() {
   if(_vise_data.hasOwnProperty('FLIST_QUERY')) {
     search_input.setAttribute('value', _vise_data['FLIST_QUERY']);
   }
-  search_input.setAttribute('placeholder', 'Enter a search keyword');
+  search_input.setAttribute('placeholder', 'Filter based on image filename (e.g. image01*.jpg)');
   search_input.addEventListener('change', function(e) {
     if(this.value === '') {
       search_panel_mode.setAttribute('value', 'all'); // switch to full text search mode
@@ -303,7 +303,7 @@ function _vise_init_filelist_search_toolbar() {
 
   var search_button = document.createElement('input');
   search_button.setAttribute('type', 'submit');
-  search_button.setAttribute('value', 'Search');
+  search_button.setAttribute('value', 'Filter Image List');
 
   // help button
   var help_icon = _vise_common_get_svg_button('micon_help', 'More details about metadata search');
@@ -313,7 +313,7 @@ function _vise_init_filelist_search_toolbar() {
     document.getElementById('help_panel').classList.toggle('hide');
   });
   help_link.appendChild(help_icon);
-  search_form.appendChild(help_link);
+  //search_form.appendChild(help_link); // 14-June-2021: hide until metadata search feature is release
 
   // clear button
   var clear_icon = _vise_common_get_svg_button('micon_clear', 'Clear all filters and go back to full file list.');
@@ -327,8 +327,10 @@ function _vise_init_filelist_search_toolbar() {
   search_form.appendChild(search_panel_mode); // global variable
   search_form.appendChild(search_input);
   search_form.appendChild(search_button);
-  search_form.appendChild(groupby_select);
-  search_form.appendChild(clear_link);
+
+  // 14-June-2021: hide until metadata search feature is release
+  //search_form.appendChild(groupby_select);
+  //search_form.appendChild(clear_link);
 
   filelist_search_panel.innerHTML = '';
   filelist_search_panel.appendChild(search_form);
