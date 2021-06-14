@@ -24,7 +24,20 @@ $VISE_DEP_DIR/bin/cmake -DCMAKE_BUILD_TYPE=Release \
   ../src
 make -j8                            # compile VISE
 
+# download generic visual vocabulary to VISE application folder
+mkdir -p $HOME/.vise/asset/relja_retrival/visual_vocabulary/
+cd $HOME/.vise/asset/relja_retrival/visual_vocabulary/
+wget https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629-imsize400x400-voc10k-hamm32.zip
+unzip imcount53629-imsize400x400-voc10k-hamm32.zip
+mv imcount53629-imsize400x400-voc10k-hamm32 latest
+rm imcount53629-imsize400x400-voc10k-hamm32.zip
+
+# create a symbolic link for VISE web application
+cd $HOME/.vise
+ln -s $VISE_DIR/vise/src/www www
+
 cd $VISE_DIR/vise/cmake_build
+mkdir -p $HOME/.vise/asset/relja_retrival/visual_vocabulary/latest
 ./vise/vise                         # start VISE server, the VISE web interface
                                     # is available at http://localhost:9669
 ```
@@ -47,6 +60,18 @@ $VISE_DEP_DIR/bin/cmake -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH=$VISE_DEP_DIR \
   ../src
 make -j8                            # compile VISE
+
+# download generic visual vocabulary to VISE application folder
+mkdir -p $HOME/.vise/asset/relja_retrival/visual_vocabulary/
+cd $HOME/.vise/asset/relja_retrival/visual_vocabulary/
+wget https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629-imsize400x400-voc10k-hamm32.zip
+unzip imcount53629-imsize400x400-voc10k-hamm32.zip
+mv imcount53629-imsize400x400-voc10k-hamm32 latest
+rm imcount53629-imsize400x400-voc10k-hamm32.zip
+
+# create a symbolic link for VISE web application
+cd $HOME/.vise
+ln -s $VISE_DIR/vise/src/www www
 
 cd $VISE_DIR/vise/cmake_build
 ./vise/vise                         # start VISE server, the VISE web interface
