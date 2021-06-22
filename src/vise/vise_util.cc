@@ -629,9 +629,9 @@ bool vise::is_valid_image(std::string img_fn, std::string &message) {
   try {
     Magick::Image img(img_fn);
     img.quiet(true); // to supress warnings
-    if(img.rows() < 32 || img.columns() < 32) {
+    if(img.rows() < 16 || img.columns() < 16) {
       std::ostringstream ss;
-      ss << "image size " << img.columns() << "x" << img.rows() << " must be greater than 32x32";
+      ss << "image size " << img.columns() << "x" << img.rows() << " must be greater than 16x16";
       message = ss.str();
       success = false;
     } else if(img.colorSpace() != Magick::RGBColorspace &&
@@ -643,8 +643,8 @@ bool vise::is_valid_image(std::string img_fn, std::string &message) {
          << " (i.e. sRGB)";
       message = ss.str();
       success = false;
-    } else if(img.magick() != "JPEG") {
-      message = "image format must be JPEG";
+    } else if(img.magick() != "JPEG" && img.magick() != "PNG") {
+      message = "image format must be JPEG or PNG";
       success = false;
     }
     img.quiet(false);
@@ -668,9 +668,9 @@ bool vise::if_valid_get_image_size(std::string img_fn, std::string &message, uin
     img.quiet(true); // to supress warnings
     width = img.columns();
     height = img.rows();
-    if(img.rows() < 32 || img.columns() < 32) {
+    if(img.rows() < 16 || img.columns() < 16) {
       std::ostringstream ss;
-      ss << "image size " << img.columns() << "x" << img.rows() << " must be greater than 32x32";
+      ss << "image size " << img.columns() << "x" << img.rows() << " must be greater than 16x16";
       message = ss.str();
       success = false;
     } else if(img.colorSpace() != Magick::RGBColorspace &&
@@ -678,8 +678,8 @@ bool vise::if_valid_get_image_size(std::string img_fn, std::string &message, uin
               img.colorSpace() != Magick::GRAYColorspace) {
       message = "image color space must be RGB";
       success = false;
-    } else if(img.magick() != "JPEG") {
-      message = "image format must be JPEG";
+    } else if(img.magick() != "JPEG" && img.magick() != "PNG") {
+      message = "image format must be JPEG or PNG";
       success = false;
     }
     img.quiet(false);
