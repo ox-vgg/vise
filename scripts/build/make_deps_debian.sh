@@ -14,6 +14,11 @@ if ! [ -d "$1" ]; then
   exit 1
 fi
 
+if ! type "wget" > /dev/null; then
+  echo "wget command is missing"
+  exit 1
+fi
+
 DEPDIR=$1
 DEPSRC="${DEPDIR}/_tmp_libsrc"
 if ! [ -d "${DEPSRC}" ]; then
@@ -29,7 +34,7 @@ fi
 
 ## boost
 if ! [ -d "${DEPDIR}/include/boost" ]; then
-  cd $DEPSRC && wget https://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.gz && tar -zxvf boost_1_73_0.tar.gz && cd boost_1_73_0 && ./bootstrap.sh --prefix=$DEPDIR --with-toolset=gcc --with-libraries=filesystem,system,thread && ./b2 --with-filesystem --with-system --with-thread variant=release threading=multi toolset=gcc install
+  cd $DEPSRC && wget https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.gz && tar -zxvf boost_1_76_0.tar.gz && cd boost_1_76_0 && ./bootstrap.sh --prefix=$DEPDIR --with-toolset=gcc --with-libraries=filesystem,system,thread && ./b2 --with-filesystem --with-system --with-thread variant=release threading=multi toolset=gcc install
 fi
 
 # imagemagick
