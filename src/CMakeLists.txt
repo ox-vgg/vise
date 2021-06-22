@@ -34,8 +34,8 @@ configure_file (
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
   )
 
-IF(NOT DEFINED CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+IF(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE "Release")
 ENDIF()
 
 if (WIN32)
