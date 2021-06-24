@@ -196,14 +196,14 @@ threadQueue<Result>::start(
 
     // tell all to finish
     if (completedJobs<nJobs){
-        for (uint32_t iThread=1; iThread < numThreads; iThread++)
-            threadWorkers[iThread-1]->stopJobs_= true;
+        for (uint32_t iThread=0; iThread < numThreads; iThread++)
+            threadWorkers[iThread]->stopJobs_= true;
     }
 
     // wait to finish (they should all be done) and destroy
-    for (uint32_t iThread=1; iThread < numThreads; iThread++){
-        queue[iThread-1]->join();
-        delete queue[iThread-1];
+    for (uint32_t iThread=0; iThread < numThreads; iThread++){
+        queue[iThread]->join();
+        delete queue[iThread];
     }
 
     // cleanup the workers
