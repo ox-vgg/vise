@@ -29,7 +29,7 @@ fi
 
 ## cmake
 if ! [ -f "${DEPDIR}/bin/cmake" ]; then
-  cd $DEPSRC && wget https://github.com/Kitware/CMake/releases/download/v3.18.0/cmake-3.18.0.tar.gz && tar -zxvf cmake-3.18.0.tar.gz && cd cmake-3.18.0 && ./configure --prefix=$DEPDIR && make -j 16 && make install
+  cd $DEPSRC && wget https://github.com/Kitware/CMake/releases/download/v3.20.5/cmake-3.20.5.tar.gz && tar -zxvf cmake-3.20.5.tar.gz && cd cmake-3.20.5 && ./configure --prefix=$DEPDIR && make -j 16 && make install
 fi
 
 ## boost
@@ -39,7 +39,7 @@ fi
 
 # imagemagick
 if ! [ -d "${DEPDIR}/include/ImageMagick-6" ]; then
-  cd $DEPSRC && wget -O ImageMagick6-6.9.11-22.tar.gz https://github.com/ImageMagick/ImageMagick6/archive/6.9.11-22.tar.gz && tar -zxvf ImageMagick6-6.9.11-22.tar.gz && cd ImageMagick6-6.9.11-22 && ./configure --prefix=$DEPDIR -enable-hdri=no --with-quantum-depth=8 --disable-dependency-tracking --with-x=no --without-perl && make -j 16 && make install
+  cd $DEPSRC && wget -O ImageMagick6-6.9.12-16.tar.gz https://github.com/ImageMagick/ImageMagick6/archive/6.9.12-16.tar.gz && tar -zxvf ImageMagick6-6.9.12-16.tar.gz && cd ImageMagick6-6.9.12-16 && ./configure --prefix=$DEPDIR -enable-hdri=no --with-quantum-depth=8 --disable-dependency-tracking --with-x=no --without-perl && make -j 16 && make install
 fi
 
 # google protobuf (https://github.com/protocolbuffers/protobuf/releases/tag/v2.6.1)
