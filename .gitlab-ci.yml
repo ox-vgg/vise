@@ -24,3 +24,20 @@ Windows-10-Test:
   script:
     - echo "Testing VISE on Oxford-Buildings-100 subset"
     - C:\Users\tlm\build\vise\release\Win64\tests\Release\test_oxford_buildings oxford-buildings-100 "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\images" "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\gt" 0.03 "C:\Users\tlm\build\vise\tests"
+
+Debian-Build:
+  stage: build
+  tags:
+    - vgg-Linux-builder
+  script:
+    - echo "Buildings VISE for Debian Linux"
+    - cd /home/adutta/code/vise/cmake_build && git pull origin master && make -j
+
+Debian-Test:
+  stage: test
+  tags:
+    - vgg-Linux-builder
+  script:
+    - echo "Testing VISE on Oxford-Buildings-100 subset"
+    - /home/adutta/code/vise/cmake_build/tests/test_oxford_buildings oxford-buildings-100 /home/adutta/dataset/oxford_buildings/oxford-buildings-100/images/ /home/adutta/dataset/oxford_buildings/oxford-buildings-100/gt/ 0.03 /home/adutta/_tmp/vise/
+    
