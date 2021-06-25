@@ -40,4 +40,19 @@ Debian-Test:
   script:
     - echo "Testing VISE on Oxford-Buildings-100 subset"
     - /home/adutta/code/vise/cmake_build/tests/test_oxford_buildings oxford-buildings-100 /home/adutta/dataset/oxford_buildings/oxford-buildings-100/images/ /home/adutta/dataset/oxford_buildings/oxford-buildings-100/gt/ 0.03 /home/adutta/_tmp/vise/
-    
+
+MacOS-Build:
+  stage: build
+  tags:
+    - vgg-MacOS-builder
+  script:
+    - echo "Buildings VISE for MacOS"
+    - cd /Users/adutta/code/vise/cmake_build && git pull origin master && make -j
+
+MacOS-Test:
+  stage: test
+  tags:
+    - vgg-MacOS-builder
+  script:
+    - echo "Testing VISE on Oxford-Buildings-100 subset"
+    - /Users/adutta/code/vise/cmake_build/tests/test_oxford_buildings oxford-buildings-100 /Users/adutta/dataset/oxford_buildings/oxford-buildings-100/images/ /Users/adutta/dataset/oxford_buildings/oxford-buildings-100/gt/ 0.03 /Users/adutta/tmp/
