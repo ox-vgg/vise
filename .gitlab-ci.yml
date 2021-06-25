@@ -8,6 +8,7 @@
 stages:
   - build
   - test
+  - all
 
 Windows-10-Build:
   stage: build
@@ -30,16 +31,20 @@ Debian-Build:
   tags:
     - vgg-Linux-builder
   script:
-    - echo "Buildings VISE for Debian Linux"
-    - cd /home/adutta/code/vise/cmake_build && git pull origin master && make -j
+    - echo "Buildings VISE for Debian Linux ..."
+    - git clone https://gitlab.com/vgg/vise.git
+    - cd vise && mkdir cmake_build && cd cmake_build && /home/gitlab-runner/dep/vise/bin/cmake -DCMAKE_PREFIX_PATH=/home/gitlab-runner/dep/vise/ ../src && make -j
 
 Debian-Test:
   stage: test
   tags:
     - vgg-Linux-builder
   script:
-    - echo "Testing VISE on Oxford-Buildings-100 subset"
-    - /home/adutta/code/vise/cmake_build/tests/test_oxford_buildings oxford-buildings-100 /home/adutta/dataset/oxford_buildings/oxford-buildings-100/images/ /home/adutta/dataset/oxford_buildings/oxford-buildings-100/gt/ 0.03 /home/adutta/_tmp/vise/
+    - echo "Testing VISE on Oxford Buildings 100 subset ..."
+    - git clone https://gitlab.com/vgg/vise.git
+    - cd vise && mkdir cmake_build && cd cmake_build && /home/gitlab-runner/dep/vise/bin/cmake -DCMAKE_PREFIX_PATH=/home/gitlab-runner/dep/vise/ ../src && make -j
+    - if [ -d "/tmp/vise/test/" ]; then rm -fr /tmp/vise/test; fi
+    - mkdir -p /tmp/vise/test && tests/test_oxford_buildings oxford-buildings-100 /home/gitlab-runner/dataset/oxford_buildings/oxford-buildings-100/images/ /home/gitlab-runner/dataset/oxford_buildings/oxford-buildings-100/gt/ 0.03 /tmp/vise/test/
 
 MacOS-Build:
   stage: build
