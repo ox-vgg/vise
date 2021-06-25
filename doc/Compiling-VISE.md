@@ -11,7 +11,7 @@ export VISE_DEP_DIR=$HOME/vise/dep  # change this to suit your requirements
 mkdir -p $VISE_DIR
 mkdir -p $VISE_DEP_DIR
 cd $VISE_DIR
-git clone git@gitlab.com:vgg/vise.git
+git clone https://gitlab.com/vgg/vise
 cd $VISE_DIR/vise/scripts/build/
 ./make_deps_debian.sh $VISE_DEP_DIR # compile and install VISE dependencies
 
@@ -51,7 +51,7 @@ export VISE_DEP_DIR=$HOME/vise/dep  # change this to suit your requirements
 mkdir -p $VISE_DIR
 mkdir -p $VISE_DEP_DIR
 cd $VISE_DIR
-git clone git@gitlab.com:vgg/vise.git
+git clone https://gitlab.com/vgg/vise
 cd $VISE_DIR/vise/scripts/build/
 ./make_deps_macos.sh $VISE_DEP_DIR  # compile and install VISE dependencies
 
