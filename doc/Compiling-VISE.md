@@ -9,6 +9,7 @@ export VISE_DIR=$HOME/vise/code     # change this to suit your requirements
 export VISE_DEP_DIR=$HOME/vise/dep  # change this to suit your requirements
 
 mkdir -p $VISE_DIR
+mkdir -p $VISE_DEP_DIR
 cd $VISE_DIR
 git clone git@gitlab.com:vgg/vise.git
 cd $VISE_DIR/vise/scripts/build/
@@ -38,7 +39,7 @@ ln -s $VISE_DIR/vise/src/www www
 
 cd $VISE_DIR/vise/cmake_build
 mkdir -p $HOME/.vise/asset/relja_retrival/visual_vocabulary/latest
-./vise/vise                         # start VISE server, the VISE web interface
+./vise/vise-cli --cmd=web-ui        # start VISE server, the VISE web interface
                                     # is available at http://localhost:9669
 ```
 
@@ -48,10 +49,11 @@ export VISE_DIR=$HOME/vise/code     # change this to suit your requirements
 export VISE_DEP_DIR=$HOME/vise/dep  # change this to suit your requirements
 
 mkdir -p $VISE_DIR
+mkdir -p $VISE_DEP_DIR
 cd $VISE_DIR
 git clone git@gitlab.com:vgg/vise.git
 cd $VISE_DIR/vise/scripts/build/
-./make_deps_macos.sh $VISE_DEP_DIR # compile and install VISE dependencies
+./make_deps_macos.sh $VISE_DEP_DIR  # compile and install VISE dependencies
 
 # compile VISE
 cd $VISE_DIR/vise/
@@ -74,6 +76,6 @@ cd $HOME/.vise
 ln -s $VISE_DIR/vise/src/www www
 
 cd $VISE_DIR/vise/cmake_build
-./vise/vise                         # start VISE server, the VISE web interface
+./vise/vise-cli --cmd=web-ui        # start VISE server, the VISE web interface
                                     # is available at http://localhost:9669
 ```
