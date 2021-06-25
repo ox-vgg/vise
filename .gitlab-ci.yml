@@ -43,4 +43,5 @@ Debian-Test:
     - echo "Testing VISE on Oxford Buildings 100 subset ..."
     - git clone https://gitlab.com/vgg/vise.git
     - cd vise && mkdir cmake_build && cd cmake_build && /home/gitlab-runner/dep/vise/bin/cmake -DCMAKE_PREFIX_PATH=/home/gitlab-runner/dep/vise/ ../src && make -j
-    - tests/test_oxford_buildings oxford-buildings-100 /home/gitlab-runner/dataset/oxford_buildings/oxford-buildings-100/images/ /home/gitlab-runner/dataset/oxford_buildings/oxford-buildings-100/gt/ 0.03 /tmp/
+    - if [ -d "/tmp/vise/test/" ]; then rm -fr /tmp/vise/test; fi
+    - mkdir -p /tmp/vise/test && tests/test_oxford_buildings oxford-buildings-100 /home/gitlab-runner/dataset/oxford_buildings/oxford-buildings-100/images/ /home/gitlab-runner/dataset/oxford_buildings/oxford-buildings-100/gt/ 0.03 /tmp/vise/test/
