@@ -20,12 +20,12 @@ Windows-10-Build-Test:
     - '& "C:\Program Files\CMake\bin\cmake.exe" -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR_PLATFORM=x64 -DCMAKE_TOOLCHAIN_FILE="C:\Users\tlm\dep\vise\vcpkg\scripts\buildsystems\vcpkg.cmake" -Bcmake_build -Hsrc'
     - cd cmake_build
     # build VISE
-    - '& msbuild ALL_BUILD.vcxproj -maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
+    - '& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" ALL_BUILD.vcxproj -maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
     # Build Windows 10 64 bit installer
-    - '& msbuild PACKAGE.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
+    - '& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" PACKAGE.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
     # copy DLL dependencies required to run test
-    - '& copy "C:\Users\tlm\dep\vise\dep_dll" /B /Y tests\Release'
-    - '& copy "C:\Users\tlm\dep\vise\dep_dll_imagemagick_from_traherne" /B /Y tests\Release'
+    - Copy-Item -Path "C:\Users\tlm\dep\vise\dep_dll\*" tests\Release -Recurse
+    - Copy-Item -Path "C:\Users\tlm\dep\vise\dep_dll_imagemagick_from_traherne\*" tests\Release -Recurse
     # run tests on Oxford Buildings 100 subset
     - '& tests\Release\test_oxford_buildings oxford-buildings-100 "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\images" "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\gt" 0.03 "C:\Users\tlm\build\vise\tests"'
 
