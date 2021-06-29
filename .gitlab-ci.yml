@@ -16,6 +16,7 @@ Windows-10-Build:
     - vgg-windows-10-builder
   script:
     - echo "Building VISE for Windows 64 bit"
+    - git -C C:\Users\tlm\code\vise\ pull origin master 
     - cmd.exe /Q /C "C:\Users\tlm\code\vise\scripts\dist\build-win64.cmd"
 
 Windows-10-Test:
