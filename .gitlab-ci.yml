@@ -14,20 +14,20 @@ Windows-10-Build-Test:
     - vgg-windows-10-builder
   script:
     - echo "Building VISE for Windows 10 64 bit"
-    - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat"
+    - '& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat"'
     - git clone https://gitlab.com/vgg/vise.git
     - mkdir cmake_build 
-    - call "C:\Program Files\CMake\bin\cmake.exe" -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR_PLATFORM=x64 -DCMAKE_TOOLCHAIN_FILE="C:\Users\tlm\dep\vise\vcpkg\scripts\buildsystems\vcpkg.cmake" -Bcmake_build -Hsrc
+    - '& "C:\Program Files\CMake\bin\cmake.exe" -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR_PLATFORM=x64 -Bcmake_build -Hsrc'
     - cd cmake_build
     # build VISE
-    - msbuild ALL_BUILD.vcxproj -maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release
+    - '& msbuild ALL_BUILD.vcxproj -maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
     # Build Windows 10 64 bit installer
-    - msbuild PACKAGE.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release
+    - '& msbuild PACKAGE.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
     # copy DLL dependencies required to run test
-    - copy "C:\Users\tlm\dep\vise\dep_dll" /B /Y tests\Release
-    - copy "C:\Users\tlm\dep\vise\dep_dll_imagemagick_from_traherne" /B /Y tests\Release
+    - '& copy "C:\Users\tlm\dep\vise\dep_dll" /B /Y tests\Release'
+    - '& copy "C:\Users\tlm\dep\vise\dep_dll_imagemagick_from_traherne" /B /Y tests\Release'
     # run tests on Oxford Buildings 100 subset
-    - tests\Release\test_oxford_buildings oxford-buildings-100 "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\images" "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\gt" 0.03 "C:\Users\tlm\build\vise\tests"
+    - '& tests\Release\test_oxford_buildings oxford-buildings-100 "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\images" "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\gt" 0.03 "C:\Users\tlm\build\vise\tests"'
 
 Debian-Build-Test:
   stage: build
