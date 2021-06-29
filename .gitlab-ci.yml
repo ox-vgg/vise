@@ -7,27 +7,28 @@
 
 stages:
   - build
-  - test
-  - all
 
-Windows-10-Build:
+Windows-10-Build-Test:
   stage: build
   tags:
     - vgg-windows-10-builder
   script:
-    - echo "Building VISE for Windows 64 bit"
-    - git -C C:\Users\tlm\code\vise\ pull origin master 
-    - cmd.exe /Q /C "C:\Users\tlm\code\vise\scripts\dist\build-win64.cmd"
+    - echo "Building VISE for Windows 10 64 bit"
+    - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat"
+    - git clone https://gitlab.com/vgg/vise.git
+    - mkdir cmake_build 
+    - call "C:\Program Files\CMake\bin\cmake.exe" -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR_PLATFORM=x64 -DCMAKE_TOOLCHAIN_FILE="C:\Users\tlm\dep\vise\vcpkg\scripts\buildsystems\vcpkg.cmake" -Bcmake_build -Hsrc
+    - cd cmake_build
+    # build VISE
+    - msbuild ALL_BUILD.vcxproj -maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release
+    # Build Windows 10 64 bit installer
+    - msbuild PACKAGE.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release
+    # copy DLL dependencies required to run test
+    - copy "C:\Users\tlm\dep\vise\dep_dll" /B /Y tests\Release && copy "C:\Users\tlm\dep\vise\dep_dll_imagemagick_from_traherne" /B /Y tests\Release
+    # run tests on Oxford Buildings 100 subset
+    - tests\Release\test_oxford_buildings oxford-buildings-100 "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\images" "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\gt" 0.03 "C:\Users\tlm\build\vise\tests"
 
-Windows-10-Test:
-  stage: test
-  tags:
-    - vgg-windows-10-builder
-  script:
-    - echo "Testing VISE on Oxford-Buildings-100 subset"
-    - C:\Users\tlm\build\vise\release\Win64\tests\Release\test_oxford_buildings oxford-buildings-100 "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\images" "C:\Users\tlm\tests\vise\relja_retrival\oxford-buildings-100\gt" 0.03 "C:\Users\tlm\build\vise\tests"
-
-Debian-Build:
+Debian-Build-Test:
   stage: build
   tags:
     - vgg-Linux-builder
@@ -35,30 +36,14 @@ Debian-Build:
     - echo "Buildings VISE for Debian Linux ..."
     - git clone https://gitlab.com/vgg/vise.git
     - cd vise && mkdir cmake_build && cd cmake_build && /home/gitlab-runner/dep/vise/bin/cmake -DCMAKE_PREFIX_PATH=/home/gitlab-runner/dep/vise/ ../src && make -j
-
-Debian-Test:
-  stage: test
-  tags:
-    - vgg-Linux-builder
-  script:
-    - echo "Testing VISE on Oxford Buildings 100 subset ..."
-    - git clone https://gitlab.com/vgg/vise.git
-    - cd vise && mkdir cmake_build && cd cmake_build && /home/gitlab-runner/dep/vise/bin/cmake -DCMAKE_PREFIX_PATH=/home/gitlab-runner/dep/vise/ ../src && make -j
     - if [ -d "/tmp/vise/test/" ]; then rm -fr /tmp/vise/test; fi
     - mkdir -p /tmp/vise/test && tests/test_oxford_buildings oxford-buildings-100 /home/gitlab-runner/dataset/oxford_buildings/oxford-buildings-100/images/ /home/gitlab-runner/dataset/oxford_buildings/oxford-buildings-100/gt/ 0.03 /tmp/vise/test/
 
-MacOS-Build:
+MacOS-Build-Test:
   stage: build
   tags:
     - vgg-MacOS-builder
   script:
     - echo "Buildings VISE for MacOS"
     - cd /Users/adutta/code/vise/cmake_build && git pull origin master && make -j
-
-MacOS-Test:
-  stage: test
-  tags:
-    - vgg-MacOS-builder
-  script:
-    - echo "Testing VISE on Oxford-Buildings-100 subset"
     - /Users/adutta/code/vise/cmake_build/tests/test_oxford_buildings oxford-buildings-100 /Users/adutta/dataset/oxford_buildings/oxford-buildings-100/images/ /Users/adutta/dataset/oxford_buildings/oxford-buildings-100/gt/ 0.03 /Users/adutta/tmp/
