@@ -1759,7 +1759,7 @@ void vise::project::get_match_region(const vise::search_query &query,
 }
 
 void vise::project::get_vgroup(const std::string vgroup_id,
-                               std::map<std::string, std::string> const &param,
+                               std::unordered_map<std::string, std::string> const &param,
                                std::ostringstream &json) const {
   if(!is_vgroup_available(vgroup_id)) {
     json << "{\"STATUS\":\"error\",\"MESSAGE\":"

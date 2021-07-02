@@ -7,7 +7,7 @@
 #define SEARCH_QUERY_H
 
 #include <sstream>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -34,7 +34,7 @@ namespace vise {
       d_max_result_count = 0;
     }
 
-    search_query(std::map<std::string, std::string> const &param) {
+    search_query(std::unordered_map<std::string, std::string> const &param) {
       d_file_id = 0;
       d_x = 0.0;
       d_y = 0.0;

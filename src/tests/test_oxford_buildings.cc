@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 
   // check if this project already exists
   if(pmanager->project_exists(pname)) {
-    std::map<std::string, std::string> del_pname_list;
+    std::unordered_map<std::string, std::string> del_pname_list;
     del_pname_list[pname] = "1";
     pmanager->vise_project_delete(del_pname_list, last_http_response);
     std::cout << last_http_response.d_status_code << " " << last_http_response.d_status
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 
   // create a new project
   vise::http_response project_create_response;
-  std::map<std::string, std::string> create_pname_list;
+  std::unordered_map<std::string, std::string> create_pname_list;
   create_pname_list["pname"] = pname;
   pmanager->vise_project_create(create_pname_list, last_http_response);
   std::cout << "pmanager->vise_project_create(): "
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
   std::cout << imdir << " has " << img_count << " files" << std::endl;
 
   // add images to project
-  std::map<std::string, std::string> param
+  std::unordered_map<std::string, std::string> param
     {
      {"source_type", "local_folder"},
      {"source_loc", imdir.string()}
