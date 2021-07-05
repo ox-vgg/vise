@@ -148,7 +148,7 @@ namespace vise {
                                bool &success,
                                std::string &message) const;
     void get_vgroup(const std::string vgroup_id,
-                    std::map<std::string, std::string> const &param,
+                    std::unordered_map<std::string, std::string> const &param,
                     std::ostringstream &json) const;
     void get_vgroup_set(const std::string vgroup_id,
                         const std::string set_id_str,
