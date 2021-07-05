@@ -199,6 +199,7 @@ namespace vise {
     std::unordered_map<std::string, std::unordered_map<std::string, std::string> > d_vgroup_metadata_list;
     const std::string d_vgroup_task_progress_table;
     const std::string d_vgroup_match_table;
+    const std::string d_vgroup_non_match_table;
     const std::string d_vgroup_metadata_table;
     const std::string d_vgroup_region_table;
     const std::string d_vgroup_table;

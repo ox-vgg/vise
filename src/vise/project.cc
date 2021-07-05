@@ -22,6 +22,7 @@ vise::project::project(std::string pname,
     d_app_dir_exists(false),
     d_vgroup_task_progress_table("vgroup_task_progress"),
     d_vgroup_match_table("vgroup_match"),
+    d_vgroup_non_match_table("vgroup_non_match"),
     d_vgroup_metadata_table("vgroup_metadata"),
     d_vgroup_region_table("vgroup_region"),
     d_vgroup_table("vgroup"),
@@ -1244,6 +1245,7 @@ void vise::project::init_vgroup_db(const std::string vgroup_id,
     if(err_msg != NULL) {
       sqlite3_free(err_msg);
     }
+    sqlite3_close_v2(db);
     return;
   }
 
@@ -1267,6 +1269,26 @@ void vise::project::init_vgroup_db(const std::string vgroup_id,
         sqlite3_free(err_msg);
       }
     }
+  }
+
+  // create a table to store non-matches
+  ss.str("");
+  ss.clear();
+  ss << "CREATE TABLE IF NOT EXISTS `" << d_vgroup_non_match_table << "`("
+     << "`query_id` INTEGER NOT NULL, "
+     << "`search_result_count` INTEGER NOT NULL, "
+     << "`max_score` REAL NOT NULL);";
+  sql = ss.str();
+  rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+
+  if(rc != SQLITE_OK) {
+    message = "failed to create tables in visual group database";
+    success = false;
+    if(err_msg != NULL) {
+      sqlite3_free(err_msg);
+    }
+    sqlite3_close_v2(db);
+    return;
   }
 
   sqlite3_close_v2(db);
@@ -1470,6 +1492,21 @@ void vise::project::vgroup_match_graph(const std::string vgroup_id,
              << std::to_string(telapsed) + ");";
     sql = progress.str();
     rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+    if(match_count == 0) {
+      std::ostringstream non_match;
+      non_match << "INSERT INTO `" << d_vgroup_non_match_table << "` "
+                << "VALUES(" + std::to_string(query_id) << ","
+                << (search_result_list.size() - 1) << ","; // discard first self match
+      if(search_result_list.size() < 2) {
+        non_match << "0";
+      } else {
+        float score = (float) search_result_list[1].d_score;
+        non_match << score;
+      }
+      non_match << ");";
+      sql = non_match.str();
+      rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+    }
     sql = "END TRANSACTION";
     rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
 
