@@ -899,11 +899,14 @@ void vise::project::create_vgroup(const std::unordered_map<std::string, std::str
   if(params.count("filename-like")) {
     filename_like = params.at("filename-like");
   }
-  if(params.at("query-type") == "file") {
-    d_metadata->select_fid_with_filename_like(filename_like,
+
+  if(params.count("query-type") == 1 &&
+     params.at("query-type") == "region") {
+    d_metadata->select_rid_with_filename_like(filename_like,
                                               all_qid_list);
   } else {
-    d_metadata->select_rid_with_filename_like(filename_like,
+    // default: query using full image
+    d_metadata->select_fid_with_filename_like(filename_like,
                                               all_qid_list);
   }
   if(all_qid_list.size() == 0) {
@@ -911,8 +914,9 @@ void vise::project::create_vgroup(const std::unordered_map<std::string, std::str
     success = false;
     return;
   }
-  std::cout << "vise::project::" << d_pname << " : pattern " << filename_like
-            << " matched " << all_qid_list.size() << " files or regions" << std::endl;
+  std::cout << "vise::project::" << d_pname << " : pattern "
+            << filename_like << " matched " << all_qid_list.size()
+            << " files or regions" << std::endl;
 
   // initialize group db tables and list of file_id that needs to be processed
   std::vector<std::size_t> todo_qid_list;
@@ -1297,7 +1301,7 @@ void vise::project::vgroup_match_graph(const std::string vgroup_id,
   }
 
   std::cout << "vise::project:: create_vgroup_match_graph()"
-            << " nthread=" << nthread
+            << " nthread-search=" << nthread
             << ", max-matches-count=" << max_matches_count
             << ", min-match-score=" << min_match_score
             << ", match-iou-threshold=" << match_iou_threshold
@@ -1324,38 +1328,43 @@ void vise::project::vgroup_match_graph(const std::string vgroup_id,
   std::unordered_map<std::size_t, int> file_id_region_index_map;
   std::unordered_map<std::size_t, std::set<std::size_t> > file_id_to_region_id_list;
   std::unordered_map<std::size_t, std::vector<float> > region_id_region_points_map;
-  sql = "SELECT region_id, file_id, region_index, region_points FROM " + d_vgroup_region_table;
-  rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
-  if(rc != SQLITE_OK) {
-    success = false;
-    message = "failed to query visual group region table";
-    sqlite3_close_v2(db);
-    return;
-  }
-  rc = sqlite3_step(stmt);
-  std::size_t region_id = 0; // we need this to add new regions
-  while(rc == SQLITE_ROW) {
-    region_id = sqlite3_column_int(stmt, 0);
-    std::size_t file_id = sqlite3_column_int(stmt, 1);
-    std::size_t region_index = sqlite3_column_int(stmt, 2);
-    file_id_region_index_map[file_id] = region_index;
+  std::size_t next_region_id; // need for new regions added by vgroup
 
-    if(file_id_to_region_id_list.count(file_id) == 0) {
-      file_id_to_region_id_list[file_id] = std::set<std::size_t>();
-    }
-    file_id_to_region_id_list[file_id].insert(region_id);
-
-    std::ostringstream ss;
-    ss << sqlite3_column_text(stmt, 3);
-    std::vector<std::string> region_points = vise::split(ss.str(), ',');
-    region_id_region_points_map[region_id] = std::vector<float>();
-    for(std::size_t k=0; k<region_points.size(); ++k) {
-      region_id_region_points_map[region_id].push_back( std::stof(region_points[k]) );
+  if(vgroup_metadata.count("query-type") &&
+     vgroup_metadata.at("query-type") == "region") {
+    sql = "SELECT region_id, file_id, region_index, region_points FROM " + d_vgroup_region_table;
+    rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, &tail);
+    if(rc != SQLITE_OK) {
+      success = false;
+      message = "failed to query visual group region table";
+      sqlite3_close_v2(db);
+      return;
     }
     rc = sqlite3_step(stmt);
+    std::size_t region_id = 0; // we need this to add new regions
+    while(rc == SQLITE_ROW) {
+      region_id = sqlite3_column_int(stmt, 0);
+      std::size_t file_id = sqlite3_column_int(stmt, 1);
+      std::size_t region_index = sqlite3_column_int(stmt, 2);
+      file_id_region_index_map[file_id] = region_index;
+
+      if(file_id_to_region_id_list.count(file_id) == 0) {
+        file_id_to_region_id_list[file_id] = std::set<std::size_t>();
+      }
+      file_id_to_region_id_list[file_id].insert(region_id);
+
+      std::ostringstream ss;
+      ss << sqlite3_column_text(stmt, 3);
+      std::vector<std::string> region_points = vise::split(ss.str(), ',');
+      region_id_region_points_map[region_id] = std::vector<float>();
+      for(std::size_t k=0; k<region_points.size(); ++k) {
+        region_id_region_points_map[region_id].push_back( std::stof(region_points[k]) );
+      }
+      rc = sqlite3_step(stmt);
+    }
+    sqlite3_finalize(stmt);
+    next_region_id = region_id + 1;
   }
-  sqlite3_finalize(stmt);
-  std::size_t next_region_id = region_id + 1;
 
   unsigned int processed_query_count = 0;
   for(std::size_t qindex=0; qindex<query_id_list.size(); ++qindex) {
@@ -1957,9 +1966,12 @@ void vise::project::get_vgroup(const std::string vgroup_id,
     set_index_list_subset << set_index;
     std::string file_id_list_str = image_group_file_id_list_str.at(i);
     json << "\"" << set_index << "\":{\"set_id\":" << set_id
-         << ",\"file_id_list\":[" << file_id_list_str << "]"
-         << ",\"region_points_list\":[" << image_group_region_points_list_str.at(i) << "]"
-         << ",\"filename_list\":[";
+         << ",\"file_id_list\":[" << file_id_list_str << "]";
+    if(d_vgroup_metadata_list.at(vgroup_id).count("query-type") &&
+       d_vgroup_metadata_list.at(vgroup_id).at("query-type") == "region") {
+      json << ",\"region_points_list\":[" << image_group_region_points_list_str.at(i) << "]";
+    }
+    json << ",\"filename_list\":[";
     std::vector<std::string> file_id_list = vise::split(file_id_list_str, ',');
     json << "\"" << filename(std::stoi(file_id_list.at(0))) << "\"";
     for(std::size_t j=1; j<file_id_list.size(); ++j) {
