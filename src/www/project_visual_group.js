@@ -332,7 +332,7 @@ function _vise_init_group_content() {
     for (var i=0; i<setdata['filename_list'].length; ++i) {
       //var set_match_figure = document.createElement('figure');
       var set_match_img = document.createElement('img');
-      set_match_img.setAttribute('src', 'image_small/' + setdata['filename_list'][i]);
+      set_match_img.setAttribute('src', 'image/' + setdata['filename_list'][i]);
       set_match_img.setAttribute('data-setindex', set_index);
       set_match_img.setAttribute('data-fileindex', i);
       set_match_img.addEventListener('load', _vise_on_img_load_highlight_set_img_region);
@@ -404,7 +404,7 @@ function _vise_init_set_content() {
   for (var i=0; i<setdata['filename_list'].length; ++i) {
     var set_match_img = document.createElement('img');
     set_match_img.setAttribute('data-fileindex', i);
-    set_match_img.setAttribute('src', 'image_small/' + setdata['filename_list'][i]);
+    set_match_img.setAttribute('src', 'image/' + setdata['filename_list'][i]);
     set_match_img.addEventListener('load', _vise_on_img_load_highlight_img_region);
 
     var set_match_a = document.createElement('a');
@@ -466,23 +466,26 @@ function _vise_init_set_file_id_content() {
 
 function _vise_on_img_load_highlight_img_region(e) {
   var file_index = parseInt(e.target.dataset.fileindex);
-  var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
-  svg.setAttribute('style', 'height:' + e.target.height + 'px;width:' + e.target.width + 'px;');
+  if('region_points_list' in _vise_data.GROUP.SET[set_index]) {
 
-  var x = _vise_data.GROUP['region_points_list'][file_index][0];
-  var y = _vise_data.GROUP['region_points_list'][file_index][1];
-  var width = _vise_data.GROUP['region_points_list'][file_index][2];
-  var height = _vise_data.GROUP['region_points_list'][file_index][3];
-  var scale = e.target.height / e.target.naturalHeight;
+    var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
+    svg.setAttribute('style', 'height:' + e.target.height + 'px;width:' + e.target.width + 'px;');
 
-  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
-  rshape.setAttribute('x', Math.floor(x*scale));
-  rshape.setAttribute('y', Math.floor(y*scale));
-  rshape.setAttribute('width', Math.floor(width*scale));
-  rshape.setAttribute('height', Math.floor(height*scale));
+    var x = _vise_data.GROUP['region_points_list'][file_index][0];
+    var y = _vise_data.GROUP['region_points_list'][file_index][1];
+    var width = _vise_data.GROUP['region_points_list'][file_index][2];
+    var height = _vise_data.GROUP['region_points_list'][file_index][3];
+    var scale = e.target.height / e.target.naturalHeight;
 
-  svg.appendChild(rshape);
-  e.target.parentNode.appendChild(svg);
+    var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+    rshape.setAttribute('x', Math.floor(x*scale));
+    rshape.setAttribute('y', Math.floor(y*scale));
+    rshape.setAttribute('width', Math.floor(width*scale));
+    rshape.setAttribute('height', Math.floor(height*scale));
+
+    svg.appendChild(rshape);
+    e.target.parentNode.appendChild(svg);
+  }
 }
 
 function _vise_on_img_load_highlight_set_img_region(e) {
