@@ -111,6 +111,13 @@ function _vise_self_check_is_ok() {
 
 function _vise_show_filelist_ui() {
   _vise_set_project_pagetools(pagetools);
+
+  var group_icon = _vise_common_get_svg_button('micon_group', 'Show Visual Group');
+  var group_link = document.createElement('a');
+  group_link.setAttribute('href', 'visual_group');
+  group_link.appendChild(group_icon);
+  pagetools.appendChild(group_link);
+
   _vise_init_filelist_toolbar();
   _vise_init_filelist_search_toolbar();
   _vise_init_filelist_content();

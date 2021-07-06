@@ -157,6 +157,9 @@ namespace vise {
                                      const std::string file_id_str,
                                      std::ostringstream &json) const;
     bool is_vgroup_available(const std::string vgroup_id) const;
+    std::set<std::string> get_copy_of_vgroup_id_list() const;
+    std::string get_default_vgroup_id() const;
+    uint32_t get_vgroup_count() const;
   private:
     std::string d_pname;
     boost::filesystem::path d_project_dir;

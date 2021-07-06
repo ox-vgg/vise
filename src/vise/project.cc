@@ -2263,3 +2263,19 @@ bool vise::project::is_vgroup_available(const std::string vgroup_id) const {
     return false;
   }
 }
+
+uint32_t vise::project::get_vgroup_count() const {
+  return d_vgroup_id_list.size();
+}
+
+std::string vise::project::get_default_vgroup_id() const {
+  if(d_vgroup_id_list.size()) {
+    return *d_vgroup_id_list.begin();
+  } else {
+    return "";
+  }
+}
+
+std::set<std::string> vise::project::get_copy_of_vgroup_id_list() const {
+  return d_vgroup_id_list;
+}

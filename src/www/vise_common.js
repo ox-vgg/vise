@@ -52,3 +52,17 @@ function _vise_set_project_pagetools(container, pagename) {
   container.appendChild(filelist_link);
   container.appendChild(external_search_link);
 }
+
+function _vise_save_data_to_local_file(data, filename) {
+  var a      = document.createElement('a');
+  a.href     = URL.createObjectURL(data);
+  a.download = filename;
+
+  // simulate a mouse click event
+  var event = new MouseEvent('click', {
+    view: window,
+    bubbles: true,
+    cancelable: true
+  });
+  a.dispatchEvent(event);
+}

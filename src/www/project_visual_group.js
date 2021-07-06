@@ -315,10 +315,15 @@ function _vise_init_group_content() {
     set_id_container.setAttribute('class', 'set_id');
     set_id_container.setAttribute('title', 'Permanent link to this set');
     var set_url = '<a href="visual_group?group_id='  + _vise_data.GROUP['group_id'] + '&set_id=' + setdata['set_id'] + '">Set Id. ' + setdata['set_id'] + '</a>';
-
     set_id_container.innerHTML = set_url;
+    var set_spec_download_icon = _vise_common_get_svg_button('micon_download', 'Download specifications of this set (e.g. filenames, set id, etc.) as a text file.');
+    var set_spec_download_link = document.createElement('span');
+    set_spec_download_link.setAttribute('onclick', '_vise_download_set_specifications(' + set_index + ')');
+    set_spec_download_link.appendChild(set_spec_download_icon);
+
     set_info_container.appendChild(set_index_container);
     set_info_container.appendChild(set_id_container);
+    set_info_container.appendChild(set_spec_download_link);
     set_panel.appendChild(set_info_container);
 
     // match
@@ -412,6 +417,24 @@ function _vise_init_set_content() {
   group_panel.appendChild(set_panel);
 }
 
+function _vise_download_set_specifications(set_index) {
+  var setdata = _vise_data.GROUP.SET[set_index];
+  var set_id = setdata['set_id'];
+  var csv = [];
+  csv.push('project_id,visual_group_id,set_id,file_id,filename');
+  for (var i=0; i<setdata['filename_list'].length; ++i) {
+    var line = [];
+    line.push(_vise_data['PNAME']);
+    line.push(_vise_data['GROUP']['group_id']);
+    line.push(set_id);
+    line.push(setdata['file_id_list'][i]);
+    line.push('"' + setdata['filename_list'][i] + '"');
+    csv.push(line.join(','))
+  }
+  var csv_blob = new Blob( [csv.join('\n')], {type:'text/csv;charset=utf-8'} );
+  var csv_filename = _vise_data['PNAME'] + '-' + _vise_data['GROUP']['group_id'] + '-set' + set_id + '.csv';
+  _vise_save_data_to_local_file(csv_blob, csv_filename)
+}
 
 function _vise_init_set_file_id_content() {
   group_panel.innerHTML = '';
@@ -465,21 +488,23 @@ function _vise_on_img_load_highlight_img_region(e) {
 function _vise_on_img_load_highlight_set_img_region(e) {
   var set_index = parseInt(e.target.dataset.setindex);
   var file_index = parseInt(e.target.dataset.fileindex);
-  var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
-  svg.setAttribute('style', 'height:' + e.target.height + 'px;width:' + e.target.width + 'px;');
+  if('region_points_list' in _vise_data.GROUP.SET[set_index]) {
+    var svg = document.createElementNS(_VISE_SVG_NS, 'svg');
+    svg.setAttribute('style', 'height:' + e.target.height + 'px;width:' + e.target.width + 'px;');
 
-  var x = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][0];
-  var y = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][1];
-  var width = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][2];
-  var height = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][3];
-  var scale = e.target.height / e.target.naturalHeight;
+    var x = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][0];
+    var y = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][1];
+    var width = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][2];
+    var height = _vise_data.GROUP.SET[set_index]['region_points_list'][file_index][3];
+    var scale = e.target.height / e.target.naturalHeight;
 
-  var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
-  rshape.setAttribute('x', Math.floor(x*scale));
-  rshape.setAttribute('y', Math.floor(y*scale));
-  rshape.setAttribute('width', Math.floor(width*scale));
-  rshape.setAttribute('height', Math.floor(height*scale));
+    var rshape = document.createElementNS(_VISE_SVG_NS, 'rect');
+    rshape.setAttribute('x', Math.floor(x*scale));
+    rshape.setAttribute('y', Math.floor(y*scale));
+    rshape.setAttribute('width', Math.floor(width*scale));
+    rshape.setAttribute('height', Math.floor(height*scale));
 
-  svg.appendChild(rshape);
-  e.target.parentNode.appendChild(svg);
+    svg.appendChild(rshape);
+    e.target.parentNode.appendChild(svg);
+  }
 }

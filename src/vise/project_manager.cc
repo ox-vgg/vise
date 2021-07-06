@@ -1525,8 +1525,8 @@ void project_manager::project_external_search(std::string pname,
 }
 
 void project_manager::project_visual_group(std::string pname,
-                                          std::unordered_map<std::string, std::string> const &param,
-                                          http_response &response) const {
+                                           std::unordered_map<std::string, std::string> const &param,
+                                           http_response &response) const {
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
     response.set_payload("project not loaded yet");
@@ -1540,9 +1540,25 @@ void project_manager::project_visual_group(std::string pname,
   }
 
   if(param.count("group_id") == 0) {
-    response.set_status(412);
-    response.set_payload("group_id missing");
-    return;
+    if(d_projects.at(pname)->get_vgroup_count() == 0) {
+      response.set_status(412);
+      response.set_payload("visual groups not available");
+      return;
+    }
+
+    // if more than 1 group is available, show an index page with a list of all groups
+    // if only 1 group is available, redirect to that group
+    if(d_projects.at(pname)->get_vgroup_count() == 1) {
+      std::ostringstream redirect_url;
+      redirect_url << d_conf.at("http-namespace") << pname
+                   << "/visual_group?group_id="
+                   << d_projects.at(pname)->get_default_vgroup_id();
+      response.redirect_to(redirect_url.str());
+      return;
+    } else {
+      project_show_visual_group_index(pname, response);
+      return;
+    }
   }
 
   std::string vgroup_id = param.at("group_id");
@@ -1585,6 +1601,25 @@ void project_manager::project_visual_group(std::string pname,
          << vise::HTML_TAIL;
     response.set_html_payload(html.str());
   }
+}
+
+void project_manager::project_show_visual_group_index(const std::string pname,
+                                                      http_response &response) const {
+  std::ostringstream html;
+  html << vise::VISE_HTML_HEAD
+       << "<body>\n"
+       << "<p>The following visual groups (i.e. sets of images with similar visual content) are available for this project:</p>"
+       << "<ul>";
+  std::set<std::string> vgroup_id_list = d_projects.at(pname)->get_copy_of_vgroup_id_list();
+  std::set<std::string>::const_iterator it;
+  for(it=vgroup_id_list.begin(); it!=vgroup_id_list.end(); ++it) {
+    html << "<li><a href=\"" << d_conf.at("http-namespace")
+         << pname << "/visual_group?group_id=" << *it
+         << "\">" << *it << "</a></li>";
+  }
+  html << "</ul>"
+       << vise::HTML_EMPTY_TAIL;
+  response.set_html_payload(html.str());
 }
 
 //

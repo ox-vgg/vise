@@ -161,6 +161,8 @@ namespace vise {
     void project_visual_group(std::string pname,
                               std::unordered_map<std::string, std::string> const &param,
                               http_response &response) const;
+    void project_show_visual_group_index(const std::string pname,
+                                         http_response &response) const;
 
     bool project_exists(std::string pname) const;
     bool project_create(std::string pname);

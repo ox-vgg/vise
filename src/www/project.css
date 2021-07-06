@@ -183,3 +183,4 @@ footer { display:block; text-align:center; margin-top:2em; padding:0.5em 0; font
 #content .visual_group_panel .set_panel .set_info { display:block; position:relative; background-color: #cccccc; font-size:small; padding:0em; }
 #content .visual_group_panel .set_panel .set_info span:first-child { margin:0; padding:0 1em; }
 #content .visual_group_panel .set_panel .set_info span:nth-child(2) { border-left:1px solid #aaaaaa; padding-left:1em; }
+#content .visual_group_panel .set_panel .set_info span:nth-child(3) { float:right; padding-right:1em; }
