@@ -17,12 +17,12 @@ Windows-10-Build-Test:
     - '& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat"'
     - git clone https://gitlab.com/vgg/vise.git
     - mkdir cmake_build 
-    - '& "C:\Program Files\CMake\bin\cmake.exe" -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR_PLATFORM=x64 -DCMAKE_TOOLCHAIN_FILE="C:\Users\tlm\dep\vise\vcpkg\scripts\buildsystems\vcpkg.cmake" -Bcmake_build -Hsrc'
+    - '& "C:\Program Files\CMake\bin\cmake.exe" -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR_PLATFORM=x64 -DCMAKE_TOOLCHAIN_FILE="C:\Users\tlm\dep\vise\vcpkg\scripts\buildsystems\vcpkg.cmake" -Bcmake_build -Hvise/src'
     - cd cmake_build
     # build VISE
-    - '& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" ALL_BUILD.vcxproj -maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
+    - '& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" ALL_BUILD.vcxproj -maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:"ErrorsOnly;Summary" -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
     # Build Windows 10 64 bit installer
-    - '& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" PACKAGE.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:ErrorsOnly;Summary -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
+    - '& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" PACKAGE.vcxproj /maxcpucount:8 -p:PreferredToolArchitecture=x64 -nologo -consoleLoggerParameters:"ErrorsOnly;Summary" -verbosity:minimal -interactive:False -lowPriority:False /p:Configuration=Release'
     # copy DLL dependencies required to run test
     - Copy-Item -Path "C:\Users\tlm\dep\vise\dep_dll\*" tests\Release -Recurse
     - Copy-Item -Path "C:\Users\tlm\dep\vise\dep_dll_imagemagick_from_traherne\*" tests\Release -Recurse
