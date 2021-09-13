@@ -13,6 +13,9 @@ For more details, visit https://www.robots.ox.ac.uk/~vgg/software/vise/
 ## Download
 The VISE software installers can be downloaded from the VISE [software page](https://www.robots.ox.ac.uk/~vgg/software/vise/index.html#download). Source code is available from VISE [gitlab code repository](https://gitlab.com/vgg/vise).
 
+## User Guide
+See [doc/User-Guide.md](doc/User-Guide.md) for instructions on using VISE for creating visual search engine.
+
 ## Developer Resources
 See [doc/Compiling-VISE.md](doc/Compiling-VISE.md) for instructions on compiling the VISE source code in Windows, Linux and MacOS platforms.
 
