@@ -244,7 +244,7 @@ namespace buildIndex {
     buildWorkerSemiSorted(std::string const outDir,
                           std::string const imagelistFn, std::string const databasePath,
                           featGetter const &featGetter_obj,
-                          VlKDForest* const kd_forest,
+                          VlKDForestSearcher* const kd_forest_searcher,
                           clstCentres const *clstCentres_obj= NULL,
                           embedderFactory const *embFactory= NULL);
 
@@ -289,7 +289,7 @@ namespace buildIndex {
 
     featGetter const *featGetter_;
     uint32_t const numDims_;
-    VlKDForest* const kd_forest_;
+    VlKDForestSearcher* const kd_forest_searcher_;
     clstCentres const *clstCentres_;
     embedderFactory const *embFactory_;
     bool delEmbF_;
@@ -313,7 +313,7 @@ namespace buildIndex {
                                                std::string const outDir,
                                                std::string const imagelistFn, std::string const databasePath,
                                                featGetter const &featGetter_obj,
-                                               VlKDForest* const kd_forest,
+					       VlKDForestSearcher* const kd_forest_searcher,
                                                clstCentres const *clstCentres_obj,
                                                embedderFactory const *embFactory)
   : fidx_fn_( util::getTempFileName( outDir, "fidxpart_", ".bin" ) ),
@@ -321,7 +321,7 @@ namespace buildIndex {
     databasePath_(databasePath),
     featGetter_(&featGetter_obj),
     numDims_(featGetter_obj.numDims()),
-    kd_forest_(kd_forest),
+    kd_forest_searcher_(kd_forest_searcher),	 
     clstCentres_(clstCentres_obj),
     outDir_(outDir),
     dbBuilder_(NULL),
@@ -405,11 +405,10 @@ namespace buildIndex {
 
     float *itD= descs;
 
-    VlKDForestSearcher* kd_forest_searcher = vl_kdforest_new_searcher(kd_forest_);
     VlKDForestNeighbor cluster;
     for (uint32_t iFeat=0; iFeat<numFeats; ++iFeat){
       ellipse const &region= regions[iFeat];
-      vl_kdforestsearcher_query(kd_forest_searcher, &cluster, 1, (descs + iFeat*numDims_));
+      vl_kdforestsearcher_query(kd_forest_searcher_, &cluster, 1, (descs + iFeat*numDims_));
       uint32_t cluster_id = cluster.index;
       wordIDsUnique.push_back(cluster_id);
       wordIDs->AddAlreadyReserved(cluster_id);
@@ -432,7 +431,6 @@ namespace buildIndex {
 
     // cleanup
     delete []descs;
-    vl_kdforestsearcher_delete(kd_forest_searcher);
 
     // protobufs are not designed for more
     if (indexEntry_.ByteSize() + static_cast<int>(emb_->getByteSize()) > semiSortedProtoByteSizeLim)
@@ -1124,11 +1122,17 @@ namespace buildIndex {
 
       if (useThreads){
         std::vector<queueWorker<buildResultSemiSorted> const *> workers;
+
+	// Note: based on advice of vlfeat documentation, we pre-initialize
+	// all the instances of VlKDForestSearcher and provide them to each worker
+	// see https://www.vlfeat.org/api/kdtree_8h.html#a9d909b0b42489ce438b03e99be9fd5d1
+	std::vector<VlKDForestSearcher*> kd_forest_searcher_list;
         for (uint32_t i= 0; i<nthread; ++i) {
+	  kd_forest_searcher_list.push_back( vl_kdforest_new_searcher(kd_forest) );
           workers.push_back( new buildWorkerSemiSorted(
                                                        tmpDir, imagelistFn, databasePath,
                                                        featGetter_obj,
-                                                       kd_forest,
+                                                       kd_forest_searcher_list.at(i),
                                                        &clstCentres_obj,
                                                        embFactory) );
         }
@@ -1150,7 +1154,12 @@ namespace buildIndex {
 
           totalFeats+= ((buildWorkerSemiSorted const *)workers[i])->totalFeats_;
         }
+	// cleanup
         util::delPointerVector(workers);
+        for (uint32_t i= 0; i<nthread; ++i) {
+	  vl_kdforestsearcher_delete(kd_forest_searcher_list.at(i));
+	}
+	kd_forest_searcher_list.clear();
       } else {
 
 #ifdef RR_MPI

@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.com/vgg/vise/badges/master/pipeline.svg)](https://gitlab.com/vgg/vise/-/commits/master) 
+
 # VGG Image Search Engine (VISE)
 
 VGG Image Search Engine (VISE) is a free and [open source](https://gitlab.com/vgg/vise) software for visual search of large collection of images using image region as a search query. VISE is developed and maintained by Visual Geometry Group ([VGG](https://www.robots.ox.ac.uk/~vgg/)) in Department of Engineering Science of the Oxford University. VISE is released under a [license](https://gitlab.com/vgg/vise/-/blob/master/src/LICENSE.txt) that allows unrestricted use in academic research projects and commercial industrial applications.

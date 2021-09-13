@@ -39,12 +39,14 @@ void project_manager::process_http_request(http_request const &request,
   }
 
   std::vector<std::string> uri;
-  std::map<std::string, std::string> param;
+  std::unordered_map<std::string, std::string> param;
   vise::decompose_uri(request_uri_without_ns, uri, param);
 
+  #ifdef _NDEBUG
   std::ostringstream ss;
   ss << "project_manager: " << request.d_method << " " << request.d_uri;
   std::cout << ss.str() << std::endl;
+  #endif
 
   //request.parse_urlencoded_form_data();
   //vise::print_vector("uri", uri);
@@ -132,7 +134,7 @@ void project_manager::process_http_request(http_request const &request,
 
 void project_manager::handle_get(http_request const &request,
                                  std::vector<std::string> const &uri,
-                                 std::map<std::string, std::string> const &param,
+                                 std::unordered_map<std::string, std::string> const &param,
                                  http_response &response)
 {
   if ( uri.size() == 1 ) {
@@ -239,7 +241,7 @@ void project_manager::handle_get(http_request const &request,
 
 void project_manager::handle_post(http_request const &request,
                                   std::vector<std::string> const &uri,
-                                  std::map<std::string, std::string> const &param,
+                                  std::unordered_map<std::string, std::string> const &param,
                                   http_response &response)
 {
   if ( uri.size() == 1 ) {
@@ -254,19 +256,19 @@ void project_manager::handle_post(http_request const &request,
   if (uri.size() == 2) {
     if (uri[1].front() == '_') {
       if(uri[1] == "_project_create") {
-        std::map<std::string, std::string> formdata;
+        std::unordered_map<std::string, std::string> formdata;
         vise::parse_urlencoded_form(request.d_payload.str(), formdata);
         vise_project_create(formdata, response);
         return;
       }
       if(uri[1] == "_project_delete") {
-        std::map<std::string, std::string> formdata;
+        std::unordered_map<std::string, std::string> formdata;
         vise::parse_urlencoded_form(request.d_payload.str(), formdata);
         vise_project_delete(formdata, response);
         return;
       }
       if (uri[1] == "_project_unload") {
-        std::map<std::string, std::string> formdata;
+        std::unordered_map<std::string, std::string> formdata;
         vise::parse_urlencoded_form(request.d_payload.str(), formdata);
         vise_project_unload(formdata, response);
         return;
@@ -322,7 +324,7 @@ void project_manager::handle_post(http_request const &request,
 
 void project_manager::handle_put(http_request const &request,
                                  std::vector<std::string> const &uri,
-                                 std::map<std::string, std::string> const &param,
+                                 std::unordered_map<std::string, std::string> const &param,
                                  http_response &response)
 {
   if (uri[0] != "") {
@@ -374,7 +376,7 @@ void project_manager::handle_put(http_request const &request,
 
 void project_manager::handle_delete(http_request const &request,
                                     std::vector<std::string> const &uri,
-                                    std::map<std::string, std::string> const &param,
+                                    std::unordered_map<std::string, std::string> const &param,
                                     http_response &response)
 {
   if ( uri.size() == 1 ) {
@@ -438,7 +440,7 @@ void project_manager::file_send(boost::filesystem::path fn,
 void project_manager::handle_project_get_request(std::string const pname,
                                                  http_request const &request,
                                                  std::vector<std::string> const &uri,
-                                                 std::map<std::string, std::string> const &param,
+                                                 std::unordered_map<std::string, std::string> const &param,
                                                  http_response& response) const {
   if(uri[2].size() == 0) {
     // GET /PNAME/ redirects to project home
@@ -561,7 +563,7 @@ void project_manager::handle_project_get_request(std::string const pname,
 void project_manager::handle_project_post_request(std::string const pname,
                                                   http_request const &request,
                                                   std::vector<std::string> const &uri,
-                                                  std::map<std::string, std::string> const &param,
+                                                  std::unordered_map<std::string, std::string> const &param,
                                                   http_response& response) const {
   if (uri[2].front() == '_') {
     if (uri[2] == "_extract_image_features") {
@@ -725,7 +727,7 @@ bool project_manager::project_index_is_done(std::string pname) {
 
 void project_manager::project_extract_image_features(const std::string pname,
                                                      const std::string &image_data,
-                                                     std::map<std::string, std::string> const &param,
+                                                     std::unordered_map<std::string, std::string> const &param,
                                                      http_response &response) const {
   uint32_t tstart = vise::getmillisecs();
 
@@ -754,7 +756,7 @@ void project_manager::project_extract_image_features(const std::string pname,
 
 void project_manager::project_index_search_using_features(const std::string pname,
                                                           const std::string &image_features,
-                                                          std::map<std::string, std::string> const &param,
+                                                          std::unordered_map<std::string, std::string> const &param,
                                                           http_response &response) const {
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
@@ -804,7 +806,7 @@ void project_manager::project_index_search_using_features(const std::string pnam
 }
 
 void project_manager::project_index_search(std::string pname,
-                                           std::map<std::string, std::string> const &param,
+                                           std::unordered_map<std::string, std::string> const &param,
                                            http_response &response) const {
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
@@ -870,7 +872,7 @@ void project_manager::project_index_search(std::string pname,
 
 
 void project_manager::project_show_match(std::string pname,
-                                         std::map<std::string, std::string> const &param,
+                                         std::unordered_map<std::string, std::string> const &param,
                                          http_response &response) const {
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
@@ -932,7 +934,7 @@ void project_manager::project_show_match(std::string pname,
 
 void project_manager::project_get_feature_match_details(const std::string pname,
                                                         const std::string &image_features,
-                                                        std::map<std::string, std::string> const &param,
+                                                        std::unordered_map<std::string, std::string> const &param,
                                                         http_response &response) const {
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
@@ -972,7 +974,7 @@ void project_manager::project_get_feature_match_details(const std::string pname,
 }
 
 void project_manager::project_register_image(std::string pname,
-                                             std::map<std::string, std::string> const &param,
+                                             std::unordered_map<std::string, std::string> const &param,
                                              http_response &response) const {
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
@@ -1047,7 +1049,7 @@ void project_manager::project_register_image(std::string pname,
 
 void project_manager::project_register_external_image(const std::string pname,
                                                       const std::string &image_data,
-                                                      std::map<std::string, std::string> const &param,
+                                                      std::unordered_map<std::string, std::string> const &param,
                                                       http_response &response) const {
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
@@ -1155,7 +1157,7 @@ void project_manager::project_home(std::string pname,
 }
 
 void project_manager::project_filelist(std::string pname,
-                                       std::map<std::string, std::string> const& param,
+                                       std::unordered_map<std::string, std::string> const& param,
                                        http_response& response) const {
   // check if project is loaded
   if(!d_projects.at(pname)->index_is_loaded()) {
@@ -1345,7 +1347,7 @@ void project_manager::project_filelist(std::string pname,
   }
 }
 
-void project_manager::project_filelist_set_range(std::map<std::string, std::string> const &param,
+void project_manager::project_filelist_set_range(std::unordered_map<std::string, std::string> const &param,
                                                  uint32_t flist_size,
                                                  uint32_t &flist_start,
                                                  uint32_t &flist_end) const {
@@ -1370,7 +1372,7 @@ void project_manager::project_filelist_set_range(std::map<std::string, std::stri
 }
 
 void project_manager::project_file(std::string pname,
-                                   std::map<std::string, std::string> const &param,
+                                   std::unordered_map<std::string, std::string> const &param,
                                    http_response &response) const {
   if(param.count("file_id") == 0) {
     response.set_payload("file_id missing");
@@ -1423,7 +1425,7 @@ void project_manager::project_file(std::string pname,
 }
 
 void project_manager::project_configure(std::string pname,
-                                        std::map<std::string, std::string> const &param,
+                                        std::unordered_map<std::string, std::string> const &param,
                                         http_response &response) const {
   if(d_projects.at(pname)->index_is_done()) {
     std::ostringstream uri;
@@ -1456,7 +1458,7 @@ void project_manager::project_configure(std::string pname,
 }
 
 void project_manager::project_index_status(std::string pname,
-                                           std::map<std::string, std::string> const &param,
+                                           std::unordered_map<std::string, std::string> const &param,
                                            http_response &response) const {
   std::ostringstream json;
   json << "{\"PNAME\":\"" << pname << "\""
@@ -1492,7 +1494,7 @@ void project_manager::project_index_status(std::string pname,
 
 
 void project_manager::project_external_search(std::string pname,
-                                              std::map<std::string, std::string> const &param,
+                                              std::unordered_map<std::string, std::string> const &param,
                                               http_response &response) const {
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
@@ -1525,8 +1527,8 @@ void project_manager::project_external_search(std::string pname,
 }
 
 void project_manager::project_visual_group(std::string pname,
-                                          std::map<std::string, std::string> const &param,
-                                          http_response &response) const {
+                                           std::unordered_map<std::string, std::string> const &param,
+                                           http_response &response) const {
   if( !project_is_loaded(pname) ) {
     response.set_status(412);
     response.set_payload("project not loaded yet");
@@ -1540,9 +1542,25 @@ void project_manager::project_visual_group(std::string pname,
   }
 
   if(param.count("group_id") == 0) {
-    response.set_status(412);
-    response.set_payload("group_id missing");
-    return;
+    if(d_projects.at(pname)->get_vgroup_count() == 0) {
+      response.set_status(412);
+      response.set_payload("visual groups not available");
+      return;
+    }
+
+    // if more than 1 group is available, show an index page with a list of all groups
+    // if only 1 group is available, redirect to that group
+    if(d_projects.at(pname)->get_vgroup_count() == 1) {
+      std::ostringstream redirect_url;
+      redirect_url << d_conf.at("http-namespace") << pname
+                   << "/visual_group?group_id="
+                   << d_projects.at(pname)->get_default_vgroup_id();
+      response.redirect_to(redirect_url.str());
+      return;
+    } else {
+      project_show_visual_group_index(pname, response);
+      return;
+    }
   }
 
   std::string vgroup_id = param.at("group_id");
@@ -1587,10 +1605,29 @@ void project_manager::project_visual_group(std::string pname,
   }
 }
 
+void project_manager::project_show_visual_group_index(const std::string pname,
+                                                      http_response &response) const {
+  std::ostringstream html;
+  html << vise::VISE_HTML_HEAD
+       << "<body>\n"
+       << "<p>The following visual groups (i.e. sets of images with similar visual content) are available for this project:</p>"
+       << "<ul>";
+  std::set<std::string> vgroup_id_list = d_projects.at(pname)->get_copy_of_vgroup_id_list();
+  std::set<std::string>::const_iterator it;
+  for(it=vgroup_id_list.begin(); it!=vgroup_id_list.end(); ++it) {
+    html << "<li><a href=\"" << d_conf.at("http-namespace")
+         << pname << "/visual_group?group_id=" << *it
+         << "\">" << *it << "</a></li>";
+  }
+  html << "</ul>"
+       << vise::HTML_EMPTY_TAIL;
+  response.set_html_payload(html.str());
+}
+
 //
 // Handlers for VISE main user interface via GET /{home,...}, PUT /
 //
-void project_manager::vise_home(std::map<std::string, std::string> const &param,
+void project_manager::vise_home(std::unordered_map<std::string, std::string> const &param,
                                 http_response &response) const {
   std::vector<std::string> pname_list;
   project_pname_list(pname_list);
@@ -1645,7 +1682,7 @@ uint32_t project_manager::project_image_src_count(std::string pname) const {
   return d_projects.at(pname)->image_src_count();
 }
 
-void project_manager::vise_project_create(std::map<std::string, std::string> const &param,
+void project_manager::vise_project_create(std::unordered_map<std::string, std::string> const &param,
                                           http_response &response) {
   std::string response_format = "html";
   if(param.count("response_format") == 1) {
@@ -1711,10 +1748,10 @@ void project_manager::vise_project_create(std::map<std::string, std::string> con
   return;
 }
 
-void project_manager::vise_project_delete(std::map<std::string, std::string> const &param,
+void project_manager::vise_project_delete(std::unordered_map<std::string, std::string> const &param,
                                           http_response &response) {
   try {
-    std::map<std::string, std::string>::const_iterator itr;
+    std::unordered_map<std::string, std::string>::const_iterator itr;
     for (itr = param.begin(); itr != param.end(); ++itr) {
       if (itr->second != "1") {
         continue;
@@ -1753,9 +1790,9 @@ void project_manager::vise_project_delete(std::map<std::string, std::string> con
   }
 }
 
-void project_manager::vise_project_unload(std::map<std::string, std::string> const& param,
+void project_manager::vise_project_unload(std::unordered_map<std::string, std::string> const& param,
                                           http_response& response) {
-  std::map<std::string, std::string>::const_iterator itr;
+  std::unordered_map<std::string, std::string>::const_iterator itr;
   for (itr = param.begin(); itr != param.end(); ++itr) {
     if (itr->second != "1") {
       continue;
@@ -1785,7 +1822,7 @@ void project_manager::vise_project_unload(std::map<std::string, std::string> con
   response.redirect_to(redirect_url.str());
 }
 
-void project_manager::vise_settings(std::map<std::string, std::string> const &param,
+void project_manager::vise_settings(std::unordered_map<std::string, std::string> const &param,
                                     http_response &response) const {
   std::ostringstream json;
   json << "{\"VISE_FULLNAME\":\"" << VISE_FULLNAME << "\""
@@ -1876,7 +1913,7 @@ void project_manager::vise_settings_save(std::string &settings_formdata,
   }
 }
 
-void project_manager::vise_about(std::map<std::string, std::string> const &param,
+void project_manager::vise_about(std::unordered_map<std::string, std::string> const &param,
                                  http_response &response) const {
   std::ostringstream json;
   json << "{\"VISE_FULLNAME\":\"" << VISE_FULLNAME << "\""
@@ -2003,7 +2040,7 @@ bool project_manager::is_project_name_valid(const std::string pname) const {
 // POST /{PNAME}/_file_*
 //
 void project_manager::project_file_add(std::string pname,
-                                       std::map<std::string, std::string> const &param,
+                                       std::unordered_map<std::string, std::string> const &param,
                                        http_response &response) {
   if(param.count("source_type") == 0 ||
      param.count("source_loc") == 0 ) {

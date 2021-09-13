@@ -148,7 +148,7 @@ namespace vise {
                                bool &success,
                                std::string &message) const;
     void get_vgroup(const std::string vgroup_id,
-                    std::map<std::string, std::string> const &param,
+                    std::unordered_map<std::string, std::string> const &param,
                     std::ostringstream &json) const;
     void get_vgroup_set(const std::string vgroup_id,
                         const std::string set_id_str,
@@ -157,6 +157,9 @@ namespace vise {
                                      const std::string file_id_str,
                                      std::ostringstream &json) const;
     bool is_vgroup_available(const std::string vgroup_id) const;
+    std::set<std::string> get_copy_of_vgroup_id_list() const;
+    std::string get_default_vgroup_id() const;
+    uint32_t get_vgroup_count() const;
   private:
     std::string d_pname;
     boost::filesystem::path d_project_dir;
@@ -199,6 +202,7 @@ namespace vise {
     std::unordered_map<std::string, std::unordered_map<std::string, std::string> > d_vgroup_metadata_list;
     const std::string d_vgroup_task_progress_table;
     const std::string d_vgroup_match_table;
+    const std::string d_vgroup_non_match_table;
     const std::string d_vgroup_metadata_table;
     const std::string d_vgroup_region_table;
     const std::string d_vgroup_table;

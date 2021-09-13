@@ -64,9 +64,11 @@ namespace timing {
     int hr= std::max( 0.0, floor(seconds / (60*60)) );
     int min= std::max( 0.0, floor(seconds/60 - hr*60) );
     int sec= std::max( 0.0, floor(seconds - hr*60*60 - min*60) );
-    char t[9];
-    sprintf(t, "%.2d:%.2d:%.2d", hr, min, sec);
-    return t;
+    std::ostringstream ss;
+    ss << std::setfill('0') << std::setw(4) << hr << ":" 
+       << std::setfill('0') << std::setw(2) << min << ":" 
+       << std::setfill('0') << std::setw(2) << sec;
+    return ss.str();
   }
 
 

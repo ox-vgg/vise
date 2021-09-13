@@ -29,7 +29,7 @@ fi
 
 ## cmake
 if ! [ -f "${DEPDIR}/bin/cmake" ]; then
-  cd $DEPSRC && wget https://github.com/Kitware/CMake/releases/download/v3.20.5/cmake-3.20.5.tar.gz && tar -zxvf cmake-3.20.5.tar.gz && cd cmake-3.20.5 && ./configure --prefix=$DEPDIR && make -j 16 && make install
+  cd $DEPSRC && wget https://github.com/Kitware/CMake/releases/download/v3.20.5/cmake-3.20.5.tar.gz && tar -zxvf cmake-3.20.5.tar.gz && cd cmake-3.20.5 && ./configure --prefix=$DEPDIR && make -j && make install
 fi
 
 ## boost
@@ -39,28 +39,28 @@ fi
 
 # imagemagick
 if ! [ -d "${DEPDIR}/include/ImageMagick-6" ]; then
-  cd $DEPSRC && wget -O ImageMagick6-6.9.12-16.tar.gz https://github.com/ImageMagick/ImageMagick6/archive/6.9.12-16.tar.gz && tar -zxvf ImageMagick6-6.9.12-16.tar.gz && cd ImageMagick6-6.9.12-16 && ./configure --prefix=$DEPDIR -enable-hdri=no --with-quantum-depth=8 --disable-dependency-tracking --with-x=no --without-perl && make -j 16 && make install
+  cd $DEPSRC && wget -O ImageMagick6-6.9.12-16.tar.gz https://github.com/ImageMagick/ImageMagick6/archive/6.9.12-16.tar.gz && tar -zxvf ImageMagick6-6.9.12-16.tar.gz && cd ImageMagick6-6.9.12-16 && ./configure --prefix=$DEPDIR -enable-hdri=no --with-quantum-depth=8 --disable-dependency-tracking --with-x=no --without-perl && make -j && make install
 fi
 
 # google protobuf (https://github.com/protocolbuffers/protobuf/releases/tag/v2.6.1)
 if ! [ -d "${DEPDIR}/include/google/protobuf" ]; then
-  cd $DEPSRC && wget https://github.com/protocolbuffers/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.gz && tar -zxvf protobuf-2.6.1.tar.gz && cd protobuf-2.6.1 && ./configure --prefix=$DEPDIR && make -j16 && make install
+  cd $DEPSRC && wget https://github.com/protocolbuffers/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.gz && tar -zxvf protobuf-2.6.1.tar.gz && cd protobuf-2.6.1 && ./configure --prefix=$DEPDIR && make -j && make install
 fi
 
 # eigen
 if ! [ -d "${DEPDIR}/include/eigen3/Eigen" ]; then
-  cd $DEPSRC && wget -O eigen-3.3.7.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz && tar -zxvf eigen-3.3.7.tar.gz && cd eigen-3.3.7/ && mkdir cmake_build && cd cmake_build && $DEPDIR"/bin/cmake" -DCMAKE_INSTALL_PREFIX=$DEPDIR ../ && make -j8 && make install
+  cd $DEPSRC && wget -O eigen-3.3.7.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz && tar -zxvf eigen-3.3.7.tar.gz && cd eigen-3.3.7/ && mkdir cmake_build && cd cmake_build && $DEPDIR"/bin/cmake" -DCMAKE_INSTALL_PREFIX=$DEPDIR ../ && make -j && make install
 fi
 
 # vlfeat
 if ! [ -d "${DEPDIR}/include/vl" ]; then
-  cd $DEPSRC && wget http://www.vlfeat.org/download/vlfeat-0.9.21-bin.tar.gz && tar -zxvf vlfeat-0.9.21-bin.tar.gz && cd vlfeat-0.9.21 && make -j16 && 
+  cd $DEPSRC && wget http://www.vlfeat.org/download/vlfeat-0.9.21-bin.tar.gz && tar -zxvf vlfeat-0.9.21-bin.tar.gz && cd vlfeat-0.9.21 && make -j && 
   cp "${DEPSRC}/vlfeat-0.9.21/bin/glnxa64/libvl.so" "${DEPDIR}/lib/libvl.so" && mkdir "${DEPDIR}/include/vl" && cp -fr $DEPSRC/vlfeat-0.9.21/vl/*.* "${DEPDIR}/include/vl/"
 fi
 
 # sqlite
 if ! [ -f "${DEPDIR}/include/sqlite3.h" ]; then
-  cd $DEPSRC && wget https://www.sqlite.org/2020/sqlite-autoconf-3330000.tar.gz && tar -zxvf sqlite-autoconf-3330000.tar.gz && cd sqlite-autoconf-3330000 && ./configure --prefix=$DEPDIR && make -j8 && make install
+  cd $DEPSRC && wget https://www.sqlite.org/2020/sqlite-autoconf-3330000.tar.gz && tar -zxvf sqlite-autoconf-3330000.tar.gz && cd sqlite-autoconf-3330000 && ./configure --prefix=$DEPDIR && make -j && make install
 fi
 
 ## check if all the required dependencies are installed correctly

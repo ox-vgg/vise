@@ -42,19 +42,19 @@ namespace vise {
                               http_response &response);
     void handle_get(http_request const &request,
                     std::vector<std::string> const &uri,
-                    std::map<std::string, std::string> const &param,
+                    std::unordered_map<std::string, std::string> const &param,
                     http_response &response); // non-const as it can trigger project_load()
     void handle_post(http_request const &request,
                      std::vector<std::string> const &uri,
-                     std::map<std::string, std::string> const &param,
+                     std::unordered_map<std::string, std::string> const &param,
                      http_response &response);
     void handle_put(http_request const &request,
                     std::vector<std::string> const &uri,
-                    std::map<std::string, std::string> const &param,
+                    std::unordered_map<std::string, std::string> const &param,
                     http_response &response);
     void handle_delete(http_request const &request,
                        std::vector<std::string> const &uri,
-                       std::map<std::string, std::string> const &param,
+                       std::unordered_map<std::string, std::string> const &param,
                        http_response &response);
 
     void serve_from_www_store(std::string res_uri,
@@ -64,12 +64,12 @@ namespace vise {
     void handle_project_get_request(std::string const pname,
                                     http_request const &request,
                                     std::vector<std::string> const &uri,
-                                    std::map<std::string, std::string> const &param,
+                                    std::unordered_map<std::string, std::string> const &param,
                                     http_response& response) const;
     void handle_project_post_request(std::string const pname,
                                      http_request const &request,
                                      std::vector<std::string> const &uri,
-                                     std::map<std::string, std::string> const &param,
+                                     std::unordered_map<std::string, std::string> const &param,
                                      http_response& response) const;
 
     void payload_save(http_request const &request,
@@ -77,21 +77,21 @@ namespace vise {
                       http_response& response);
 
     // VISE HTML based minimal UI
-    void vise_home(std::map<std::string, std::string> const &param,
+    void vise_home(std::unordered_map<std::string, std::string> const &param,
                    http_response &response) const;
-    void vise_settings(std::map<std::string, std::string> const &param,
+    void vise_settings(std::unordered_map<std::string, std::string> const &param,
                        http_response &response) const;
     void vise_settings_save(std::string &settings_formdata,
                             http_response &response);
 
-    void vise_about(std::map<std::string, std::string> const &param,
+    void vise_about(std::unordered_map<std::string, std::string> const &param,
                     http_response &response) const;
 
-    void vise_project_create(std::map<std::string, std::string> const &param,
+    void vise_project_create(std::unordered_map<std::string, std::string> const &param,
                              http_response &response);
-    void vise_project_delete(std::map<std::string, std::string> const &param,
+    void vise_project_delete(std::unordered_map<std::string, std::string> const &param,
                              http_response &response);
-    void vise_project_unload(std::map<std::string, std::string> const& param,
+    void vise_project_unload(std::unordered_map<std::string, std::string> const& param,
                              http_response& response);
     void vise_error_page(const std::string message,
                          const std::string response_format,
@@ -110,57 +110,59 @@ namespace vise {
     void project_home(std::string pname,
                       http_response &response) const;
     void project_filelist(std::string pname,
-                          std::map<std::string, std::string> const &param,
+                          std::unordered_map<std::string, std::string> const &param,
                           http_response &response) const;
-    void project_filelist_set_range(std::map<std::string, std::string> const &param,
+    void project_filelist_set_range(std::unordered_map<std::string, std::string> const &param,
                                     uint32_t flist_size,
                                     uint32_t &flist_start,
                                     uint32_t &flist_end) const;
 
     void project_file(std::string pname,
-                      std::map<std::string, std::string> const &param,
+                      std::unordered_map<std::string, std::string> const &param,
                       http_response &response) const;
     void project_show_match(std::string pname,
-                            std::map<std::string, std::string> const &param,
+                            std::unordered_map<std::string, std::string> const &param,
                             http_response &response) const;
     void project_get_feature_match_details(const std::string pname,
                                            const std::string &image_features,
-                                           std::map<std::string, std::string> const &param,
+                                           std::unordered_map<std::string, std::string> const &param,
                                            http_response &response) const;
     void project_index_search(std::string pname,
-                              std::map<std::string, std::string> const &param,
+                              std::unordered_map<std::string, std::string> const &param,
                               http_response &response) const;
 
     void project_external_search(std::string pname,
-                                 std::map<std::string, std::string> const &param,
+                                 std::unordered_map<std::string, std::string> const &param,
                                  http_response &response) const;
 
     void project_extract_image_features(const std::string pname,
                                         const std::string &image_data,
-                                        std::map<std::string, std::string> const &param,
+                                        std::unordered_map<std::string, std::string> const &param,
                                         http_response &response) const;
     void project_index_search_using_features(const std::string pname,
                                              const std::string &image_features,
-                                             std::map<std::string, std::string> const &param,
+                                             std::unordered_map<std::string, std::string> const &param,
                                              http_response &response) const;
 
     void project_register_image(std::string pname,
-                                std::map<std::string, std::string> const &param,
+                                std::unordered_map<std::string, std::string> const &param,
                                 http_response &response) const;
     void project_register_external_image(const std::string pname,
                                          const std::string &image_data,
-                                         std::map<std::string, std::string> const &param,
+                                         std::unordered_map<std::string, std::string> const &param,
                                          http_response &response) const;
 
     void project_configure(std::string pname,
-                           std::map<std::string, std::string> const &param,
+                           std::unordered_map<std::string, std::string> const &param,
                            http_response &response) const;
     void project_index_status(std::string pname,
-                              std::map<std::string, std::string> const &param,
+                              std::unordered_map<std::string, std::string> const &param,
                               http_response &response) const;
     void project_visual_group(std::string pname,
-                              std::map<std::string, std::string> const &param,
+                              std::unordered_map<std::string, std::string> const &param,
                               http_response &response) const;
+    void project_show_visual_group_index(const std::string pname,
+                                         http_response &response) const;
 
     bool project_exists(std::string pname) const;
     bool project_create(std::string pname);
@@ -177,7 +179,7 @@ namespace vise {
     bool project_index_is_loaded(std::string pname);
 
     void project_file_add(std::string pname,
-                          std::map<std::string, std::string> const &param,
+                          std::unordered_map<std::string, std::string> const &param,
                           http_response &response);
 
     void project_config_save(std::string pname,

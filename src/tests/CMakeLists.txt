@@ -25,7 +25,7 @@ if(WIN32)
 	)
 endif(WIN32)
 
-if(UNIX AND NOT APPLE)
+if(UNIX)
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/util )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/dataset )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/embedding )
@@ -51,4 +51,12 @@ if(UNIX AND NOT APPLE)
 		OpenMP::OpenMP_CXX
     project_manager http_request http_response project vise_util
 	)
-endif(UNIX AND NOT APPLE)
+
+  if(APPLE)
+    # fix required to allow loader resolve the path of vlfeat library in MacOS
+    add_custom_command(TARGET test_oxford_buildings
+      POST_BUILD COMMAND
+      ${CMAKE_INSTALL_NAME_TOOL} -change "@loader_path/libvl.dylib" "@rpath/libvl.dylib"
+      $<TARGET_FILE:test_oxford_buildings>)
+  endif(APPLE)
+endif(UNIX)

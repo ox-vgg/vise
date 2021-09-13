@@ -67,9 +67,9 @@ namespace vise {
              std::vector<std::string> &chunks);
   void decompose_uri(const std::string &uri,
                      std::vector<std::string>& uri_components,
-                     std::map<std::string, std::string>& uri_param);
+                     std::unordered_map<std::string, std::string>& uri_param);
   void parse_urlencoded_form(const std::string &formdata_str,
-                             std::map<std::string, std::string>& formdata);
+                             std::unordered_map<std::string, std::string>& formdata);
   void escape_string(std::string &in, char match_char, std::string replace_match_with);
 
   // file

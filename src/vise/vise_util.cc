@@ -376,7 +376,7 @@ void vise::split(const std::string &s,
 
 void vise::decompose_uri(const std::string &uri,
                          std::vector<std::string>& uri_components,
-                         std::map<std::string, std::string>& uri_param) {
+                         std::unordered_map<std::string, std::string>& uri_param) {
   const char stop_char = '?';
   const char sep_char = '/';
   uri_components.clear();
@@ -554,7 +554,7 @@ bool vise::decode_uri_query_param(const std::string& in, std::string& out)
 }
 
 void vise::parse_urlencoded_form(const std::string &formdata_str,
-                                 std::map<std::string, std::string> &formdata) {
+                                 std::unordered_map<std::string, std::string> &formdata) {
   formdata.clear();
   std::vector<std::string> tokens = vise::split(formdata_str, '&');
   if(tokens.size()) {
