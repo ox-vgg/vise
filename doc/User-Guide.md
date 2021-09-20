@@ -45,18 +45,20 @@ cd $VISE_DIR/projects/oxford-buildings/image_src
 wget https://www.robots.ox.ac.uk/~vgg/data/oxbuildings/oxbuild_images.tgz
 tar -zxvf oxbuild_images.tgz # 5062 JPG files get extracted
 
+## Create project configuration file "conf.txt" and
+## define configuration as follows: 
 cd $VISE_DIR/projects/oxford-buildings/data
 nano conf.txt  ## create a file named "conf.txt" with the following content
-  bow_cluster_count=100000
-  bow_descriptor_count=20000000
-  cluster_num_iteration=10
-  hamm_embedding_bits=64
-  nthread-indexing=16
-  preset_conf_id=preset_conf_manual
-  resize_dimension=-1
-  search_engine=relja_retrival
-  sift_scale_3=true
-  use_root_sift=true
+bow_cluster_count=100000
+bow_descriptor_count=20000000
+cluster_num_iteration=10
+hamm_embedding_bits=64
+nthread-indexing=16
+preset_conf_id=preset_conf_manual
+resize_dimension=-1
+search_engine=relja_retrival
+sift_scale_3=true
+use_root_sift=true
 
 $VISE_CODE/vise/cmake_build/vise/vise-cli --cmd=create-project \
   oxford-buildings:$VISE_DIR/projects/oxford-buildings/data/conf.txt
