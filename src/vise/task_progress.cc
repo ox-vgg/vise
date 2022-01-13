@@ -7,6 +7,8 @@ vise::task_progress::task_progress(std::string name) {
     d_value = 0;
     d_max = 0;
     d_message = "";
+    d_tstart = 0;
+    d_elapsed_ms = 0;
     d_is_complete = false;
     d_has_started = false;
 }

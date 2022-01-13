@@ -252,8 +252,8 @@ void vise::relja_retrival::cluster_train_descriptors() {
     // 1. read number of training descriptors (save if different from conf)
     // 2. infer cluster
     int32_t bow_descriptor_count = 0;
-    std::istringstream ss1(d_pconf.at("bow_descriptor_count"));
-    ss1 >> bow_descriptor_count;
+    std::istringstream ss3(d_pconf.at("bow_descriptor_count"));
+    ss3 >> bow_descriptor_count;
 
     if(bow_descriptor_count >= 18000000) {
       // max descriptors entails max clusters
@@ -409,12 +409,10 @@ void vise::relja_retrival::index_run_all_stages(std::function<void(void)> callba
     if(!success) {
       d_log << "failed to load configuration from " << d_pconf_fn.string() << std::endl;
       throw std::runtime_error("Failed to load configuration file");
-      return;
     }
     if(!pconf_validate_data_dir()) {
       d_log << "failed to validate configuration" << std::endl;
       throw std::runtime_error("Failed to validate configuration file");
-      return;
     }
 
     d_task_progress_list.clear();
@@ -1326,12 +1324,14 @@ int64_t vise::relja_retrival::get_traindesc_count(std::string train_desc_fn) {
     std::cerr << "Error reading value of descriptor_dimension! "
               << "stored in train descs file: " << train_desc_fn
               << std::endl;
+    fclose(f);
     return -1;
   }
 
   read_count = fread(&data_type_code, sizeof(data_type_code), 1, f);
   if ( read_count != 1 ) {
     std::cerr << "Error reading value of data_type_code stored in train descs file: " << train_desc_fn << std::endl;
+    fclose(f);
     return -1;
   }
 
@@ -1347,6 +1347,7 @@ int64_t vise::relja_retrival::get_traindesc_count(std::string train_desc_fn) {
   fseeko64(f, 0, SEEK_END);
   file_size = ftello64(f);
 #endif
+  fclose(f);
   int64_t descriptor_data_length = (file_size - HEADER_BYTES) / (element_size);
   return (descriptor_data_length / descriptor_dimension);
 

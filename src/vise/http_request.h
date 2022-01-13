@@ -42,6 +42,8 @@ namespace vise {
     http_request() {
       d_parser_state = vise::parser_state::WAITING_FOR_FIRST_REQUEST_CHUNK;
       d_header_has_expect_100_continue = false;
+      d_content_length = 0;
+      d_payload_size = 0;
     };
 
     std::string d_method;

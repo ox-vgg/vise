@@ -685,7 +685,7 @@ std::string vise::metadata::table_name_from_attribute_name(const std::string ana
     return d_file_metadata_table_name;
   } else {
     itr = std::find(d_region_attribute_name_list.begin(),
-                    d_file_attribute_name_list.end(),
+                    d_region_attribute_name_list.end(),
                     aname);
     if(itr != d_region_attribute_name_list.end()) {
       return d_region_metadata_table_name;

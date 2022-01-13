@@ -51,6 +51,7 @@ void readRegsAndDescs( const char fileName[], uint32_t &numFeats, std::vector<el
     if (numFeats==0){
         regions.clear();
         descs= new float[0];
+        fclose(fin);
         return;
     }
     ASSERT(numDims == expectDim);

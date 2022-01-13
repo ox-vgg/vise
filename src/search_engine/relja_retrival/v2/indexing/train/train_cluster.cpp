@@ -62,12 +62,14 @@ namespace buildIndex {
       std::cerr << "Error reading value of descriptor_dimension! "
                 << "stored in train descs file: " << train_desc_fn
                 << std::endl;
+      fclose(f);
       return;
     }
 
     read_count = fread(&data_type_code, sizeof(data_type_code), 1, f);
     if ( read_count != 1 ) {
       logf << "cluster:: error reading value of data_type_code stored in train descs file: " << train_desc_fn << std::endl;
+      fclose(f);
       return;
     }
     logf << "cluster:: data_type_code=" << DATA_TYPE_STR.at(data_type_code) << std::endl;

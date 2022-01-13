@@ -22,8 +22,7 @@ namespace vise {
     std::map<std::string,std::string> d_fields;
     std::string d_payload;
 
-    http_response() {
-      d_status = "HTTP/1.1 200 OK";
+    http_response() : d_status("HTTP/1.1 200 OK") {
       d_status_code = 200;
     }
 
