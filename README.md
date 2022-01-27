@@ -19,7 +19,7 @@ The VISE software installers can be downloaded from the VISE [software page](htt
 See [doc/User-Guide.md](doc/User-Guide.md) for instructions on using VISE for creating visual search engine. You can also read the [frequently asked questions](doc/FAQ.md) page to learn more about VISE.
 
 ## Developer Resources
-See [doc/Compiling-VISE.md](doc/Compiling-VISE.md) for instructions on compiling the VISE source code in Windows, Linux and MacOS platforms.
+See [doc/Compiling-VISE.md](doc/Compiling-VISE.md) for instructions on compiling the VISE source code in Windows, Linux and MacOS platforms. For testing VISE source code and assessing its image retrieval performance, see [doc/Testing-VISE.md](doc/Testing-VISE.md).
 
 ## Contact
 Contact [Abhishek Dutta](adutta@robots.ox.ac.uk) for any queries or feedback related to this software application.
