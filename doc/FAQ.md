@@ -1,4 +1,6 @@
-# Frequently Asked Questions (FAQ)
+Here are some of the Frequently Asked Questions (FAQ) by our users. If you would like to add a new entry to this page or update an existing entry, you can either post an issue or write to [adutta-REMOVE@robots.ox.ac.uk](mailto:adutta-REMOVE@robots.ox.ac.uk) 
+
+[[_TOC_]]
 
 ## What computing resources are required to index 1 million images?
 We created a visual search engine based on 1 million images. All the images in this dataset had a maximum image resolution of `1024x1024`. 
@@ -227,6 +229,22 @@ Yes. Using the `data/metadata_conf.json` file, you can define the file and regio
 }
 ```
 
+## Can VISE be installed on a web server? Can this server be running Windows Server 2016 or 2019?
+Yes. By default, the VISE HTTP web server is bound to `localhost` (or `127.0.0.1` interface) for security reasons. This is for security reason and prevents access from external network. In Windows Server (or any other server), you will need to open the port (e.g. 9669) on which the VISE HTTP web server is listening. 
+
+We suggest to use another HTTP web server (e.g. nginx, apache, IIS, etc.) to redirect external requests to the VISE HTTP server. This allows the other web server to handle security aspects (e.g. SSL certificates) of the HTTP web server.
+
+## Can we change the graphical interface to work integrated with our website?
+Yes. VISE comes with a basic and minimal web application (HTML, Javascript, CSS) that allows users to explore all the functionalities of the VISE application. Users can extend this basic web application in any way that they see suitable for their requirements. The code for basic web application is contained in the [`src/www/`](src/www/) folder of the source tree. See [doc/HTTP-REST-API.md](doc/HTTP-REST-API.md)
+
+## Whenever we have new images in our database, do we have to do a re-index in VISE?
+Yes. You can avoid some computations by reusing the visual vocabulary (i.e. `traindesc`, `cluster`, `trainhamm` stages). If you reuse an existing visual vocabulary, you will need to only run the final `index` stage. See `data/index_status.log` file to see a list of all stages (e.g. `start,filelist,traindesc,cluster,assign,hamm,index,end`) that gets executed when a new VISE project is created. So, if you only want to re-run the index stage, update the `data/index_status.log` file to contain `start,filelist,traindesc,cluster,assign,hamm` (i.e. remove the last `index` term) so that the final `index` stage gets recomputed.
+
+## Would be possible to integrate VISE (and how?) with the site on IIS?
+VISE runs its own HTTP server on a specific port (e.g. 9669). All HTTP requests to this port are handled by the VISE web server. Another web server (like Windows IIS) can redirect requests to this port.
+
+## In Windows, is it possible to use VISE without installing it by just copying the VISE folder and running the VISE.exe to get the server running?
+Yes. The VISE Windows installer simply copies all the required files ( VISE executable, dependencies DLL, sample project data, etc. ) to `C:\Program Files\VISE\` folder.
 
 ***
 
