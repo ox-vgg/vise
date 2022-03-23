@@ -48,6 +48,9 @@ namespace vise {
       case 412:
         d_status += "412 Precondition Failed";
         break;
+      case 413:
+        d_status += "413 Payload Too Large";
+        break;
       default:
         d_status += "400 Bad Request";
         d_status_code = 400;

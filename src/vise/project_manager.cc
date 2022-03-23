@@ -739,9 +739,9 @@ void project_manager::project_extract_image_features(const std::string pname,
     if(param.count("response_format") == 1) {
       if(param.at("response_format") == "json") {
         response_format = "json";
+        response.set_status(413);
       }
     }
-
     vise_project_error_page(pname, message, response_format, response);
     return;
   }
@@ -751,7 +751,6 @@ void project_manager::project_extract_image_features(const std::string pname,
   response.set_binary_payload(image_features);
   response.set_status(200);
   uint32_t tend = vise::getmillisecs();
-  std::cout << "_extract_image_features() : completed in " << (tend - tstart) << " ms" << std::endl;
 }
 
 void project_manager::project_index_search_using_features(const std::string pname,

@@ -189,6 +189,7 @@ function _vise_show_local_file_uploader() {
     progress_message.innerHTML = 'Uploading image ' + selected_file.name + ' (' + file_size + ' KB) ...';
     _vise_extract_features();
   });
+
   upload_panel.appendChild(title);
   upload_panel.appendChild(file_selector);
 }
@@ -205,7 +206,23 @@ function _vise_extract_features() {
       _vise_search_features();
       break;
     case 413:
-      progress_message.innerHTML = 'Error: The image size is too large. Resize and/or crop the image so that it is less than 1MB in size.';
+      if('size' in this.response && this.response.size !== 0) {
+        // received a Blob
+        var reader = new FileReader();
+        reader.addEventListener('load', function() {
+          try {
+            var response = JSON.parse(this.result);
+            if('STATUS' in response && 'MESSAGE' in response) {
+              progress_message.innerHTML = response['STATUS'] + ': ' + response['MESSAGE'];
+            }
+          } catch(e) {
+            progress_message.innerHTML = "Error: " + this.result;
+          }
+        });
+        reader.readAsText(this.response);
+      } else {
+        progress_message.innerHTML = 'Error: The image size is too large.';
+      }
       break;
     default:
       progress_message.innerHTML = 'Error: malformed response from VISE server. (' + this.statusText + ')';
@@ -217,7 +234,7 @@ function _vise_extract_features() {
   xhr.addEventListener('error', function(e) {
     progress_message.innerHTML = 'Error waiting for response from server';
   });
-  xhr.open('POST', '_extract_image_features');
+  xhr.open('POST', '_extract_image_features?response_format=json');
   xhr.send(selected_file);
 }
 
