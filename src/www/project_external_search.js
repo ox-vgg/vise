@@ -298,7 +298,7 @@ function _vise_show_search_result_nomatch_found() {
   var nomatches = document.createElement('div');
   nomatches.setAttribute('id', 'nomatches');
   nomatches.innerHTML = 'No matches found';
-  results.appendChild(nomatches);
+  results_panel.appendChild(nomatches);
 
   showing_result_from = -1;
   showing_result_to   = -1;
@@ -311,7 +311,8 @@ function _vise_show_search_result_content() {
   results_panel.appendChild(result_title);
 
   results.innerHTML = '';
-  if(_vise_external_search.RESULT.length === 0) {
+  if(_vise_external_search.RESULT_SIZE === 0 ||
+     typeof(_vise_external_search.RESULT) === 'undefined') {
     // indicates only match to itself or no match at all
     _vise_show_search_result_nomatch_found();
     return;
