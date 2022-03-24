@@ -95,9 +95,14 @@ var current_norm_score_threshold = 0.07;
 var next_norm_score_threshold = 0.05;
 
 var selected_file = null;
+var selected_filename = null;
+var selected_filesize = null;
 var selected_file_object_url = null;
 var selected_file_features = null;
 var selected_image_dim = [-1, -1];
+var resize_uploaded_image = false;
+var is_image_resized = false;
+var resized_image_binary_data = null;
 
 var _vise_match_details_file_id = null;
 
@@ -173,24 +178,88 @@ function _vise_show_local_file_uploader() {
   file_selector.setAttribute('accept', 'image/*');
   file_selector.addEventListener('change', function(e) {
     selected_file = e.target.files[0];
+    selected_filename = selected_file.name;
+    selected_filesize = selected_file.size;
     selected_file_object_url = URL.createObjectURL(selected_file);
     var selected_image = document.createElement('img');
     selected_image.addEventListener('load', function(e) {
       selected_image_dim = [this.naturalWidth, this.naturalHeight];
+      if((this.naturalWidth > 1024 || this.naturalHeight > 1024) &&
+         resize_uploaded_image) {
+        var new_width = 0;
+        var new_height = 0;
+        if(this.naturalWidth > this.naturalHeight) {
+          new_width = 1024;
+          new_height = parseInt((this.naturalHeight/this.naturalWidth) * new_width);
+        } else {
+          new_height = 1024;
+          new_width = parseInt((this.naturalWidth/this.naturalHeight) * new_height);
+        }
+        progress_message.innerHTML += 'Resizing ' + this.naturalWidth + 'x' + this.naturalHeight + ' image to ' + new_width + 'x' + new_height + ' ...<br/>';
+        var canvas = document.createElement('canvas');
+        canvas.width = new_width;
+        canvas.height = new_height;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(this,
+                      0, 0, this.naturalWidth, this.naturalHeight,
+                      0, 0, new_width, new_height);
+        canvas.toBlob(function(blob) {
+          selected_file_object_url = URL.createObjectURL(blob);
+          selected_file = null; // invalidate the original file (as resized file should be used)
+          selected_image_dim = [new_width, new_height];
+        });
+        var resized_image_base64 = canvas.toDataURL('image/jpeg', 0.9);
+        var content_type = resized_image_base64.substr(5, resized_image_base64.indexOf(';') - 5);
+        var content      = resized_image_base64.substr(resized_image_base64.indexOf(',') + 1); // remove base64 header
+
+        // source: https://stackoverflow.com/a/14988118/7814484
+        var img_decoded_base64 = atob(content);
+        var img_decoded_len = img_decoded_base64.length;
+        resized_image_binary_data = new ArrayBuffer(img_decoded_len);
+        var uint8_view = new Uint8Array(resized_image_binary_data);
+        for ( var i = 0; i<img_decoded_len; i++ ) {
+          uint8_view[i] = img_decoded_base64.charCodeAt(i);
+        }
+        is_image_resized = true;
+      } else {
+        is_image_resized = false;
+      }
+
+      // trigger image feature extraction process
+      upload_container.appendChild(progress_panel);
+      progress.setAttribute('value', '1');
+      var file_size = (selected_filesize/1024).toFixed(1);
+      progress_message.innerHTML += 'Uploading image ' + selected_filename + ' (' + file_size + ' KB) ...<br/>';
+      _vise_extract_features();
     });
     selected_image.src = selected_file_object_url;
-    selected_image.setAttribute('title', selected_file.name);
+    selected_image.setAttribute('title', selected_filename);
     upload_panel.innerHTML = '';
     upload_panel.appendChild(selected_image);
-
-    upload_container.appendChild(progress_panel);
-    progress.setAttribute('value', '1');
-    var file_size = (selected_file.size/1024).toFixed(1);
-    progress_message.innerHTML = 'Uploading image ' + selected_file.name + ' (' + file_size + ' KB) ...';
-    _vise_extract_features();
   });
 
+  var resize_container = document.createElement('p');
+  var resize_label = document.createElement('label');
+  resize_label.setAttribute('for', 'resize_uploaded_image');
+  resize_label.innerHTML = 'Resize if uploaded image dimension is larger than 1024x1024 pixels&nbsp;';
+  var resize_checkbox = document.createElement('input');
+  resize_checkbox.setAttribute('type', 'checkbox');
+  resize_checkbox.setAttribute('id', 'resize_uploaded_image');
+  resize_checkbox.setAttribute('name', 'resize_uploaded_image');
+  resize_checkbox.setAttribute('checked', '');
+  resize_uploaded_image = true;
+  resize_checkbox.addEventListener('change', function() {
+    if(this.checked) {
+      resize_uploaded_image = true;
+    } else {
+      resize_uploaded_image = false;
+    }
+  });
+  resize_container.appendChild(resize_label);
+  resize_container.appendChild(resize_checkbox);
+
   upload_panel.appendChild(title);
+  upload_panel.appendChild(resize_container);
   upload_panel.appendChild(file_selector);
 }
 
@@ -201,7 +270,7 @@ function _vise_extract_features() {
     switch(xhr.status) {
     case 200:
       progress.setAttribute('value', '2');
-      progress_message.innerHTML = 'Image features extracted ...';
+      progress_message.innerHTML += 'Image features extracted ...<br/>';
       selected_file_features = this.response;
       _vise_search_features();
       break;
@@ -235,7 +304,13 @@ function _vise_extract_features() {
     progress_message.innerHTML = 'Error waiting for response from server';
   });
   xhr.open('POST', '_extract_image_features?response_format=json');
-  xhr.send(selected_file);
+  if(is_image_resized) {
+    // send resized image
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.send(resized_image_binary_data);
+  } else {
+    xhr.send(selected_file);
+  }
 }
 
 function _vise_search_features() {
@@ -245,10 +320,10 @@ function _vise_search_features() {
     switch(xhr.statusText) {
     case 'OK':
       progress.setAttribute('value', '3');
-      progress_message.innerHTML = 'Finished searching using image features.';
+      progress_message.innerHTML += 'Finished searching using image features.<br/>';
       _vise_external_search = JSON.parse(this.response);
       _vise_external_search.QUERY = {'file_id':'Uploaded',
-                          'filename':selected_file.name,
+                          'filename':selected_filename,
                           'x':0, 'y':0, 'width':selected_image_dim[0], 'height':selected_image_dim[1]};
       upload_container.innerHTML = '';
       _vise_show_search_results();
@@ -276,7 +351,7 @@ function _vise_show_search_query_content() {
   qimg.setAttribute('src', selected_file_object_url);
   qimg.addEventListener('load', _vise_on_img_load_show_query_rshape);
   var qlabel = document.createElement('p');
-  var qhref = selected_file.name + ' (uploaded)';
+  var qhref = selected_filename + ' (uploaded)';
   qlabel.innerHTML = 'Query: ' + qhref;
   qimgcontainer.appendChild(qimg);
   query.appendChild(qimgcontainer);
@@ -600,7 +675,7 @@ function _vise_querymatch_panel_show() {
   qimg.setAttribute('src', selected_file_object_url);
   qimg.addEventListener('load', _vise_on_img_load_show_query_rshape);
   var qlabel = document.createElement('span');
-  qlabel.innerHTML = 'Query: ' + selected_file.name + ' (uploaded)';
+  qlabel.innerHTML = 'Query: ' + selected_filename + ' (uploaded)';
   qimgcontainer.appendChild(qimg);
   query.appendChild(qimgcontainer);
   query.appendChild(qlabel);
@@ -790,7 +865,7 @@ function _vise_togglepanel_show() {
     case 'OK':
       register_response = JSON.parse(xhr.responseText);
       if(register_response['STATUS'] !== 'ok') {
-        _vise_toggle_canvas_show_error_msg(register_response['message']);
+        _vise_toggle_canvas_show_error_msg(register_response['MESSAGE']);
         return;
       }
       break;
@@ -852,7 +927,13 @@ function _vise_togglepanel_show() {
     _vise_toggle_canvas_show_error_msg('Error waiting for response from server');
   });
   xhr.open('POST', req.join('&'));
-  xhr.send(selected_file);
+  if(is_image_resized) {
+    // send resized image
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.send(resized_image_binary_data);
+  } else {
+    xhr.send(selected_file);
+  }
 }
 
 function _vise_toggle_canvas_show_error_msg(msg) {
@@ -1117,11 +1198,11 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   ctx.fillText(qregion, qoffsetx, pad + 4);
 
   var charwidth = ctx.measureText('M').width;
-  var qlabel = 'Query: ' + selected_file.name;
+  var qlabel = 'Query: ' + selected_filename;
   var qmeasure = ctx.measureText(qlabel);
   if(qmeasure.width > qsdim[0]) {
     var maxchar = qsdim[0] / charwidth;
-    var qlabel = '...' + selected_file.name.substring(selected_file.name.length - maxchar);
+    var qlabel = '...' + selected_filename.substring(selected_filename.length - maxchar);
   }
   ctx.fillText(qlabel, qoffsetx, vh - pad + 5);
 
@@ -1269,7 +1350,7 @@ function _vise_matchpanel_init_toolbar(toolbar) {
   download_link.addEventListener('click', function() {
     var a = document.createElement('a');
     a.setAttribute('href', feat_match_canvas.toDataURL('image/png'));
-    var download_filename = 'vise-' + selected_file.name + '-' + _vise_data.MATCH['filename'] + '-match.png';
+    var download_filename = 'vise-' + selected_filename + '-' + _vise_data.MATCH['filename'] + '-match.png';
     a.setAttribute('download', download_filename);
     a.click();
   });
