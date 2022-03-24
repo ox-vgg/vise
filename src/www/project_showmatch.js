@@ -731,7 +731,13 @@ function _vise_matchpanel_draw_correspondence(selected_match_pts_index) {
   // draw label
   ctx.fillStyle = 'yellow';
   ctx.font = '14px Sans';
-  var qregion = 'Query Region: (x,y)=(' + _vise_data.QUERY['x'] + ',' + _vise_data.QUERY['y'] + ')  (width,height)=(' + _vise_data.QUERY['width'] + ',' + _vise_data.QUERY['height'] + ') | Putative matches = ' + _vise_data.MATCH_DETAILS['putative'].length + ' | Spatially verified matches = ' + _vise_data.MATCH_DETAILS['matches'].length;
+  var query_spec = '';
+  if('x' in _vise_data.QUERY && 'y' in _vise_data.QUERY) {
+    query_spec = '(x,y)=(' + _vise_data.QUERY['x'] + ',' + _vise_data.QUERY['y'] + ')  (width,height)=(' + _vise_data.QUERY['width'] + ',' + _vise_data.QUERY['height'] + ')';
+  } else {
+    query_spec = 'full image';
+  }
+  var qregion = 'Query Region: ' + query_spec + ' | Putative matches = ' + _vise_data.MATCH_DETAILS['putative'].length + ' | Spatially verified matches = ' + _vise_data.MATCH_DETAILS['matches'].length;
   ctx.fillText(qregion, qoffsetx, pad + 4);
 
   var charwidth = ctx.measureText('M').width;
