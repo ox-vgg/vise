@@ -800,7 +800,6 @@ void project_manager::project_index_search_using_features(const std::string pnam
   }
   json << "}";
   response.set_json_payload(json.str()); // default is JSON response
-  std::cout << "project_index_search_using_features() : completed in " << (tend - tstart) << " ms" << std::endl;
   return;
 }
 
