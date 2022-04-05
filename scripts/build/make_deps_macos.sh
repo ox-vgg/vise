@@ -20,7 +20,7 @@ if ! [ -d "${DEPSRC}" ]; then
   mkdir "${DEPSRC}"
 fi
 
-#sudo apt install libssl-dev # required by cmake
+# libjpeg and libpng required by ImageMagick
 brew install wget libjpeg libpng libomp
 
 ## cmake

@@ -25,7 +25,9 @@ if ! [ -d "${DEPSRC}" ]; then
   mkdir "${DEPSRC}"
 fi
 
-#sudo apt install libssl-dev # required by cmake
+# libssl required by cmake
+# libjpeg and libpng required by ImageMagick
+sudo apt install libssl-dev libjpeg-dev libpng-dev
 
 ## cmake
 if ! [ -f "${DEPDIR}/bin/cmake" ]; then
