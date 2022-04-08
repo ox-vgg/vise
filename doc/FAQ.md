@@ -83,7 +83,7 @@ Note: If you want to create a search engine for a large image dataset but do not
 
 
 ## Should I use the generic visual vocabulary to index my images?
-You should try to index a small subset (e.g. 10%) of your images using the provided generic visual vocabulary and manually judge the visual search performance. If the visual search results are accurate and acceptable for your purpose, you should certainly use the generic visual vocabulary on the full dataset as this avoids the heavy computation associated with creating a visual vocabulary (i.e. traindesc, cluster, trainassign and trainhamm stages). Here is how you can do this experiment.
+You should try to index a small subset (e.g. 10%) of your images using the provided [generic visual vocabulary](doc/Visual-Vocabulary.md) and manually judge the visual search performance. If the visual search results are accurate and acceptable for your purpose, you should certainly use the generic visual vocabulary on the full dataset as this avoids the heavy computation associated with creating a visual vocabulary (i.e. traindesc, cluster, trainassign and trainhamm stages). Here is how you can do this experiment.
 
 ```
 # Assuming that your project folder configuration file is 
@@ -91,12 +91,12 @@ You should try to index a small subset (e.g. 10%) of your images using the provi
 
 # 1. Download generic visual vocabulary
 cd $MYPROJ/data
-wget https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629-imsize400x400-voc10k-hamm32.zip
-unzip imcount53629-imsize400x400-voc10k-hamm32.zip
-mv imcount53629-imsize400x400-voc10k-hamm32/bowcluster.bin $MYPROJ/data
-mv imcount53629-imsize400x400-voc10k-hamm32/trainhamm.bin $MYPROJ/data
-## delete imcount53629-imsize400x400-voc10k-hamm32/ folder
-## rm -fr imcount53629-imsize400x400-voc10k-hamm32
+wget https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629-imsize400x400-voc10k-hamm64.zip
+unzip imcount53629-imsize400x400-voc10k-hamm64.zip
+mv imcount53629-imsize400x400-voc10k-hamm64/bowcluster.bin $MYPROJ/data
+mv imcount53629-imsize400x400-voc10k-hamm64/trainhamm.bin $MYPROJ/data
+## delete imcount53629-imsize400x400-voc10k-hamm64/ folder
+## rm -fr imcount53629-imsize400x400-voc10k-hamm64
 
 # 2. Ensure that all your images (i.e. the full dataset) is 
 # stored in $MYPROJ/image/ folder. We create a $MYPROJ/data/filelist.txt
@@ -112,9 +112,9 @@ shuf -n 10000 $MYPROJ/data/filelist-all.txt > $MYPROJ/data/filelist.txt
 touch $MYPROJ/data/traindesc.bin # to avoid running clustering stage
 echo "start,filelist,traindesc,cluster,assign,hamm" > $MYPROJ/data/index_status.txt
 
-# 4. Update $MYPROJ/data/conf.txt to use 32 bits for hamming embedding
-# because the generic visual vocabulary uses 32 bits.
-# i.e. set hamm=32 in $MYPROJ/data/conf.txt
+# 4. Update $MYPROJ/data/conf.txt to use 64 bits for hamming embedding
+# because the generic visual vocabulary uses 64 bits.
+# i.e. set hamm=64 in $MYPROJ/data/conf.txt
 
 # 5. Start the indexing process
 # The indexing process will only consider 10,000 images as 
@@ -124,27 +124,27 @@ $VISE_CODE/vise/cmake_build/vise/vise-cli --cmd=create-project \
 ```
 
 ## How can I speed up the process of creating a VISE project?
- * **Use generic visual vocabulary** :
+ * **Use [generic visual vocabulary](doc/Visual-Vocabulary.md)** :
 ```
 # Assuming that your project folder configuration file is 
 # stored in $MYPROJ/data/conf.txt
 
 # 1. Download generic visual vocabulary
 cd $MYPROJ/data
-wget https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629-imsize400x400-voc10k-hamm32.zip
-unzip imcount53629-imsize400x400-voc10k-hamm32.zip
-mv imcount53629-imsize400x400-voc10k-hamm32/bowcluster.bin $MYPROJ/data
-mv imcount53629-imsize400x400-voc10k-hamm32/trainhamm.bin $MYPROJ/data
-## delete imcount53629-imsize400x400-voc10k-hamm32/ folder
-## rm -fr imcount53629-imsize400x400-voc10k-hamm32
+wget https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629-imsize400x400-voc10k-hamm64.zip
+unzip imcount53629-imsize400x400-voc10k-hamm64.zip
+mv imcount53629-imsize400x400-voc10k-hamm64/bowcluster.bin $MYPROJ/data
+mv imcount53629-imsize400x400-voc10k-hamm64/trainhamm.bin $MYPROJ/data
+## delete imcount53629-imsize400x400-voc10k-hamm64/ folder
+## rm -fr imcount53629-imsize400x400-voc10k-hamm64
 
 # 2. Update project state
 touch $MYPROJ/data/traindesc.bin # to avoid running clustering stage
 echo "start,filelist,traindesc,cluster,assign,hamm" > $MYPROJ/data/index_status.txt
 
-# 3. Update conf.txt to use 32 bits for hamming embedding
-# because the generic visual vocabulary uses 32 bits.
-# update conf.txt such that hamm=32
+# 3. Update conf.txt to use 64 bits for hamming embedding
+# because the generic visual vocabulary uses 64 bits.
+# update conf.txt such that hamm=64
 ```
 
  * **Resize the images to `1024x1024`** : Image resolution of `1024x1024` is often sufficient for visual search and therefore higher resolution images (e.g `1600x1600`) can be resized to speed up the region detection, feature extraction and indexing process.
