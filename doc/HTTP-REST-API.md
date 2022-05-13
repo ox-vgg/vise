@@ -119,7 +119,8 @@ is handled by the VISE server as follows.
 
 * POST /{PNAME}/_search_using_features
   - Description: perform visual search of internal images using the provided visual features
-  - Parameters: None
+  - Parameters:
+    - Request body : image features (binary data)
   - Response: search results in JSON format
   - Example:
     - Sample Javascript code
@@ -131,7 +132,7 @@ is handled by the VISE server as follows.
           _vise_external_search = JSON.parse(this.response);
           _vise_external_search.QUERY = {
               'file_id':'Uploaded',
-              'filename':selected_filename,
+              'filename':user_selected_filename,
               'x':0, 'y':0,
               'width':user_selected_image_dim[0],
               'height':user_selected_image_dim[1]
