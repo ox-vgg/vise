@@ -88,7 +88,7 @@ footer { display:block; text-align:center; margin-top:2em; padding:0.5em 0; font
 #content .resultgrid #showmore { display:block; text-align:center; }
 #content .resultgrid #nomatches { display:block; text-align:center; color:red; width:100vw; }
 
-#content .resultlist { dispay:flex; flex-wrap:nowarp; flex-direction:column; }
+#content .resultlist { display:flex; flex-wrap:nowarp; flex-direction:column; }
 #content .resultlist::after { content:""; flex:auto; }
 #content .resultlist .item { flex-grow:0; border:1px solid #cccccc; margin:2em 1em; padding:0; overflow:hidden; background-color:#f2f2f2; }
 #content .resultlist .item a { display:inline-block; position:relative; margin:0; padding:0; }
