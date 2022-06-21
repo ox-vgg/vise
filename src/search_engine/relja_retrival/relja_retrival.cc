@@ -1100,7 +1100,7 @@ void vise::relja_retrival::register_image(uint32_t file1_id, uint32_t file2_id,
 	  // source: https://gitlab.com/vgg/imcomp/-/blob/master/src/imreg_sift/imreg_sift.cc#L850
 	  Magick::DrawableAffine hinv_affine(Hinv[0], Hinv[4], Hinv[3], Hinv[1], 0, 0);
 	  std::ostringstream offset;
-	  offset << im2.columns() << "x" << im2.rows() << "-" << ((int)Hinv[2]) << "-" << ((int)Hinv[5]);
+	  offset << im1.columns() << "x" << im1.rows() << "-" << ((int)Hinv[2]) << "-" << ((int)Hinv[5]);
 	  im2t.artifact("distort:viewport", offset.str());
 	  im2t.affineTransform(hinv_affine);
 	  im2t.quiet(true);
