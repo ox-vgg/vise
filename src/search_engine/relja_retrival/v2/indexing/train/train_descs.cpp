@@ -243,6 +243,7 @@ namespace buildIndex {
       while (std::getline(fImagelist, imageFn)) {
         imageFns.push_back(imageFn);
       }
+      fImagelist.close();
       if(imageFns.size() == 0) {
         logf << "traindesc:: empty filename list, exiting" << std::endl;
         std::cout << "Error: image filename list is empty! trainImagelistFn="
