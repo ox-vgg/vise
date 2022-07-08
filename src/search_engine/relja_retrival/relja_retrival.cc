@@ -196,8 +196,15 @@ void vise::relja_retrival::extract_train_descriptors() {
   std::istringstream ss(d_pconf.at("bow_descriptor_count"));
   ss >> bow_descriptor_count;
   if(bow_descriptor_count == -1) {
-    int64_t max_feature_count = image_src_count() * 3000; // assumption: max 3000 descriptors per image
-    d_task_progress_list.at("traindesc").start(0, max_feature_count);
+    // count the number of files
+    int64_t file_count = 0;
+    std::ifstream image_list_f(d_filelist_fn.string().c_str());
+    std::string image_filename;
+    while(std::getline(image_list_f, image_filename)) {
+      file_count = file_count + 1;
+    }
+    image_list_f.close();
+    d_task_progress_list.at("traindesc").start(0, file_count);
   } else {
     d_task_progress_list.at("traindesc").start(0, bow_descriptor_count);
   }
