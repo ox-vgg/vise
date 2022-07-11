@@ -543,7 +543,14 @@ void project_manager::handle_project_get_request(std::string const pname,
       response.set_status(404);
       return;
     }
-    std::string asset_name = request.d_uri.substr(start + 1);
+
+    std::size_t asset_name_start_index = start + 1;
+    if(asset_name_start_index >= request.d_uri.size()) {
+        response.set_status(404);
+        return;
+    }
+
+    std::string asset_name = request.d_uri.substr(asset_name_start_index);
     std::string decoded_asset_name;
     bool success = vise::url_decode(asset_name, decoded_asset_name);
     if(success) {
