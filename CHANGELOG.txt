@@ -1,3 +1,59 @@
+## [2.0.1] - July 12, 2022
+  * fixed multiple bugs that were causing server crash
+    - handle requests for empty image asset names (e.g. GET image or
+    GET image/)
+    - registration process of im1 and im2 transforms im2 to the im1
+      coordinate space, this transformation was wrongly using the size
+      of im2 as target size when it should be using size of im1 as the
+      target size, this crashed the server when crop bounding box fell
+      beyond image size
+    - show error message when uploaded image exceeds size limit;
+    removed debug messages
+    - show messages when external search returns no result
+    - thread queue now wais for all threads instead of waiting for
+    only N-1 threads
+
+  * improved documentation
+    - doc/HTTP-REST-API.md :
+      - POST _search_using_features requires image features to be sent
+      as request body
+      - added doc about performing external image search using HTTP
+      REST API (thank you RKD team for the question)
+    - doc/Users-of-VISE.md : lists research projects and commercial
+    products that use VISE
+    - doc/Visual-Vocabulary.md : added details about generic visual
+    vocabulary that ships with VISE
+    - doc/FAQ.md :
+      - use hamm64 generic visual vocabulary as hamm32 slows search on
+      large datasets; added link to generic visual vocabulary page
+      - added details about using VISE in Windows server.
+      - define the metadata fields that gets shown in the user interface
+    - doc/Testing-VISE.md : added doc for VISE tests
+    - doc/User-Guide.md : added User Guide
+
+  * improved build script
+    - install libjpeg and libpng libraries which are required by
+    ImageMagick (thank you @mchesterkadwell)
+  * user uploaded images are resized before performing "upload and
+  search"
+  * fixed "undefined" region for image search using full image
+  * rectified errors pointed by static analysis (cppcheck)
+    - close files before premature return
+    - typo in variable name
+  * removed leading space character in each line of conf.txt file
+  entries in User-Guide (thank you leander-de-graaf)
+  * fixed Windows CI/CD build by adding double quotation to msbuild
+  command parameter
+  * set visualization must show original image (not thumbnail) as
+  region dimensions are only correct in original image space
+  * turn on HTTP request logging only in debug builds
+  * added visual grouping feature (available only through vise-cli
+  command)
+  * fixed indexing time message to properly show hour field > 99
+  * fixed typo in project CSS display:flex (thank you
+  @mchesterkadwell)
+  * improved some user interface elements based on feedback from users
+
 ## [2.0.0] - June 14, 2021
   * removed dependency on Python:
     - clustering of visual features done using vlfeat's kdtree implementation (added dependency on vlfeat)
