@@ -28,7 +28,7 @@ set (VISE_VERSION_MAJOR "2")
 set (VISE_VERSION_MINOR "0")
 string(TIMESTAMP TODAY_TIMESTAMP "%Y%m%d")
 #set (VISE_VERSION_PATCH "0-build-${TODAY_TIMESTAMP}")
-set (VISE_VERSION_PATCH "0")
+set (VISE_VERSION_PATCH "1")
 configure_file (
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h.in"
   "${PROJECT_SOURCE_DIR}/vise/vise_version.h"
