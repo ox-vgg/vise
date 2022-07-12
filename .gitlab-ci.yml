@@ -10,6 +10,12 @@ stages:
 
 Windows-10-Build-Test:
   stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    paths:
+      - vgg/vise/cmake_build/VISE-*-Win64.exe
+    expire_in: never
   tags:
     - vgg-windows-10-builder
   script:
