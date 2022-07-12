@@ -35,6 +35,16 @@
 
 #include <boost/filesystem.hpp>
 
+vise::http_request create_http_request(const std::string method,
+                                       const std::string pname,
+                                       const std::string uri) {
+    std::ostringstream req_stream;
+    req_stream << method << " /" << pname << "/" << uri << " HTTP/1\r\n\r\n";
+    vise::http_request req;
+    req.parse(req_stream.str());
+    return req;
+}
+
 int main(int argc, char **argv) {
   if(argc != 6) {
     std::cout << "Usage: " << argv[0] << " TEST_ID IMG_DIR GND_TRUTH_DIR TOLERANCE TMP_DIR" << std::endl;
@@ -43,7 +53,7 @@ int main(int argc, char **argv) {
   std::chrono::steady_clock::time_point tstart = std::chrono::steady_clock::now();
 
   std::string test_id(argv[1]);
-  if(test_id != "oxford-buildings-100" && 
+  if(test_id != "oxford-buildings-100" &&
       test_id != "oxford-buildings-5k") {
     std::cout << "TEST_ID must be in "
               << "{oxford-buildings-100,oxford-buildings-5k}"
@@ -165,6 +175,24 @@ int main(int argc, char **argv) {
             << last_http_response.d_status_code << " " << last_http_response.d_status << std::endl;
   ASSERT(last_http_response.d_status_code == 200);
   ASSERT(!pmanager->project_index_is_loaded(pname));
+
+  // tests for HTTP GET request handler
+  std::cout << "testing get request handler" << std::endl;
+  pmanager->process_http_request(create_http_request("GET", pname, "image"),
+                                 last_http_response);
+  ASSERT(last_http_response.d_status_code == 404);
+
+  pmanager->process_http_request(create_http_request("GET", pname, "image/"),
+                                 last_http_response);
+  ASSERT(last_http_response.d_status_code == 404);
+
+  pmanager->process_http_request(create_http_request("GET", pname, "image/all_souls_000002.jpg"),
+                                 last_http_response);
+  ASSERT(last_http_response.d_status_code == 200);
+
+  // pmanager is no longer required, free resources
+  std::cout << "freeing resources held by project_manager"
+            << std::endl;
   pmanager.reset(nullptr);
 
   // evaluate performance
