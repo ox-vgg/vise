@@ -41,7 +41,7 @@ fi
 
 # imagemagick
 if ! [ -d "${DEPDIR}/include/ImageMagick-6" ]; then
-  cd $DEPSRC && wget -O ImageMagick6-6.9.12-16.tar.gz https://github.com/ImageMagick/ImageMagick6/archive/6.9.12-16.tar.gz && tar -zxvf ImageMagick6-6.9.12-16.tar.gz && cd ImageMagick6-6.9.12-16 && ./configure --prefix=$DEPDIR -enable-hdri=no --with-quantum-depth=8 --disable-dependency-tracking --with-x=no --without-perl && make -j && make install
+  cd $DEPSRC && wget -O ImageMagick6-6.9.12-58.tar.gz https://github.com/ImageMagick/ImageMagick6/archive/6.9.12-58.tar.gz && tar -zxvf ImageMagick6-6.9.12-58.tar.gz && cd ImageMagick6-6.9.12-58 && ./configure --prefix=$DEPDIR -enable-hdri=no --with-quantum-depth=8 --disable-dependency-tracking --with-x=no --without-perl && make -j && make install
 fi
 
 # google protobuf (https://github.com/protocolbuffers/protobuf/releases/tag/v2.6.1)
@@ -51,7 +51,7 @@ fi
 
 # eigen
 if ! [ -d "${DEPDIR}/include/eigen3/Eigen" ]; then
-  cd $DEPSRC && wget -O eigen-3.3.7.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz && tar -zxvf eigen-3.3.7.tar.gz && cd eigen-3.3.7/ && mkdir cmake_build && cd cmake_build && $DEPDIR"/bin/cmake" -DCMAKE_INSTALL_PREFIX=$DEPDIR ../ && make -j && make install
+  cd $DEPSRC && wget -O eigen-3.4.0.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz && tar -zxvf eigen-3.4.0.tar.gz && cd eigen-3.4.0/ && mkdir cmake_build && cd cmake_build && $DEPDIR"/bin/cmake" -DCMAKE_INSTALL_PREFIX=$DEPDIR ../ && make -j && make install
 fi
 
 # vlfeat
