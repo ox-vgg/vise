@@ -1,4 +1,4 @@
-# Compiling VISE from Source
+# Compiling VISE
 
 VISE source code can be download from its [gitlab code repository](https://gitlab.com/vgg/vise).
 The VISE source is known to compile in GNU/Linux (gcc), Windows 10 (Visual C++) and MacOS (Clang).
@@ -47,6 +47,36 @@ cd $VISE_CODE/vise/cmake_build
 ```
 
 
+## Building VISE using Docker
+VISE can be built using docker as follows.
+
+```
+export VISE_DIR=$HOME/vise          # change this to suit your preferences
+export VISE_CODE=$HOME/vise/code
+export VISE_DATA=$HOME/vise/data
+
+mkdir -p $VISE_CODE $VISE_DATA
+cd $VISE_CODE
+git clone https://gitlab.com/vgg/vise
+cd $VISE_CODE/vise/
+
+# build docker image
+sudo docker build -t vise .
+
+# show list of available docker images
+sudo docker images
+REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
+vise         latest    b6f63eb2dd0f   5 seconds ago    3.28GB
+...
+
+# run vise:latest docker image
+sudo docker run \
+  --volume $VISE_DATA/:/opt/vise/data/ \
+  -p 9669:9669 \
+  -i -t \
+  vise:latest
+```
+Now you can access VISE graphical user interface in a web browser at http://localhost:9669.
 
 ***
 
