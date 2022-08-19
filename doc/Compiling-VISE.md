@@ -69,11 +69,11 @@ REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
 vise         latest    b6f63eb2dd0f   5 seconds ago    3.28GB
 ...
 
-# run vise:latest docker image
+# run the vise server
 sudo docker run \
-  --volume $VISE_DATA/:/opt/vise/data/ \
+  -d --rm \
+  --volume $VISE_DATA/:/opt/vise/project/ \
   -p 9669:9669 \
-  -i -t \
   vise:latest
 ```
 Now you can access VISE graphical user interface in a web browser at http://localhost:9669.
