@@ -31,10 +31,10 @@ make -j8                            # compile VISE
 # download generic visual vocabulary to VISE application folder
 mkdir -p $HOME/.vise/asset/relja_retrival/visual_vocabulary/
 cd $HOME/.vise/asset/relja_retrival/visual_vocabulary/
-wget https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629-imsize400x400-voc10k-hamm32.zip
-unzip imcount53629-imsize400x400-voc10k-hamm32.zip
-mv imcount53629-imsize400x400-voc10k-hamm32 latest
-rm imcount53629-imsize400x400-voc10k-hamm32.zip
+wget https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629-imsize400x400-voc10k-hamm64.zip
+unzip imcount53629-imsize400x400-voc10k-hamm64.zip
+mv imcount53629-imsize400x400-voc10k-hamm64 latest
+rm imcount53629-imsize400x400-voc10k-hamm64.zip
 
 # create a symbolic link for VISE web application
 ln -s $VISE_CODE/vise/src/www $HOME/.vise/www  # you can copy "www" files as well
