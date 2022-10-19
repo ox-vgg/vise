@@ -246,6 +246,56 @@ VISE runs its own HTTP server on a specific port (e.g. 9669). All HTTP requests 
 ## In Windows, is it possible to use VISE without installing it by just copying the VISE folder and running the VISE.exe to get the server running?
 Yes. The VISE Windows installer simply copies all the required files ( VISE executable, dependencies DLL, sample project data, etc. ) to `C:\Program Files\VISE\` folder.
 
+## My VISE project already has 10 million images and I want to add some more images (e.g. 1000 images) to this project. Can I add new images to existing VISE project?
+At the moment, it is not possible to add new images. So, you will have to create a new VISE project with 10,001,000 images in it and redo all the stages of creating a VISE project. This is inefficient and we are working to find a more efficient way to add new images to an existing VISE project.
+
+It is possible to avoid recomputing the visual vocabularly by re-using the visual vocabulary computed in the original 10 million images. The visual vocabulary computed on 10 million images is already sufficient for a small number (e.g. 10000) of new images. Here is an illustrative example showing the commands required to re-use existing visual vocabulary.
+
+```
+## See User-Guide.md
+export VISE_DIR=$HOME/vise
+export VISE_CODE=$HOME/vise/code
+export VISE_DEP=$HOME/vise/dep
+
+## We assume that the following.
+## - $VISE_DIR/projects/p10m/    : a VISE project with 10 million images
+## - $VISE_DIR/projects/p10m-1k/ : a new VISE project which contains 10 million
+##                                 images from "p10m" project as well as an
+##                                 additional 1000 images
+
+mkdir -p $VISE_DIR/projects/p10m-1k/
+rsync -av $VISE_DIR/projects/p10m/ $VISE_DIR/projects/p10m-1k/     ## create a copy of the original project
+cd $VISE_DIR/projects/p10m-1k/data
+rm index_dset.bin index_fidx.bin \              ## delete existing index files but retain visual vocabulary
+  index_iidx.bin index.log trainassign.bin \    ## i.e. retain bowcluster.bin, conf.txt, filelist.txt,
+  trainhamm.bin weight.bin                      ## index_status.txt, metadata_conf.json, metadata_db.sqlite
+
+## add new images to $VISE_DIR/projects/p10m-1k/image/
+cp SOME-FOLDER/new-file1.jpg $VISE_DIR/projects/p10m-1k/image/
+...
+
+## update index_status.txt such that visual vocabularly
+## computation stage is skipped
+cd $VISE_DIR/projects/p10m-1k/data
+touch traindesc.bin
+cat index_status.txt                            ## ensure that the index_status.txt file contents match as
+start,filelist,traindesc,cluster                ## shown here
+
+## append new image filenames to filelist.txt
+echo "new-file1.jpg" >> $VISE_DIR/projects/p10m-1k/filelist.txt
+...
+
+## delete any temporary files
+rm $VISE_DIR/projects/p10m-1k/_tmp/*.*
+
+## start the indexing process which indexes all images contained filelist.txt
+## Note: the first 3 stages (i.e. filelist, traindesc, cluster) stages
+## are skipped and existing visual vocabulary (i.e. bowcluster.bin) is
+## reused by the indexing process
+$VISE_CODE/vise/cmake_build/vise/vise-cli --cmd=create-project \
+  p10m-1k:$VISE_DIR/projects/p10m-1k/data/conf.txt
+```
+
 ***
 
 Contact [Abhishek Dutta](mailto:adutta@robots.ox.ac.uk) for queries and feedback related to this page.
