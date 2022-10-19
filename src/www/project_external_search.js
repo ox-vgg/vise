@@ -315,13 +315,13 @@ function _vise_extract_features() {
 
 function _vise_search_features() {
   var xhr = new XMLHttpRequest();
-  xhr.responseType = "application/json";
+  xhr.responseType = "json";
   xhr.addEventListener('load', function(e) {
-    switch(xhr.statusText) {
-    case 'OK':
+    switch(xhr.status) {
+    case 200:
       progress.setAttribute('value', '3');
       progress_message.innerHTML += 'Finished searching using image features.<br/>';
-      _vise_external_search = JSON.parse(this.response);
+      _vise_external_search = this.response;
       _vise_external_search.QUERY = {'file_id':'Uploaded',
                           'filename':selected_filename,
                           'x':0, 'y':0, 'width':selected_image_dim[0], 'height':selected_image_dim[1]};
