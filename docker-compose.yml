@@ -1,0 +1,45 @@
+services:
+  vise:
+    build:
+      context: "."
+      dockerfile: "docker/Dockerfile"
+      target: "runtime"
+
+    image: ${REPO:-$USER}/vise:${VERSION:-latest}
+
+    working_dir: /opt/vise/code
+    environment:
+      - LOCAL_UID=${UID}
+      - LOCAL_GID=${GID}
+      - VISE_ASSET=${VISE_ASSET:-/opt/vise/data/asset/}
+      - VISE_WWW=${VISE_WWW:-/opt/vise/data/www/}
+      - VISE_HTTP_PORT=9669
+      - VISE_HTTP_ADDRESS=0.0.0.0
+      - VISE_HTTP_NAMESPACE=/
+      - VISE_HTTP_WORKER=8
+      - VISE_NTHREAD_INDEX=8
+      - VISE_NTHREAD_SEARCH=1
+
+    command:
+      - /bin/bash
+      - -c
+      - |
+        build/vise/vise-cli \
+          --cmd="web-ui" \
+          --http-address="$$VISE_HTTP_ADDRESS" \
+          --http-port="$$VISE_HTTP_PORT" \
+          --http-worker="$$VISE_HTTP_WORKER" \
+          --http-namespace="$$VISE_HTTP_NAMESPACE" \
+          --http-www-dir="$$VISE_WWW" \
+          --vise-home-dir="$$VISE_HOME" \
+          --vise-project-dir="$$VISE_PROJECT" \
+          --vise-asset-dir="$$VISE_ASSET" \
+          --nthread-index="$$VISE_NTHREAD_INDEX" \
+          --nthread-search="$$VISE_NTHREAD_SEARCH"
+
+    ports:
+      - "${VISE_HTTP_PORT:-9669}:9669"
+    volumes:
+      - ${VISE_PROJECT:-./project}:/opt/vise/project/
+
+version: "3.8"
