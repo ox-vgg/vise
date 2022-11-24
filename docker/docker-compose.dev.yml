@@ -1,0 +1,26 @@
+services:
+  vise:
+    build:
+      context: "."
+      dockerfile: "docker/Dockerfile"
+      target: "dev"
+      args:
+        - NPROC=2
+
+    image: ${REPO:-$USER}/vise-dev:${VERSION:-latest}
+
+    working_dir: /opt/vise/code
+
+    tty: true
+    stdin_open: true
+
+    command: >
+      bash -c "cmake -Hsrc -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=$$VISE_DEP && make -C build -j && exec bash"
+
+    ports:
+      - "${VISE_HTTP_PORT:-9669}:9669"
+
+    volumes:
+      - ./:/opt/vise/code
+
+version: '3.8'
