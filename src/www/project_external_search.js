@@ -178,7 +178,8 @@ function _vise_show_local_file_uploader() {
   file_selector.setAttribute('accept', 'image/*');
   file_selector.addEventListener('change', function(e) {
     selected_file = e.target.files[0];
-    selected_filename = selected_file.name;
+    //selected_filename = selected_file.name;
+    selected_filename = 'user-uploaded-file'; // to avoid malicious filenames
     selected_filesize = selected_file.size;
     selected_file_object_url = URL.createObjectURL(selected_file);
     var selected_image = document.createElement('img');
