@@ -45,7 +45,7 @@ The following configuration provides best image retrieval performance of mAP=0.7
   * Number of clusters: 10000
   * Hamming embedding: 64
  
-The resulting generic visual vocabulary is shipped with the VISE software so that it can be used for any new project. This generic visual vocabulary is also available for [download](https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629).
+The resulting generic visual vocabulary is shipped with the VISE software so that it can be used for any new project. This generic visual vocabulary is also available for download: [zip 6.3MB](https://www.robots.ox.ac.uk/~vgg/software/vise/download/2.x.y/relja_retrival/generic-visual-vocabulary/imcount53629-imsize400x400-voc10k-hamm64.zip).
 
 ***
 
