@@ -198,6 +198,16 @@ namespace buildIndex {
     std::vector<ellipse> regions;
     float *descs;
 
+    // added by Abhishek Dutta, 14 Mar. 2023
+    // Handle filenames containing "%" character by escaping them to "%%"
+    std::string::size_type pos = imageFn.find("%");
+    std::string::size_type old_pos;
+    while(pos != std::string::npos) {
+        imageFn.replace(pos, 1, "%%");
+        old_pos = pos;
+        pos = imageFn.find("%", old_pos + 2);
+    }
+
     // extract features
     featGetter_->getFeats(imageFn.c_str(), numFeats, regions, descs);
     result.first= numFeats;
