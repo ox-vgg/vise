@@ -1,7 +1,7 @@
- Users of VISE
+# Users of VISE
  * [Oxford Buildings Search](https://zeus.robots.ox.ac.uk/vise/demo/oxford-buildings/filelist)
  * [Bodleian Ballads Online](http://ballads.bodleian.ox.ac.uk)
- - Blog post: [Bodleian Ballads image-match demonstrator now online](http://balladsblog.bodleian.ox.ac.uk/blog/570) 
+   - Blog post: [Bodleian Ballads image-match demonstrator now online](http://balladsblog.bodleian.ox.ac.uk/blog/570) 
  * [15cILLUSTRATION - a searchable database of 15th century printed illustrations](https://www.robots.ox.ac.uk/~vgg/projects/seebibyte/case_studies/15cillustration/index.html)
  * [1516 - A Visually Searchable Database of Printed Illustration from the 15th and 16th centuries](https://www.robots.ox.ac.uk/~vgg/research/1516/)
  * [Database of Early Modern Czech Book Illustration](https://e-ilustrace.cz/en/)
