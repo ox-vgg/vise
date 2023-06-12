@@ -296,6 +296,16 @@ $VISE_CODE/vise/cmake_build/vise/vise-cli --cmd=create-project \
   p10m-1k:$VISE_DIR/projects/p10m-1k/data/conf.txt
 ```
 
+## VISE crashes with SEGMENTATION FAULT
+Most often, the SEGMENTATION FAULT error in VISE is caused by the feature extractor crashing due to a malformed input image. For large datasets, it is important to cleanup the data before feeding it to VISE. Here are some tips on how to identify malformed images in a large dataset.
+
+ * Discard all images which are less than 1KB as these often correspond to images without much content using the following command: `find . -size +1023c -type f -printf '%P\n'` (to delete the files, use `-delete` flag).
+ * If the dataset contains files of various types (e.g. TIF, PNG, JPG), the [convert-to-jpg.sh](scripts/preprocess/convert-to-jpg.sh) script can be used to convert them to JPEG. This script also resizes images and converts them to sRGB colourspace.
+ * Use imagemagick's `identify` command to check if an image is malformed.
+
+## How can I reduce the memory requirements of VISE?
+Resizing the images is one of the easiest way to reduce the memory footprint of a VISE project. VISE operates with high accuracy every for lower resolution images like `600x600` or `800x800` pixels. VISE does not benefit much from very high resolution images like `1600x1600` or more. The [convert-to-jpg.sh](scripts/preprocess/convert-to-jpg.sh) script converts images to JPG and resizes them such that largest image dimension is at most `1200` pixels.
+
 ***
 
 Contact [Abhishek Dutta](mailto:adutta@robots.ox.ac.uk) for queries and feedback related to this page.
