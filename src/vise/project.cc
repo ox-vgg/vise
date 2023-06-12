@@ -1409,14 +1409,15 @@ void vise::project::vgroup_match_graph(const std::string vgroup_id,
     std::vector<vise::search_result> search_result_list;
     d_search_engine->index_search(query, search_result_list);
     int match_count = 0;
-    // first match corresponds to the query image (since, this is internal query)
-    // so we ignore the first result
-    for ( uint32_t i = 1; i < search_result_list.size(); ++i ) {
+    for ( uint32_t i = 0; i < search_result_list.size(); ++i ) {
+      std::size_t match_fid = search_result_list[i].d_file_id;;
+      if(match_fid == query_id) {
+        continue; // ignore self match
+      }
       float score = (float) search_result_list[i].d_score;
       if(score < min_match_score) {
         continue; // skip this match
       }
-      std::size_t match_fid = search_result_list[i].d_file_id;;
       if(vgroup_metadata.at("query-type") == "file") {
         std::ostringstream ss;
         ss << "INSERT INTO `" << d_vgroup_match_table << "` VALUES("
