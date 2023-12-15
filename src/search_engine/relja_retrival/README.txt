@@ -7,12 +7,11 @@ University of Oxford
 
 
 
-==== Copyright:
 
-The library belongs to Relja Arandjelovic and the University of Oxford.
-No usage or redistribution is allowed without explicit permission.
-
-
+[Update on 2023-Sep-13]
+Relja Arandjelovic <arandjelovic.relja@gmail.com> has agreed to release the 
+"relja_retrieval" source code under a permissive license shown in the accompanying 
+LICENSE.txt file.
 
 ==== Introduction:
 
