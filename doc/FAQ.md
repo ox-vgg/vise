@@ -306,6 +306,33 @@ Most often, the SEGMENTATION FAULT error in VISE is caused by the feature extrac
 ## How can I reduce the memory requirements of VISE?
 Resizing the images is one of the easiest way to reduce the memory footprint of a VISE project. VISE operates with high accuracy every for lower resolution images like `600x600` or `800x800` pixels. VISE does not benefit much from very high resolution images like `1600x1600` or more. The [convert-to-jpg.sh](scripts/preprocess/convert-to-jpg.sh) script converts images to JPG and resizes them such that largest image dimension is at most `1200` pixels.
 
+## The image page does not show any metadata and VISE log states `failed to load metadata_conf`
+The `data/metadata_conf.json` file must be present to show file metadata. This file should be updated based on specific requirements of a project. Here is a minimal example of the `data/metadata_conf.json` file.
+```
+{
+  "data_format_version": 1,
+  "file_attributes_id_list": [
+    "file_id",
+    "filename",
+  ],
+  "region_attributes_id_list": [
+  ],
+  "groupby_aid_list": [
+  ],
+  "file_attributes": {
+    "file_id": {
+      "aname": "File Id",
+      "href": "file?file_id=$file_id$"
+    },
+    "filename": {
+      "aname": "Filename",
+      "href": "image/$filename$"
+    },
+  },
+  "region_attributes": {
+  }
+}
+```
 ***
 
 Contact [Abhishek Dutta](mailto:adutta@robots.ox.ac.uk) for queries and feedback related to this page.
