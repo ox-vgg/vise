@@ -181,51 +181,17 @@ function _vise_show_local_file_uploader() {
     //selected_filename = selected_file.name;
     selected_filename = 'user-uploaded-file'; // to avoid malicious filenames
     selected_filesize = selected_file.size;
+    const max_filesize = 1048576; // 1 MB
+    if(selected_filesize > max_filesize) {
+      const max_filesize_mb = max_filesize / (1024*1024);
+      const selected_filesize_mb = (selected_filesize / (1024*1024)).toFixed(2);
+      window.alert('Uploaded image size cannot be more than ' + max_filesize_mb + 'MB. The selected file size is ' + selected_filesize_mb + 'MB.');
+      file_selector.value = '';
+      return;
+    }
     selected_file_object_url = URL.createObjectURL(selected_file);
     var selected_image = document.createElement('img');
     selected_image.addEventListener('load', function(e) {
-      selected_image_dim = [this.naturalWidth, this.naturalHeight];
-      if((this.naturalWidth > 1024 || this.naturalHeight > 1024) &&
-         resize_uploaded_image) {
-        var new_width = 0;
-        var new_height = 0;
-        if(this.naturalWidth > this.naturalHeight) {
-          new_width = 1024;
-          new_height = parseInt((this.naturalHeight/this.naturalWidth) * new_width);
-        } else {
-          new_height = 1024;
-          new_width = parseInt((this.naturalWidth/this.naturalHeight) * new_height);
-        }
-        progress_message.innerHTML += 'Resizing ' + this.naturalWidth + 'x' + this.naturalHeight + ' image to ' + new_width + 'x' + new_height + ' ...<br/>';
-        var canvas = document.createElement('canvas');
-        canvas.width = new_width;
-        canvas.height = new_height;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(this,
-                      0, 0, this.naturalWidth, this.naturalHeight,
-                      0, 0, new_width, new_height);
-        canvas.toBlob(function(blob) {
-          selected_file_object_url = URL.createObjectURL(blob);
-          selected_file = null; // invalidate the original file (as resized file should be used)
-          selected_image_dim = [new_width, new_height];
-        });
-        var resized_image_base64 = canvas.toDataURL('image/jpeg', 0.9);
-        var content_type = resized_image_base64.substr(5, resized_image_base64.indexOf(';') - 5);
-        var content      = resized_image_base64.substr(resized_image_base64.indexOf(',') + 1); // remove base64 header
-
-        // source: https://stackoverflow.com/a/14988118/7814484
-        var img_decoded_base64 = atob(content);
-        var img_decoded_len = img_decoded_base64.length;
-        resized_image_binary_data = new ArrayBuffer(img_decoded_len);
-        var uint8_view = new Uint8Array(resized_image_binary_data);
-        for ( var i = 0; i<img_decoded_len; i++ ) {
-          uint8_view[i] = img_decoded_base64.charCodeAt(i);
-        }
-        is_image_resized = true;
-      } else {
-        is_image_resized = false;
-      }
-
       // trigger image feature extraction process
       upload_container.appendChild(progress_panel);
       progress.setAttribute('value', '1');
@@ -239,39 +205,26 @@ function _vise_show_local_file_uploader() {
     upload_panel.appendChild(selected_image);
   });
 
-  var resize_container = document.createElement('p');
-  var resize_label = document.createElement('label');
-  resize_label.setAttribute('for', 'resize_uploaded_image');
-  resize_label.innerHTML = 'Resize if uploaded image dimension is larger than 1024x1024 pixels&nbsp;';
-  var resize_checkbox = document.createElement('input');
-  resize_checkbox.setAttribute('type', 'checkbox');
-  resize_checkbox.setAttribute('id', 'resize_uploaded_image');
-  resize_checkbox.setAttribute('name', 'resize_uploaded_image');
-  resize_checkbox.setAttribute('checked', '');
-  resize_uploaded_image = true;
-  resize_checkbox.addEventListener('change', function() {
-    if(this.checked) {
-      resize_uploaded_image = true;
-    } else {
-      resize_uploaded_image = false;
-    }
-  });
-  resize_container.appendChild(resize_label);
-  resize_container.appendChild(resize_checkbox);
 
   upload_panel.appendChild(title);
-  upload_panel.appendChild(resize_container);
   upload_panel.appendChild(file_selector);
 }
 
 function _vise_extract_features() {
   var xhr = new XMLHttpRequest();
   xhr.responseType = "blob";
+  xhr.addEventListener('progress', function(e) {
+    if(e.lengthComputable) {
+      const upload_percent = parseInt((e.loaded / e.total) * 100);
+      progress_message.innerHTML += 'Uploaded ' + upload_percent + '%<br/>';
+    }
+  });
+
   xhr.addEventListener('load', function(e) {
     switch(xhr.status) {
     case 200:
       progress.setAttribute('value', '2');
-      progress_message.innerHTML += 'Image features extracted ...<br/>';
+      progress_message.innerHTML += 'Image feature extraction completed.<br/>';
       selected_file_features = this.response;
       _vise_search_features();
       break;
