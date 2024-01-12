@@ -19,7 +19,6 @@ University of Oxford
 #include <limits>
 
 #include "quant_desc.h"
-#include "jp_dist2.hpp"
 #include "macros.h"
 
 
@@ -60,6 +59,23 @@ class putative_desc {
                     bool useLowe= true,
                     float deltaSq= 0.81f,
                     float epsilon= 100.0f );
+
+  static double jp_dist_l2(const double* a, const double* b, unsigned D) {
+    double ret = 0.0;
+    for (unsigned d=0; d<D; ++d) {
+      ret += (a[d]-b[d])*(a[d]-b[d]);
+    }
+    return ret;
+  }
+
+  static float jp_dist_l2(const float* a, const float* b, unsigned D) {
+    float ret = 0.0;
+    for (unsigned d=0; d<D; ++d) {
+      ret += (a[d]-b[d])*(a[d]-b[d]);
+    }
+    return ret;
+  }
+
 };
 
 
