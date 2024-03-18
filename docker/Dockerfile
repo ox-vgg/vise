@@ -45,7 +45,7 @@ RUN deps="cmake \
 # Build and Install Boost
 FROM build AS boost-build
 WORKDIR /3rdparty
-RUN wget -q https://sourceforge.net/projects/boost/files/boost/1.73.0/boost_1_73_0.tar.gz/download && \
+RUN wget -O boost_1_73_0.tar.gz -q https://sourceforge.net/projects/boost/files/boost/1.73.0/boost_1_73_0.tar.gz/download && \
   tar -zxf boost_1_73_0.tar.gz && \
   cd boost_1_73_0 && \
   ./bootstrap.sh --prefix=$VISE_DEP --with-toolset=gcc --with-libraries=filesystem,system,thread && \
