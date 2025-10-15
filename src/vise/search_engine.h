@@ -14,6 +14,7 @@
 #include <functional>
 #include <map>
 #include <unordered_map>
+#include <cstdint>
 
 namespace vise {
   class search_engine {
