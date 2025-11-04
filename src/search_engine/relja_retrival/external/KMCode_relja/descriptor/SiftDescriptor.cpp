@@ -72,6 +72,7 @@ void SiftDescriptor::AddSample(float *index,
     //cout << "rpos "<< rpos << " cpos "<< cpos << " weight " << weight<< endl;
     //mag = weight * grad->fel[r][c];
     mag = patch_mask->fel[r][c] * grad->fel[r][c];
+    if (isnan(mag)) return;
     /* Subtract keypoint orientation to give ori relative to keypoint. */
     ori = orim->fel[r][c];
     
