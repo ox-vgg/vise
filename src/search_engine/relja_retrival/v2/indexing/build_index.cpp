@@ -380,11 +380,24 @@ namespace buildIndex {
     float *descs;
 
     // extract features
-    featGetter_->getFeats(imageFn.c_str(), numFeats, regions, descs);
-    if (numFeats==0){
-      result.second = std::make_pair(0,0); // indicator for invalid image
-      delete []descs;
-      return;
+    // The try-catch block is used because some malformed images may cause exception in
+    // desc_KM_SIFT::getDescs() -> ... -> SiftDescriptor::computeComponents()
+    try {
+      featGetter_->getFeats(imageFn.c_str(), numFeats, regions, descs);
+
+      if (numFeats==0) {
+        result.second = std::make_pair(0,0); // indicator for invalid image
+        delete []descs;
+        return;
+      }
+    } catch (const std::exception& e) {
+        result.second = std::make_pair(0,0); // indicator for invalid image
+        delete []descs;
+        return;
+    } catch(...) {
+        result.second = std::make_pair(0,0); // indicator for invalid image
+        delete []descs;
+        return;
     }
     totalFeats_+= numFeats;
 
