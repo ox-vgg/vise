@@ -205,15 +205,27 @@ namespace buildIndex {
     }
 
     // extract features
-    featGetter_->getFeats(imageFn.c_str(), numFeats, regions, descs);
-    result.first= numFeats;
-    if (numFeats==0){
-      result.second = imageFn + ", REASON=no features";
+    // The try-catch block is used because some malformed images may cause exception in
+    // desc_KM_SIFT::getDescs() -> ... -> SiftDescriptor::computeComponents()
+    try {
+      featGetter_->getFeats(imageFn.c_str(), numFeats, regions, descs);
+      result.first= numFeats;
+      if (numFeats==0) {
+        result.second = imageFn + ", REASON=no features";
+        delete []descs;
+        return;
+      }
+      result.second= featGetter_->getRawDescs(descs, numFeats);
       delete []descs;
-      return;
+    } catch (const std::exception& e) {
+      result.first = 0;
+      result.second = imageFn + ", REASON=feature extraction failed (" + std::string(e.what()) + ")";
+      delete []descs;
+    } catch(...) {
+      result.first = 0;
+      result.second = imageFn + ", REASON=feature extraction failed (unknown exception)";
+      delete []descs;
     }
-    result.second= featGetter_->getRawDescs(descs, numFeats);
-    delete []descs;
   }
 
 
