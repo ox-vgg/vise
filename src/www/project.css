@@ -38,10 +38,10 @@ footer { display:block; text-align:center; margin-top:2em; padding:0.5em 0; font
 
 /* /{PNAME}/filelist: shows a list of all images contained in a project */
 #content .filelist_panel { display:block; }
-#content .filelist { display:flex; flex-wrap:wrap; justify-content: space-between; margin:0 1em; }
+#content .filelist { display:flex; flex-wrap:wrap; justify-content: space-between; margin:0 0em; }
 #content .filelist::after { content:""; flex:auto; }
-#content .filelist a { display:inline-block; flex-grow:0; padding:0; margin:0.4em; }
-#content .filelist a img { display:inline-block; height:250px; max-width:98%; margin:0; padding:0; object-fit:fill; }
+#content .filelist a { display:inline-block; flex-grow:0; padding:0; margin:1px; }
+#content .filelist a img { display:inline-block; height:160px; max-width:98%; margin:0; padding:0; object-fit:fill; }
 #content .filelist_search_panel { text-align:center; margin-bottom:1em; }
 #content .filelist_search_panel form { display:block; }
 #content .filelist_search_panel input[type=text] { width:25em; max-width:80%; padding:0.2em; }

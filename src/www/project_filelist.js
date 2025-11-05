@@ -129,96 +129,103 @@ function _vise_init_filelist_toolbar() {
   var sep = document.createElement('span');
   sep.innerHTML = '&nbsp;|&nbsp;';
 
-  var label1 = document.createElement('span');
-  label1.innerHTML = '&nbsp;Showing';
-  var start_input = document.createElement('input');
-  start_input.setAttribute('type', 'text');
-  start_input.setAttribute('style', 'width:2em;');
-  start_input.setAttribute('value', _vise_data.FLIST_START);
-  start_input.setAttribute('pattern', '[0-9]{1,10}');
-  start_input.setAttribute('title', 'Enter the image index to show that image and remaining images.');
-  start_input.addEventListener('change', function(e) {
-    var new_start = parseInt(this.value);
-	  if(isNaN(new_start)) {
-	    this.value = _vise_data['FLIST_START'];
-	    return;
-	  }
-	  new_start = new_start;
-	  if(new_start < 0 || new_start >= _vise_data['FLIST_SIZE']) {
-	    this.value = _vise_data.FLIST_START;
-	    return;
-	  } else {
-      var new_end = Math.min(_vise_data['FLIST_SIZE'], new_start + FILE_PER_PAGE);
-      window.location.href = 'filelist?start=' + new_start + '&end=' + new_end;
-    }
-  });
-
-  var label2 = document.createElement('span');
-  label2.innerHTML = 'to ' + (_vise_data['FLIST_END'] - 1) + ' of ' + _vise_data['FLIST_SIZE'] + ' files';
-  if(_vise_data.hasOwnProperty('FLIST_GROUPBY')) {
-    label2.innerHTML += ' in group&nbsp;';
+  if(_vise_data['FLIST_START'] === 0 && _vise_data['FLIST_END'] === 0) {
+    // home page shows a random sample of files
+    var label1 = document.createElement('span');
+    label1.innerHTML = '&nbsp;Showing ' + _vise_data.FLIST_FILENAME.length + ' random files from a total of ' + _vise_data['FLIST_SIZE'] + '.&nbsp;';
+    pageinfo.appendChild(label1);
   } else {
-    label2.innerHTML += '.&nbsp;';
-  }
-  pageinfo.appendChild(label1);
-  pageinfo.appendChild(start_input);
-  pageinfo.appendChild(label2);
-
-  if(_vise_data.hasOwnProperty('FLIST_GROUPBY')) {
-    // group selector
-    var group_form = document.createElement('form');
-    group_form.setAttribute('method', 'GET');
-    group_form.setAttribute('action', 'filelist');
-    group_form.addEventListener('change', function(e) {
-      e.target.parentNode.submit();
+    // normal file list page
+    var label1 = document.createElement('span');
+    label1.innerHTML = '&nbsp;Showing';
+    var start_input = document.createElement('input');
+    start_input.setAttribute('type', 'text');
+    start_input.setAttribute('style', 'width:2em;');
+    start_input.setAttribute('value', _vise_data.FLIST_START);
+    start_input.setAttribute('pattern', '[0-9]{1,10}');
+    start_input.setAttribute('title', 'Enter the image index to show that image and remaining images.');
+    start_input.addEventListener('change', function(e) {
+      var new_start = parseInt(this.value);
+      if(isNaN(new_start)) {
+        this.value = _vise_data['FLIST_START'];
+        return;
+      }
+      new_start = new_start;
+      if(new_start < 0 || new_start >= _vise_data['FLIST_SIZE']) {
+        this.value = _vise_data.FLIST_START;
+        return;
+      } else {
+        var new_end = Math.min(_vise_data['FLIST_SIZE'], new_start + FILE_PER_PAGE);
+        window.location.href = 'filelist?start=' + new_start + '&end=' + new_end;
+      }
     });
-    var group_select = document.createElement('select');
-    group_select.setAttribute('name', 'group');
-    var groupby_display_name = '';
-    var groupby = _vise_data['FLIST_GROUPBY'];
-    if(groupby in _vise_data['METADATA_CONF']['file_attributes']) {
-      groupby_display_name = _vise_data['METADATA_CONF']['file_attributes'][groupby]['aname'];
-    } else {
-      if(groupby in _vise_data['METADATA_CONF']['region_attributes']) {
-        groupby_display_name = _vise_data['METADATA_CONF']['region_attributes'][groupby]['aname'];
-      }
-    }
 
-    for(var gindex in _vise_data['FLIST_GROUP_STAT']) {
-      var group = _vise_data['FLIST_GROUP_STAT'][gindex]['group'];
-      var group_size = _vise_data['FLIST_GROUP_STAT'][gindex]['size'];
-      var oi = document.createElement('option');
-      oi.setAttribute('value', group);
-      oi.innerHTML = groupby_display_name + ' = ' + group + ' [' + group_size + ']';
-      if(_vise_data['FLIST_GROUP'] === group) {
-        oi.setAttribute('selected', '');
-      }
-      group_select.appendChild(oi);
-    }
-    var mode = document.createElement('input')
-    mode.setAttribute('type', 'hidden');
-    mode.setAttribute('name', 'mode');
-    mode.setAttribute('value', search_panel_mode.getAttribute('value'));
-    var query = document.createElement('input')
-    query.setAttribute('type', 'hidden');
-    query.setAttribute('name', 'query');
-    if(_vise_data.hasOwnProperty('FLIST_QUERY')) {
-      query.setAttribute('value', _vise_data['FLIST_QUERY']);
+    var label2 = document.createElement('span');
+    label2.innerHTML = 'to ' + (_vise_data['FLIST_END'] - 1) + ' of ' + _vise_data['FLIST_SIZE'] + ' files';
+    if(_vise_data.hasOwnProperty('FLIST_GROUPBY')) {
+      label2.innerHTML += ' in group&nbsp;';
     } else {
-      query.setAttribute('value', '');
+      label2.innerHTML += '.&nbsp;';
     }
-    var groupby = document.createElement('input')
-    groupby.setAttribute('type', 'hidden');
-    groupby.setAttribute('name', 'groupby');
-    groupby.setAttribute('value', _vise_data['FLIST_GROUPBY']);
+    pageinfo.appendChild(label1);
+    pageinfo.appendChild(start_input);
+    pageinfo.appendChild(label2);
 
-    group_form.appendChild(mode);
-    group_form.appendChild(query);
-    group_form.appendChild(groupby);
-    group_form.appendChild(group_select);
-    pageinfo.appendChild(group_form);
+    if(_vise_data.hasOwnProperty('FLIST_GROUPBY')) {
+      // group selector
+      var group_form = document.createElement('form');
+      group_form.setAttribute('method', 'GET');
+      group_form.setAttribute('action', 'filelist');
+      group_form.addEventListener('change', function(e) {
+        e.target.parentNode.submit();
+      });
+      var group_select = document.createElement('select');
+      group_select.setAttribute('name', 'group');
+      var groupby_display_name = '';
+      var groupby = _vise_data['FLIST_GROUPBY'];
+      if(groupby in _vise_data['METADATA_CONF']['file_attributes']) {
+        groupby_display_name = _vise_data['METADATA_CONF']['file_attributes'][groupby]['aname'];
+      } else {
+        if(groupby in _vise_data['METADATA_CONF']['region_attributes']) {
+          groupby_display_name = _vise_data['METADATA_CONF']['region_attributes'][groupby]['aname'];
+        }
+      }
+
+      for(var gindex in _vise_data['FLIST_GROUP_STAT']) {
+        var group = _vise_data['FLIST_GROUP_STAT'][gindex]['group'];
+        var group_size = _vise_data['FLIST_GROUP_STAT'][gindex]['size'];
+        var oi = document.createElement('option');
+        oi.setAttribute('value', group);
+        oi.innerHTML = groupby_display_name + ' = ' + group + ' [' + group_size + ']';
+        if(_vise_data['FLIST_GROUP'] === group) {
+          oi.setAttribute('selected', '');
+        }
+        group_select.appendChild(oi);
+      }
+      var mode = document.createElement('input')
+      mode.setAttribute('type', 'hidden');
+      mode.setAttribute('name', 'mode');
+      mode.setAttribute('value', search_panel_mode.getAttribute('value'));
+      var query = document.createElement('input')
+      query.setAttribute('type', 'hidden');
+      query.setAttribute('name', 'query');
+      if(_vise_data.hasOwnProperty('FLIST_QUERY')) {
+        query.setAttribute('value', _vise_data['FLIST_QUERY']);
+      } else {
+        query.setAttribute('value', '');
+      }
+      var groupby = document.createElement('input')
+      groupby.setAttribute('type', 'hidden');
+      groupby.setAttribute('name', 'groupby');
+      groupby.setAttribute('value', _vise_data['FLIST_GROUPBY']);
+
+      group_form.appendChild(mode);
+      group_form.appendChild(query);
+      group_form.appendChild(groupby);
+      group_form.appendChild(group_select);
+      pageinfo.appendChild(group_form);
+    }
   }
-
   pageinfo.appendChild(sep.cloneNode(true));
 
   var prev_start = Math.max(0, _vise_data.FLIST_START - FILE_PER_PAGE);

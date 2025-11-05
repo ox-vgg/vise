@@ -1,4 +1,7 @@
 #include "project_manager.h"
+#include <random>
+#include <algorithm>
+#include <iterator>
 
 using namespace vise;
 
@@ -1247,7 +1250,27 @@ void project_manager::project_filelist(std::string pname,
     }
 
     project_filelist_set_range(param, flist_size, flist_start, flist_end);
-    if(is_groupby) {
+    if (param.count("start") == 0 && param.count("end") == 0) {
+      // send a random sample of 100 files if no range is specified
+      uint32_t total_files = d_projects.at(pname)->fid_count();
+      if (total_files > 0) {
+        std::vector<uint32_t> all_fids(total_files);
+        std::iota(all_fids.begin(), all_fids.end(), 0);
+
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(all_fids.begin(), all_fids.end(), g);
+
+        uint32_t sample_size = 100;
+        if (total_files < sample_size) {
+          sample_size = total_files;
+        }
+        flist_subset.assign(all_fids.begin(), all_fids.begin() + sample_size);
+        flist_start = 0;
+        flist_end = 0;
+        flist_size = total_files;
+      }
+    } else if(is_groupby) {
       // populate flist file_id in the range [flist_start, flist_end) from group
       for(std::size_t i=flist_start; i<flist_end; ++i) {
         flist_subset.push_back( flist.at(i) );
