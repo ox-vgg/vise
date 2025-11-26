@@ -48,6 +48,7 @@ can be parsed using --vise-conf-filename=vise-conf.txt
 --query-type       : query using file (i.e. full image) or region (i.e. user defined regions)
 --vgroup-min-score : score threshold used while creating visual groups
 --match-iou-threshold : IoU threshold to check if match regions are same (default = 0.9)
+--batch-size       : number of queries to process in a batch (default = 1024)
 
 
 ## EXAMPLES
@@ -70,6 +71,7 @@ d) to create a visual group
     --vgroup-id=negative-groups --max-matches=50 --min-match-score=30 \
     --filename-like="negatives/%" --query-type=file --vgroup-min-score=50 \
     --match-iou-threshold=0.9 \
+    --batch-size=1000 \
     MY-PROJECT:/dataset/myproject/data/conf.txt
 
 

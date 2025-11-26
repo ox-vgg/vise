@@ -1,4 +1,5 @@
 #include "project.h"
+#include <omp.h>
 
 // preset_conf_1 : Indexing process is fast and disk space usage is low but visual search is less accurate.
 // preset_conf_2 : More accurate visual search but indexing process uses more disk space and takes longer to complete.
@@ -1322,12 +1323,25 @@ void vise::project::vgroup_match_graph(const std::string vgroup_id,
     match_iou_threshold = std::stof(vgroup_metadata.at("match-iou-threshold"));
   }
 
+  std::size_t batch_size = 1024;
+  if(vgroup_metadata.count("batch-size")) {
+    batch_size = std::stoi(vgroup_metadata.at("batch-size"));
+  }
+
   std::cout << "vise::project:: create_vgroup_match_graph()"
             << " nthread-search=" << nthread
             << ", max-matches-count=" << max_matches_count
             << ", min-match-score=" << min_match_score
             << ", match-iou-threshold=" << match_iou_threshold
+            << ", batch-size=" << batch_size
             << std::endl;
+
+  struct vgroup_query_result {
+    std::size_t query_id;
+    vise::search_query query;
+    std::vector<vise::search_result> result;
+    double elapsed_time;
+  };
 
   sqlite3 *db = nullptr;
   std::string sql;
@@ -1388,141 +1402,166 @@ void vise::project::vgroup_match_graph(const std::string vgroup_id,
     next_region_id = region_id + 1;
   }
 
+  std::size_t total_batches = (query_id_list.size() + batch_size - 1) / batch_size;
   unsigned int processed_query_count = 0;
-  for(std::size_t qindex=0; qindex<query_id_list.size(); ++qindex) {
-    std::size_t query_id = query_id_list.at(qindex);
-    vise::search_query query;
-    query.d_max_result_count = max_matches_count;
-    if(vgroup_metadata.at("query-type") == "file") {
-      // query using full file image
-      query.d_file_id = query_id;
-      query.is_region_query = false;
-      std::cout << "file_id=" << query_id << " : ";
-    } else {
-      get_query_region(query_id, query);
-      std::cout << "query (fid,rid)=(" << query.d_file_id << "," << query_id << ") : ";
+
+  for (std::size_t batch_num = 0; batch_num < total_batches; ++batch_num) {
+    std::size_t batch_start = batch_num * batch_size;
+    std::size_t batch_end = std::min(batch_start + batch_size, query_id_list.size());
+    std::size_t current_batch_size = batch_end - batch_start;
+
+    std::vector<vgroup_query_result> batch_results;
+    batch_results.resize(current_batch_size);
+
+#pragma omp parallel for num_threads(nthread) schedule(dynamic)
+    for(std::size_t qindex_batch=0; qindex_batch<current_batch_size; ++qindex_batch) {
+      std::size_t qindex_global = batch_start + qindex_batch;
+      std::size_t query_id = query_id_list.at(qindex_global);
+      batch_results[qindex_batch].query_id = query_id;
+
+      batch_results[qindex_batch].query.d_max_result_count = max_matches_count;
+      if(vgroup_metadata.at("query-type") == "file") {
+        batch_results[qindex_batch].query.d_file_id = query_id;
+        batch_results[qindex_batch].query.is_region_query = false;
+      } else {
+        get_query_region(query_id, batch_results[qindex_batch].query);
+      }
+
+      uint32_t tstart = vise::getmillisecs();
+      d_search_engine->index_search(batch_results[qindex_batch].query, batch_results[qindex_batch].result);
+      uint32_t tend = vise::getmillisecs();
+      batch_results[qindex_batch].elapsed_time = ((double) (tend - tstart)) / 1000.0;
     }
 
     sql = "BEGIN TRANSACTION";
     rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
-    uint32_t tstart = vise::getmillisecs();
-    std::vector<vise::search_result> search_result_list;
-    d_search_engine->index_search(query, search_result_list);
-    int match_count = 0;
-    for ( uint32_t i = 0; i < search_result_list.size(); ++i ) {
-      std::size_t match_fid = search_result_list[i].d_file_id;;
-      if(match_fid == query_id) {
-        continue; // ignore self match
-      }
-      float score = (float) search_result_list[i].d_score;
-      if(score < min_match_score) {
-        continue; // skip this match
-      }
-      if(vgroup_metadata.at("query-type") == "file") {
-        std::ostringstream ss;
-        ss << "INSERT INTO `" << d_vgroup_match_table << "` VALUES("
-           << query_id << "," << match_fid
-           << "," << score << ","
-           << "'" << search_result_list[i].H_to_csv() << "');";
-        sql = ss.str();
-        rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
-        std::cout << "(" << match_fid << "," << score << ") ";
-      } else {
-        // create a new region entry in vgroup_region table
-        // insert a reference to this new region in match table
-        std::size_t new_region_index = 0;
-        if(file_id_region_index_map.count(match_fid) == 1) {
-          file_id_region_index_map[match_fid] = file_id_region_index_map[match_fid] + 1;
-          new_region_index = file_id_region_index_map[match_fid];
-        } else {
-          file_id_region_index_map[match_fid] = new_region_index;
-        }
-        vise::search_query match_region;
-        get_match_region(query, search_result_list[i], match_region);
 
-        // check if match region overlaps with existing regions in that file
-        bool is_match_region_new = true;
-        std::size_t match_region_id = next_region_id;
-        double match_region_iou = 0;
-        std::set<std::size_t>::const_iterator itr = file_id_to_region_id_list[match_fid].begin();
-        for(; itr!=file_id_to_region_id_list[match_fid].end(); ++itr) {
-          std::size_t region_id = *itr;
-          std::vector<float> region_points = region_id_region_points_map[region_id];
-          std::vector<float> match_region_points;
-          match_region.to_region_points(match_region_points);
-          double match_iou = vise::iou(region_points, match_region_points);
-          if(match_iou > match_iou_threshold) {
-            is_match_region_new = false;
-            match_region_id = region_id;
-            match_region_iou = match_iou;
-            break;
+    for(std::size_t qindex_batch=0; qindex_batch<batch_results.size(); ++qindex_batch) {
+      std::size_t query_id = batch_results[qindex_batch].query_id;
+      vise::search_query query = batch_results[qindex_batch].query;
+      std::vector<vise::search_result> search_result_list = batch_results[qindex_batch].result;
+
+      int match_count = 0;
+      for ( uint32_t i = 0; i < search_result_list.size(); ++i ) {
+        std::size_t match_fid = search_result_list[i].d_file_id;
+        if(match_fid == query.d_file_id && vgroup_metadata.at("query-type") == "file") {
+          continue;
+        }
+        if(vgroup_metadata.at("query-type") == "region" && match_fid == query.d_file_id) {
+          vise::search_query match_region;
+          get_match_region(query, search_result_list[i], match_region);
+          std::vector<float> q_pts, m_pts;
+          query.to_region_points(q_pts);
+          match_region.to_region_points(m_pts);
+          if(vise::iou(q_pts, m_pts) > match_iou_threshold) {
+            continue;
           }
         }
-        std::ostringstream match_ss;
-        match_ss << "INSERT INTO `" << d_vgroup_match_table << "` VALUES("
-                 << query_id << "," << match_region_id
-                 << "," << score << ","
-                 << "'" << search_result_list[i].H_to_csv() << "');";
-        sql = match_ss.str();
-        rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
-        if(is_match_region_new) {
-          std::ostringstream region_ss;
-          region_ss   << "INSERT INTO `" << d_vgroup_region_table << "`"
-                      << "(region_id,file_id,region_index,region_shape,region_points) "
-                      << "VALUES(" << next_region_id << "," << match_fid << ","
-                      << new_region_index << ",'rect','"
-                      << match_region.to_region_points_csv() << "')";
-          sql = region_ss.str();
-          rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
-          file_id_to_region_id_list[match_fid].insert(next_region_id);
-          region_id_region_points_map[next_region_id] = std::vector<float>();
-          match_region.to_region_points(region_id_region_points_map[next_region_id]);
-          std::cout << "(" << match_fid << "," << next_region_id << "*," << score << ") ";
-          next_region_id = next_region_id + 1;
-        } else {
-          std::cout << "(" << match_fid << "," << next_region_id << "," << score << ") ";
+
+        float score = (float) search_result_list[i].d_score;
+        if(score < min_match_score) {
+          continue;
         }
+        if(vgroup_metadata.at("query-type") == "file") {
+          std::ostringstream ss;
+          ss << "INSERT INTO `" << d_vgroup_match_table << "` VALUES("
+             << query_id << "," << match_fid
+             << "," << score << ","
+             << "'" << search_result_list[i].H_to_csv() << "');";
+          sql = ss.str();
+          rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+        } else {
+          std::size_t new_region_index = 0;
+          if(file_id_region_index_map.count(match_fid) == 1) {
+            file_id_region_index_map[match_fid] = file_id_region_index_map[match_fid] + 1;
+            new_region_index = file_id_region_index_map[match_fid];
+          } else {
+            file_id_region_index_map[match_fid] = new_region_index;
+          }
+          vise::search_query match_region;
+          get_match_region(query, search_result_list[i], match_region);
+
+          bool is_match_region_new = true;
+          std::size_t match_region_id = next_region_id;
+          if(file_id_to_region_id_list.count(match_fid)) {
+            for(const auto& region_id : file_id_to_region_id_list[match_fid]) {
+              std::vector<float> region_points = region_id_region_points_map[region_id];
+              std::vector<float> match_region_points;
+              match_region.to_region_points(match_region_points);
+              if(vise::iou(region_points, match_region_points) > match_iou_threshold) {
+                is_match_region_new = false;
+                match_region_id = region_id;
+                break;
+              }
+            }
+          }
+          std::ostringstream match_ss;
+          match_ss << "INSERT INTO `" << d_vgroup_match_table << "` VALUES("
+                   << query_id << "," << match_region_id
+                   << "," << score << ","
+                   << "'" << search_result_list[i].H_to_csv() << "');";
+          sql = match_ss.str();
+          rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+          if(is_match_region_new) {
+            std::ostringstream region_ss;
+            region_ss   << "INSERT INTO `" << d_vgroup_region_table << "`"
+                        << "(region_id,file_id,region_index,region_shape,region_points) "
+                        << "VALUES(" << next_region_id << "," << match_fid << ","
+                        << new_region_index << ",'rect','"
+                        << match_region.to_region_points_csv() << "')";
+            sql = region_ss.str();
+            rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+            if(file_id_to_region_id_list.count(match_fid) == 0) {
+              file_id_to_region_id_list[match_fid] = std::set<std::size_t>();
+            }
+            file_id_to_region_id_list[match_fid].insert(next_region_id);
+            region_id_region_points_map[next_region_id] = std::vector<float>();
+            match_region.to_region_points(region_id_region_points_map[next_region_id]);
+            next_region_id++;
+          }
+        }
+        match_count++;
       }
-      match_count = match_count + 1;
-    }
-    uint32_t tend = vise::getmillisecs();
-    double telapsed = ((double) (tend - tstart)) / 1000.0;
-    std::ostringstream progress;
-    progress << "INSERT INTO `" << d_vgroup_task_progress_table
-             << "` VALUES(" + std::to_string(query_id) << ","
-             << std::to_string(telapsed) + ");";
-    sql = progress.str();
-    rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
-    if(match_count == 0) {
-      std::ostringstream non_match;
-      non_match << "INSERT INTO `" << d_vgroup_non_match_table << "` "
-                << "VALUES(" + std::to_string(query_id) << ","
-                << (search_result_list.size() - 1) << ","; // discard first self match
-      if(search_result_list.size() < 2) {
-        non_match << "0";
-      } else {
-        float score = (float) search_result_list[1].d_score;
-        non_match << score;
-      }
-      non_match << ");";
-      sql = non_match.str();
+      std::ostringstream progress;
+      progress << "INSERT INTO `" << d_vgroup_task_progress_table
+               << "` VALUES(" + std::to_string(query_id) << ","
+               << std::to_string(batch_results[qindex_batch].elapsed_time) + ");";
+      sql = progress.str();
       rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+      if(match_count == 0) {
+        std::ostringstream non_match;
+        non_match << "INSERT INTO `" << d_vgroup_non_match_table << "` "
+                  << "VALUES(" + std::to_string(query_id) << ","
+                  << (search_result_list.size() > 0 ? (search_result_list.size() - 1) : 0) << ",";
+        if(search_result_list.size() < 2) {
+          non_match << "0";
+        } else {
+          float score = (float) search_result_list[1].d_score;
+          non_match << score;
+        }
+        non_match << ");";
+        sql = non_match.str();
+        rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
+      }
+      processed_query_count++;
     }
+
     sql = "END TRANSACTION";
     rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &err_msg);
 
     if(rc != SQLITE_OK) {
       if(err_msg != NULL) {
+        message = "failed to insert data for batch " + std::to_string(batch_num) + ": " + err_msg;
         sqlite3_free(err_msg);
-        message = "failed to insert data for query_id=" + std::to_string(query_id) + " into " + d_vgroup_match_table;
         success = false;
         sqlite3_close_v2(db);
         return;
       }
     }
-    std::cout << std::endl;
-    processed_query_count = processed_query_count + 1;
+    std::cout << "Processed batch " << (batch_num + 1) << "/" << total_batches
+              << " (" << processed_query_count << "/" << query_id_list.size() << " queries)" << std::endl;
   }
+
   success = true;
   message = "done : processed " + std::to_string(processed_query_count) + " images";
   sqlite3_close_v2(db);
