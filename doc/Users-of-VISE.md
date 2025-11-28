@@ -15,7 +15,10 @@
    - [VISE tutorial](https://docs.google.com/document/d/1pCa0wq7-u4zdv5apNwDBkg9RGxMGMBun-7PO2KFKuv8/edit#heading=h.e52k2ufpuyvb)
    - [VISE based search engine for Spanish chapbooks](https://cdhlabs.org.uk/cudl_chapbooks/filelist)
  * Frank Scholten Project at the [University of Leiden](https://www.universiteitleiden.nl/en)
+   - [The Digitisation of the Frank Scholten Collection at the Special Collections of Leiden University Libraries](https://e-publish.uliege.be/opening-up-our-heritage/chapter/the-digitisation-of-the-frank-scholten-collection/)
  * [Sistemas de Informação](https://sistemasfuturo.pt/) for the [Az Infinitum](https://inwebonline.net/azInfinitum/azinfinitum.aspx?pesquisaGeral=1) project at the Art Institute of the University of Lisbon
+   - [AZ Infinitum](https://inwebonline.net/azInfinitum/azinfinitum.aspx?pesquisaGeral=1)
+   - [Reshaping the Future of Portuguese Azulejo Patterns](https://doi.org/10.5194/isprs-archives-XLVIII-M-2-2023-379-2023)
  * [Ca' Foscari University of Venice Lyon 16ci database of book illustrations printed in Lyon](https://www.robots.ox.ac.uk/~vgg/research/16ci/lyon/)
  * [Ornamento database of printed book ornaments at University College Dublin](https://ornamento.ucd.ie/)
  * [Compositor project at the University of Birmingham](https://compositor.bham.ac.uk)
