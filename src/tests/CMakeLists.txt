@@ -1,3 +1,8 @@
+add_executable(test_project_create_name test_project_create_name.cc)
+target_link_libraries(test_project_create_name
+  project_manager ${ImageMagick_LIBRARIES} ${Boost_LIBRARIES} OpenMP::OpenMP_CXX)
+add_test(NAME project_create_name COMMAND test_project_create_name)
+
 if(WIN32)
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/util )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/dataset )

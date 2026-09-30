@@ -1733,7 +1733,7 @@ void project_manager::vise_project_create(std::unordered_map<std::string, std::s
     return;
   }
 
-  if(!is_project_name_valid("pname")) {
+  if(!is_project_name_valid(pname)) {
     std::ostringstream msg;
     msg << "project name [" << pname << "] "
         << "should only contains the following alpha-numeric character [a-z|A-Z|0-9] and space "
