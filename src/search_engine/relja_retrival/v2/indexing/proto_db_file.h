@@ -16,6 +16,9 @@ University of Oxford
 #include <stdint.h>
 #include <string>
 #include <vector>
+#ifdef _WIN32
+#include <mutex>
+#endif
 
 #include "proto_db_header.pb.h"
 #include "macros.h"
@@ -60,6 +63,9 @@ class protoDbFile : public protoDb {
         rr::protoDbHeader header_;
         FILE *f;
         int f_;
+#ifdef _WIN32
+        mutable std::mutex readMutex_;
+#endif
     
     private:
         DISALLOW_COPY_AND_ASSIGN(protoDbFile)

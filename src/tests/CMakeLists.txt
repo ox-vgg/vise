@@ -1,3 +1,11 @@
+find_package(Threads REQUIRED)
+add_executable(test_proto_db_file_threads test_proto_db_file_threads.cc)
+target_include_directories(test_proto_db_file_threads PRIVATE
+  ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/indexing)
+target_link_libraries(test_proto_db_file_threads
+  proto_db_file proto_db_header.pb ${PROTOBUF_LIBRARIES} ${Boost_LIBRARIES} Threads::Threads)
+add_test(NAME proto_db_file_threads COMMAND test_proto_db_file_threads)
+
 if(WIN32)
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/util )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/dataset )

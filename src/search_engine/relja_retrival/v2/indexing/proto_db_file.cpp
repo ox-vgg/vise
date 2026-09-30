@@ -75,6 +75,12 @@ protoDbFile::~protoDbFile(){
 void
 protoDbFile::getData( uint32_t ID, std::vector<std::string> &data ) const {
 
+#ifdef _WIN32
+    // Unlike pread(), the Windows seek/read pairs share the FILE cursor.
+    // Keep an entire entry read atomic for callers using this database in parallel.
+    std::lock_guard<std::mutex> lock(readMutex_);
+#endif
+
     if (ID>numIDs_ || header_.offset(ID)==header_.offset(ID+1))
         data.clear();
 
