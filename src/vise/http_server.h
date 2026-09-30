@@ -39,6 +39,8 @@ namespace vise {
     void stop();
   private:
     std::size_t d_thread_pool_size;
+    std::size_t d_max_header_size;
+    std::size_t d_max_body_size;
     boost::asio::io_service d_io_service;
     boost::asio::ip::tcp::acceptor d_acceptor;
     boost::asio::signal_set d_signals;

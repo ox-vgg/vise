@@ -31,7 +31,9 @@ namespace vise {
   {
   public:
     connection(boost::asio::io_service &io_service,
-               vise::project_manager *manager);
+               vise::project_manager *manager,
+               std::size_t max_header_size = 16 * 1024,
+               std::size_t max_body_size = 100 * 1024 * 1024);
 
     boost::asio::ip::tcp::socket& socket();
     void process_connection();
@@ -58,7 +60,15 @@ namespace vise {
     boost::asio::io_service::strand d_strand; // ensure that only a single thread invokes a handler
     boost::asio::ip::tcp::socket d_socket; // socket instance for this connection
 
-    boost::array<char, 524288> d_buffer;
+    boost::array<char, 32768> d_buffer;
+    std::string d_header_buffer;
+    const std::size_t d_max_header_size;
+    const std::size_t d_max_body_size;
+    bool d_header_complete;
+    std::size_t d_expected_body_size;
+    std::size_t d_received_body_size;
+    bool d_continue_pending;
+    bool d_final_response_waiting;
     boost::asio::streambuf d_response_buffer;
     boost::asio::streambuf d_continue_response_buffer;
 

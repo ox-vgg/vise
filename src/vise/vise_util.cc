@@ -147,6 +147,8 @@ void vise::init_default_vise_settings(std::map<std::string, std::string> &vise_s
   vise_settings["http-address"] = "localhost";
   vise_settings["http-port"] = "9669";
   vise_settings["http-worker"] = "2";
+  vise_settings["http-max-header-bytes"] = "16384";
+  vise_settings["http-max-body-bytes"] = "104857600";
   vise_settings["http-namespace"] = "/";
 }
 
@@ -180,6 +182,8 @@ void vise::init_vise_settings(std::map<std::string, std::string> &vise_settings)
     vise_settings["http-address"] = "localhost";
     vise_settings["http-port"] = "9669";
     vise_settings["http-worker"] = "2";
+    vise_settings["http-max-header-bytes"] = "16384";
+    vise_settings["http-max-body-bytes"] = "104857600";
     vise_settings["http-namespace"] = "/";
     vise_settings["nthread-indexing"] = "-1"; // use all threads
 

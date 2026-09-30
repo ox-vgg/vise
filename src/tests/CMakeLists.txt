@@ -60,3 +60,17 @@ if(UNIX)
       $<TARGET_FILE:test_oxford_buildings>)
   endif(APPLE)
 endif(UNIX)
+
+add_executable(test_http_request_head test_http_request_head.cc)
+target_link_libraries(test_http_request_head http_request)
+add_test(NAME http_request_head COMMAND test_http_request_head)
+
+if(TARGET vise-cli)
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME http_request_limits
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_http_limits.py
+      --vise-cli $<TARGET_FILE:vise-cli> --www ${CMAKE_SOURCE_DIR}/www)
+    set_tests_properties(http_request_limits PROPERTIES TIMEOUT 90)
+  endif()
+endif()

@@ -1,4 +1,23 @@
 #include "http_server.h"
+#include <limits>
+
+namespace {
+std::size_t request_limit(const std::map<std::string, std::string>& conf,
+                          const std::string& key, std::size_t fallback) {
+  const auto item = conf.find(key);
+  if(item == conf.end()) return fallback;
+  std::size_t value = 0;
+  const std::size_t maximum = std::numeric_limits<std::size_t>::max();
+  for(unsigned char c : item->second) {
+    if(c < '0' || c > '9' || value > maximum / 10 ||
+       (value == maximum / 10 && std::size_t(c - '0') > maximum % 10))
+      throw std::runtime_error(key + " must be a positive byte count");
+    value = value * 10 + c - '0';
+  }
+  if(!value) throw std::runtime_error(key + " must be a positive byte count");
+  return value;
+}
+}
 
 vise::http_server::http_server(std::map<std::string, std::string> const &conf,
                                vise::project_manager &manager)
@@ -8,6 +27,8 @@ vise::http_server::http_server(std::map<std::string, std::string> const &conf,
     d_conf(conf),
     d_manager(&manager)
 {
+  d_max_header_size = request_limit(d_conf, "http-max-header-bytes", 16 * 1024);
+  d_max_body_size = request_limit(d_conf, "http-max-body-bytes", 100 * 1024 * 1024);
   if (d_conf.find("http-address") == d_conf.end() ||
       d_conf.find("http-port") == d_conf.end()
       ) {
@@ -86,7 +107,8 @@ void vise::http_server::start() {
 }
 
 void vise::http_server::accept_new_connection() {
-  d_new_connection.reset( new vise::connection(d_io_service, d_manager) );
+  d_new_connection.reset( new vise::connection(d_io_service, d_manager,
+                                              d_max_header_size, d_max_body_size) );
   d_acceptor.async_accept( d_new_connection->socket(),
                           boost::bind(&http_server::handle_connection,
                                       this,
