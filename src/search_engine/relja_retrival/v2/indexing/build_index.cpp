@@ -822,6 +822,10 @@ namespace buildIndex {
       rr::indexEntry const &entry= entries[iEntry];
       ID= entry.id(ind);
 
+      // A small dataset need not contain visual word 0. Initialize the current
+      // word from the first posting (also after a size-based chunk flush).
+      if (merged.id_size()==0)
+        prevID= ID;
       ASSERT(ID>=prevID);
       if (ID>prevID && merged.id_size()>0){
         // save the current one as ID changed

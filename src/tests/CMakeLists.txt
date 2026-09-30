@@ -60,3 +60,8 @@ if(UNIX)
       $<TARGET_FILE:test_oxford_buildings>)
   endif(APPLE)
 endif(UNIX)
+
+include_directories(${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/indexing)
+add_executable(test_first_inverted_word test_first_inverted_word.cc)
+target_link_libraries(test_first_inverted_word relja_retrival ${Boost_LIBRARIES} ${ImageMagick_LIBRARIES})
+add_test(NAME first_inverted_word COMMAND test_first_inverted_word)
