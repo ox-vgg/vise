@@ -1,4 +1,10 @@
 if(WIN32)
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME windows_headless
+      COMMAND ${Python3_EXECUTABLE}
+        ${VISE_SOURCE_ROOT_DIR}/scripts/test/test_windows_headless.py $<TARGET_FILE:VISE>)
+  endif()
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/util )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/dataset )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/embedding )

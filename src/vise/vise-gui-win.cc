@@ -76,6 +76,37 @@ int CALLBACK WinMain(
   boost::filesystem::path exec_dir(exec_path);
   Magick::InitializeMagick(exec_dir.parent_path().string().c_str());
 
+  // A supervisor can opt out of the desktop window. Services run in Session 0,
+  // which also has no interactive desktop on which to create the normal UI.
+  bool headless = false;
+  int argc = 0;
+  LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  if (argv != NULL) {
+    for (int i = 1; i < argc; ++i) {
+      if (wcscmp(argv[i], L"--headless") == 0) {
+        headless = true;
+      }
+    }
+    LocalFree(argv);
+  }
+  DWORD session_id = DWORD(-1);
+  if (ProcessIdToSessionId(GetCurrentProcessId(), &session_id) && session_id == 0) {
+    headless = true;
+  }
+  if (headless) {
+    try {
+      std::cout.setf(std::ios::unitbuf);
+      std::cerr.setf(std::ios::unitbuf);
+      vise::project_manager manager(::vise_settings);
+      vise::http_server server(::vise_settings, manager);
+      server.start();
+      return 0;
+    } catch (const std::exception& error) {
+      std::cerr << "VISE headless startup failed: " << error.what() << std::endl;
+      return 1;
+    }
+  }
+
   std::ostringstream ss;
   ss << VISE_FULLNAME << " (" << VISE_NAME << ") "
      << VISE_VERSION_MAJOR << "." << VISE_VERSION_MINOR << "." << VISE_VERSION_PATCH;
