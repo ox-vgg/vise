@@ -1255,6 +1255,20 @@ uint32_t vise::relja_retrival::fid_count() const {
   }
 }
 
+vise::indexed_file_feature_status vise::relja_retrival::index_file_feature_status(uint32_t file_id) const {
+  std::unique_lock<std::mutex> load_lock(d_search_engine_load_mutex, std::defer_lock);
+  std::unique_lock<std::mutex> unload_lock(d_search_engine_unload_mutex, std::defer_lock);
+  std::lock(load_lock, unload_lock);
+  if(!d_is_search_engine_loaded) throw std::runtime_error("project index not loaded");
+  if(file_id >= d_dataset->getNumDoc()) throw std::out_of_range("invalid file ID");
+  // The final forward index stores unique visual word IDs, not every SIFT
+  // descriptor. An empty document remains in the dataset/filelist.
+  // Trailing featureless documents can be absent even from the protoDb ID
+  // range, which ends at the last nonempty document.
+  const uint32_t words = file_id >= d_fidx->numIDs() ? 0 : d_fidx->getNumWithID(file_id);
+  return {d_dataset->getInternalFn(file_id), words};
+}
+
 uint32_t vise::relja_retrival::fid(std::string filename) const {
   if(d_is_search_engine_loaded) {
     return d_dataset->getDocID(filename);

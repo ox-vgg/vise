@@ -704,6 +704,11 @@ uint32_t vise::project::fid_count() const {
   }
 }
 
+vise::indexed_file_feature_status vise::project::index_file_feature_status(uint32_t file_id) const {
+  if(!d_search_engine) throw std::runtime_error("project index not loaded");
+  return d_search_engine->index_file_feature_status(file_id);
+}
+
 uint32_t vise::project::fid(const std::string filename) const {
   if(d_search_engine) {
     return d_search_engine->fid(filename);

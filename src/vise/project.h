@@ -62,6 +62,7 @@ namespace vise {
     std::string state_name() const;
 
     uint32_t fid_count() const;
+    indexed_file_feature_status index_file_feature_status(uint32_t file_id) const;
     uint32_t fid(const std::string filename) const;
     std::string filename(const uint32_t fid) const;
 

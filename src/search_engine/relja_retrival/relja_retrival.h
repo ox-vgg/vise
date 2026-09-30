@@ -114,6 +114,7 @@ namespace vise {
                                  std::array<double, 9> &H) const override;
 
     uint32_t fid_count() const override;
+    indexed_file_feature_status index_file_feature_status(uint32_t file_id) const override;
     uint32_t fid(std::string filename) const override;
     std::string filename(uint32_t fid) const override;
     void select_file_id(const std::string filename_regex, std::vector<std::size_t> &fid_list) const override;
@@ -164,9 +165,9 @@ namespace vise {
     boost::filesystem::path d_index_log_fn;
 
     std::thread d_thread_index;
-    std::mutex d_search_engine_load_mutex;
+    mutable std::mutex d_search_engine_load_mutex;
     std::mutex d_search_engine_index_mutex;
-    std::mutex d_search_engine_unload_mutex;
+    mutable std::mutex d_search_engine_unload_mutex;
 
     bool d_is_search_engine_loaded;
     bool d_is_indexing_ongoing;

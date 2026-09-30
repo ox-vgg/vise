@@ -159,3 +159,9 @@ is handled by the VISE server as follows.
       ]
     }
     ```
+
+## Forward-index feature status
+
+`GET /PROJECT/file_feature_status?file_id=N` reports whether a file has indexed
+visual words, including featureless files retained in the filelist. See
+[Feature-Status.md](Feature-Status.md) for the JSON fields, errors and limits.

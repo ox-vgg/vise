@@ -2,6 +2,7 @@
 #include <random>
 #include <algorithm>
 #include <iterator>
+#include <limits>
 
 using namespace vise;
 
@@ -466,6 +467,46 @@ void project_manager::handle_project_get_request(std::string const pname,
 
   if(uri[2] == "file") {
     project_file(pname, param, response);
+    return;
+  }
+
+  if(uri[2] == "file_feature_status") {
+    const auto &project = *d_projects.at(pname);
+    const auto file_id = param.find("file_id");
+    if(file_id == param.end() || file_id->second.empty()) {
+      response.set_status(400);
+      response.set_text_payload("file_id must be an unsigned decimal integer");
+      return;
+    }
+    uint32_t id = 0;
+    for(const char digit : file_id->second) {
+      if(digit < '0' || digit > '9' ||
+         id > (std::numeric_limits<uint32_t>::max() - (digit - '0')) / 10) {
+        response.set_status(400);
+        response.set_text_payload("file_id must be an unsigned decimal integer");
+        return;
+      }
+      id = id * 10 + (digit - '0');
+    }
+    vise::indexed_file_feature_status status;
+    try {
+      status = project.index_file_feature_status(id);
+    } catch(const std::out_of_range &) {
+      response.set_status(404);
+      response.set_text_payload("file_id is outside this index");
+      return;
+    } catch(const std::runtime_error &) {
+      response.set_status(412);
+      response.set_text_payload("project index feature status unavailable");
+      return;
+    }
+    std::ostringstream json;
+    json << "{\"file_id\":" << id
+         << ",\"filename\":\"" << vise::json_escape_str(status.filename) << "\""
+         << ",\"indexed_word_count\":" << status.indexed_word_count
+         << ",\"has_indexed_features\":" << (status.indexed_word_count > 0 ? "true" : "false") << "}";
+    response.set_status(200);
+    response.set_json_payload(json.str());
     return;
   }
 

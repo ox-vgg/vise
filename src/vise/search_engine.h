@@ -17,6 +17,11 @@
 #include <cstdint>
 
 namespace vise {
+  struct indexed_file_feature_status {
+    std::string filename;
+    uint32_t indexed_word_count;
+  };
+
   class search_engine {
   public:
     search_engine(std::string se_name);
@@ -52,6 +57,8 @@ namespace vise {
                                          std::array<double, 9> &H) const;
 
     virtual uint32_t fid_count() const = 0;
+    // A filename and visual-word count from the same loaded index snapshot.
+    virtual indexed_file_feature_status index_file_feature_status(uint32_t file_id) const = 0;
     virtual uint32_t fid(std::string filename) const = 0;
     virtual std::string filename(uint32_t fid) const = 0;
     virtual void select_file_id(const std::string filename_regex, std::vector<std::size_t> &fid_list) const = 0;
