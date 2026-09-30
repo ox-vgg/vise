@@ -165,6 +165,7 @@ namespace vise {
                                          http_response &response) const;
 
     bool project_exists(std::string pname) const;
+    bool project_is_index_only(std::string pname) const;
     bool project_create(std::string pname);
     bool project_load(std::string pname);
     bool project_is_loaded(std::string pname) const;

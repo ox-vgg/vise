@@ -88,6 +88,8 @@ namespace vise {
     void error_metadata_not_available() const;
 
     uint32_t image_src_count() const;
+    // Explicit external-gallery mode; local image directories are optional.
+    bool is_index_only() const;
 
     bool conf_reload();
     void conf_to_json(std::ostringstream &json);

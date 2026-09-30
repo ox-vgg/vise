@@ -230,6 +230,10 @@ std::string vise::project::state_id_to_name(vise::project_state state) const {
 
 void vise::project::state_update() {
   // check everything and ascertain the current state of a project
+  if(is_index_only() && !index_is_done()) {
+    state(project_state::INIT_FAILED);
+    return;
+  }
   bool success;
   std::string message;
   if(index_is_done()) {
@@ -523,6 +527,17 @@ bool vise::project::init_project_data_dir(bool create_data_dir_if_missing) {
   d_image_small_dir.make_preferred();
   d_app_dir.make_preferred();
 
+  if(d_pconf.count("index_only") && d_pconf.at("index_only") != "true" &&
+     d_pconf.at("index_only") != "false") {
+    std::cout << "project(): index_only must be true or false" << std::endl;
+    return false;
+  }
+  if(is_index_only()) {
+    // Serving an existing index must not recreate a deleted gallery or temp
+    // directory. Index-only projects cannot be initialized for indexing.
+    return boost::filesystem::is_directory(d_data_dir);
+  }
+
   if(create_data_dir_if_missing) {
     try {
       boost::filesystem::create_directories(d_data_dir);
@@ -572,6 +587,11 @@ void vise::project::index_create(bool &success,
                                  std::string &message,
                                  bool block_until_done) {
   std::lock_guard<std::mutex> lock(d_index_mutex);
+  if(is_index_only()) {
+    success = false;
+    message = "index_only projects require an existing completed index; indexing is disabled";
+    return;
+  }
 
   try {
     search_engine_init(d_pconf.at("search_engine"), success, message);
@@ -721,6 +741,7 @@ std::string vise::project::filename(const uint32_t fid) const {
 }
 
 uint32_t vise::project::image_src_count() const {
+  if(is_index_only()) return 0;
   uint32_t count = 0;
   boost::filesystem::recursive_directory_iterator end_itr;
   for (boost::filesystem::recursive_directory_iterator it(d_image_src_dir); it!=end_itr; ++it) {
@@ -729,6 +750,11 @@ uint32_t vise::project::image_src_count() const {
     }
   }
   return count;
+}
+
+bool vise::project::is_index_only() const {
+  const auto mode = d_pconf.find("index_only");
+  return mode != d_pconf.end() && mode->second == "true";
 }
 
 bool vise::project::pconf_is_set(std::string key) {

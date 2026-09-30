@@ -45,6 +45,55 @@ void project_manager::process_http_request(http_request const &request,
   std::unordered_map<std::string, std::string> param;
   vise::decompose_uri(request_uri_without_ns, uri, param);
 
+  if(uri.size() > 2 && project_is_index_only(uri[1])) {
+    const std::string &route = uri[2];
+    if(request.d_method == "GET") {
+      if(route == "image" || route == "image_small" || route == "image_src" ||
+         route == "_cover_image") {
+        response.set_status(404);
+        response.set_text_payload("Local gallery images are unavailable in index_only mode.");
+        return;
+      }
+      const bool json_filelist = route == "filelist" &&
+          param.count("response_format") && param.at("response_format") == "json";
+      if(route != "index_status" && route != "_conf" && route != "_image_src_count" &&
+         route != "file_feature_status" && !json_filelist) {
+        response.set_status(route.empty() ? 200 : 412);
+        response.set_html_payload(
+            "<!doctype html><html><body><h1>Index-only project</h1>"
+            "<p>This project serves an existing index with an external gallery. "
+            "Local image browsing, registration and indexing are unavailable.</p>"
+            "<p>Use the JSON filelist and index_status endpoints, then upload "
+            "a query to _extract_image_features and _search_using_features. "
+            "Resolve returned filenames in your own gallery.</p></body></html>");
+        return;
+      }
+    } else if(request.d_method == "POST") {
+      if(route != "_extract_image_features" && route != "_search_using_features" &&
+         route != "_get_feature_match_details" && route != "_index_load" &&
+         route != "_index_unload") {
+        response.set_status(412);
+        response.set_text_payload("Local gallery operations are disabled in index_only mode.");
+        return;
+      }
+      // Unlike the gallery UI, an API client can start with a POST.
+      if(!is_serve_only_active && !project_load(uri[1])) {
+        response.set_status(412);
+        return;
+      }
+      if(route != "_index_load" && route != "_index_unload" &&
+         !project_index_is_loaded(uri[1])) {
+        response.set_status(412);
+        response.set_text_payload("The index-only project does not have a loaded completed index.");
+        return;
+      }
+    } else {
+      response.set_status(412);
+      response.set_text_payload("Local gallery operations are disabled in index_only mode.");
+      return;
+    }
+  }
+
   #ifdef _NDEBUG
   std::ostringstream ss;
   ss << "project_manager: " << request.d_method << " " << request.d_uri;
@@ -615,6 +664,15 @@ bool project_manager::project_exists(std::string pname) const {
   } else {
     return false;
   }
+}
+
+bool project_manager::project_is_index_only(std::string pname) const {
+  if(project_is_loaded(pname)) return d_projects.at(pname)->is_index_only();
+  std::map<std::string, std::string> conf;
+  const boost::filesystem::path filename =
+      boost::filesystem::path(d_conf.at("vise-project-dir")) / pname / "data" / "conf.txt";
+  if(!vise::configuration_load(filename.string(), conf)) return false;
+  return conf.count("index_only") && conf.at("index_only") == "true";
 }
 
 bool project_manager::project_is_loaded(std::string pname) const {

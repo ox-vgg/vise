@@ -40,6 +40,9 @@ VISE for creating visual search engine. You can also read the
 [frequently asked questions](doc/FAQ.md) page to learn more about
 VISE.
 
+For applications with their own image storage, see
+[serving an index with an external gallery](doc/Index-Only-Projects.md).
+
 ## Developer Resources
 
 See [doc/Compiling-VISE.md](doc/Compiling-VISE.md) for instructions on

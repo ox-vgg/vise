@@ -111,6 +111,11 @@ void vise::relja_retrival::index_create(bool &success,
                                         std::function<void(void)> callback,
                                         bool block_until_done) {
   std::lock_guard<std::mutex> lock(d_search_engine_index_mutex);
+  if(d_pconf.count("index_only") && d_pconf.at("index_only") == "true") {
+    success = false;
+    message = "index_only projects cannot create an index";
+    return;
+  }
   if (d_is_indexing_ongoing || d_is_indexing_done) {
     success = false;
     if (d_is_indexing_ongoing) {
@@ -1398,6 +1403,10 @@ bool vise::relja_retrival::pconf_validate_data_dir() {
   d_image_dir.make_preferred();
   d_image_src_dir.make_preferred();
   d_tmp_dir.make_preferred();
+
+  if(d_pconf.count("index_only") && d_pconf.at("index_only") == "true") {
+    return boost::filesystem::is_directory(d_data_dir);
+  }
 
   if(!boost::filesystem::exists(d_data_dir) ||
      !boost::filesystem::exists(d_image_dir) ||
