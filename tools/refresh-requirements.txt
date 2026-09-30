@@ -1,0 +1,2 @@
+-r requirements.txt
+Pillow>=10.4,<13
