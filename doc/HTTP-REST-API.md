@@ -159,3 +159,7 @@ is handled by the VISE server as follows.
       ]
     }
     ```
+
+Static resources are restricted to their configured filesystem store. See
+[Static-Resource-Paths.md](Static-Resource-Paths.md) for path/symlink behavior and
+the native regression.

@@ -61,6 +61,9 @@ namespace vise {
                               http_response &response) const;
     void file_send(boost::filesystem::path fn,
                    http_response& response) const;
+    void file_send_from_directory(boost::filesystem::path directory,
+                                  boost::filesystem::path relative,
+                                  http_response& response) const;
     void handle_project_get_request(std::string const pname,
                                     http_request const &request,
                                     std::vector<std::string> const &uri,

@@ -3,6 +3,72 @@
 #include <algorithm>
 #include <iterator>
 
+namespace {
+bool decode_static_path(const std::string &encoded, std::string &decoded) {
+  const auto hex = [](unsigned char c) {
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+  };
+  for(std::size_t index = 0; index < encoded.size(); ++index) {
+    if(encoded[index] != '%') continue;
+    if(encoded.size() - index < 3 || !hex(encoded[index + 1]) || !hex(encoded[index + 2])) return false;
+    index += 2;
+  }
+  return vise::url_decode(encoded, decoded);
+}
+
+bool safe_project_component(const std::string &name) {
+  if(name.empty() || name == "." || name == "..") return false;
+  for(unsigned char c : name) {
+    if(c < 32 || c == 127 || c == '/' || c == '\\' || c == ':') return false;
+  }
+#ifdef _WIN32
+  if(name.back() == '.' || name.back() == ' ' || name.find_first_of("<>\"|?*") != std::string::npos)
+    return false;
+  // Win32 reserves device names even with extensions (including COM/LPT
+  // followed by the recognized superscript digits). Keep Unicode names valid.
+  try {
+    std::wstring stem = boost::filesystem::path(name).wstring();
+    stem = stem.substr(0, stem.find(L'.'));
+    for(auto &c : stem) if(c >= L'a' && c <= L'z') c -= L'a' - L'A';
+    if(stem == L"CON" || stem == L"PRN" || stem == L"AUX" || stem == L"NUL") return false;
+    if(stem.size() == 4 && (stem.substr(0, 3) == L"COM" || stem.substr(0, 3) == L"LPT") &&
+       ((stem[3] >= L'1' && stem[3] <= L'9') || stem[3] == L'\u00b9' ||
+        stem[3] == L'\u00b2' || stem[3] == L'\u00b3')) return false;
+  } catch(const std::exception &) {
+    return false;
+  }
+#endif
+  return true;
+}
+
+bool safe_project_uri_component(const std::string &encoded) {
+  std::string decoded;
+  return decode_static_path(encoded, decoded) && safe_project_component(encoded) &&
+         safe_project_component(decoded);
+}
+
+bool contained_static_file(const boost::filesystem::path &directory,
+                           const boost::filesystem::path &relative,
+                           boost::filesystem::path &resolved) {
+  if(relative.empty() || relative.has_root_path() ||
+     relative.string().find('\0') != std::string::npos) return false;
+#ifdef _WIN32
+  // Do not interpret alternate data streams or drive-relative names as files.
+  if(relative.string().find(':') != std::string::npos) return false;
+#endif
+  boost::system::error_code error;
+  const auto root = boost::filesystem::canonical(directory, error);
+  if(error) return false;
+  resolved = boost::filesystem::canonical(root / relative, error);
+  if(error) return false;
+  auto child = resolved.begin();
+  for(auto parent = root.begin(); parent != root.end(); ++parent, ++child) {
+    if(child == resolved.end() || *parent != *child) return false;
+  }
+  return child != resolved.end() && boost::filesystem::is_regular_file(resolved, error) && !error;
+}
+}
+
 using namespace vise;
 
 project_manager::project_manager(std::map<std::string, std::string> const &conf)
@@ -44,6 +110,13 @@ void project_manager::process_http_request(http_request const &request,
   std::vector<std::string> uri;
   std::unordered_map<std::string, std::string> param;
   vise::decompose_uri(request_uri_without_ns, uri, param);
+
+  // Validate the project selector before it can choose a filesystem store,
+  // create/load project directories, or enter a project-specific handler.
+  if(uri.size() > 2 && !safe_project_uri_component(uri[1])) {
+    response.set_status(404);
+    return;
+  }
 
   #ifdef _NDEBUG
   std::ostringstream ss;
@@ -199,14 +272,17 @@ void project_manager::handle_get(http_request const &request,
         std::vector<std::string> img_fn_list;
         for (boost::filesystem::recursive_directory_iterator it(image_dir); it!=end_itr; ++it) {
           if (boost::filesystem::is_regular_file(it->path())) {
-            img_fn_list.push_back(it->path().string());
+            boost::filesystem::path resolved;
+            const auto relative = it->path().lexically_relative(image_dir);
+            if(!contained_static_file(image_dir, relative, resolved)) continue;
+            img_fn_list.push_back(relative.generic_string());
             if(img_fn_list.size() > 3) {
               break;
             }
           }
         }
         if(img_fn_list.size()) {
-          file_send(img_fn_list.at(img_fn_list.size() - 1), response);
+          file_send_from_directory(image_dir, img_fn_list.at(img_fn_list.size() - 1), response);
           return;
         } else {
           response.set_status(404);
@@ -421,9 +497,23 @@ void project_manager::handle_delete(http_request const &request,
 
 void project_manager::serve_from_www_store(std::string res_uri,
                                            http_response &response) const {
-  boost::filesystem::path file_loc(d_conf.at("http-www-dir"));
-  file_loc = file_loc / res_uri;
-  file_send(file_loc, response);
+  std::string decoded;
+  if(!decode_static_path(res_uri, decoded)) {
+    response.set_status(400);
+    return;
+  }
+  file_send_from_directory(d_conf.at("http-www-dir"), decoded, response);
+}
+
+void project_manager::file_send_from_directory(boost::filesystem::path directory,
+                                              boost::filesystem::path relative,
+                                              http_response &response) const {
+  boost::filesystem::path resolved;
+  if(!contained_static_file(directory, relative, resolved)) {
+    response.set_status(404);
+    return;
+  }
+  file_send(resolved, response);
 }
 
 void project_manager::file_send(boost::filesystem::path fn,
@@ -525,41 +615,36 @@ void project_manager::handle_project_get_request(std::string const pname,
     // serve static resources of a project (e.g. images)
     std::string asset_type = uri[2];
     std::string asset_dir;
-    std::size_t start = request.d_uri.find(pname);
     if(asset_type == "image") {
-      start = start + pname.size() + 6;
       asset_dir = d_projects.at(pname)->pconf("image_dir");
     } else if(asset_type == "app") {
-      start = start + pname.size() + 4;
       if(d_projects.at(pname)->app_dir_exists()) {
         asset_dir = d_projects.at(pname)->pconf("app_dir");
       } else {
         asset_dir = d_conf.at("http-www-dir");
       }
     } else if(asset_type == "image_small") {
-      start = start + pname.size() + 12;
       asset_dir = d_projects.at(pname)->pconf("image_small_dir");
     } else if(asset_type == "image_src") {
-      start = start + pname.size() + 10;
       asset_dir = d_projects.at(pname)->pconf("image_src_dir");
     } else {
       response.set_status(404);
       return;
     }
 
-    std::size_t asset_name_start_index = start + 1;
-    if(asset_name_start_index >= request.d_uri.size()) {
+    if(uri.size() < 4) {
         response.set_status(404);
         return;
     }
 
-    std::string asset_name = request.d_uri.substr(asset_name_start_index);
+    // The components have already had the namespace and query removed. A
+    // substring search for pname can instead match inside the namespace.
+    std::string asset_name = uri[3];
+    for(std::size_t part = 4; part < uri.size(); ++part) asset_name += "/" + uri[part];
     std::string decoded_asset_name;
-    bool success = vise::url_decode(asset_name, decoded_asset_name);
+    bool success = decode_static_path(asset_name, decoded_asset_name);
     if(success) {
-      boost::filesystem::path asset_fn(asset_dir);
-      asset_fn = asset_fn / decoded_asset_name;
-      file_send(asset_fn, response);
+      file_send_from_directory(asset_dir, decoded_asset_name, response);
     } else {
       response.set_status(400);
     }
