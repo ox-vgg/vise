@@ -2,8 +2,92 @@
 #include <random>
 #include <algorithm>
 #include <iterator>
+#include <cctype>
 
 using namespace vise;
+
+namespace {
+int mutation_hex(unsigned char c) {
+  if(c >= '0' && c <= '9') return c - '0';
+  if(c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if(c >= 'A' && c <= 'F') return c - 'A' + 10;
+  return -1;
+}
+
+bool mutation_filename(const std::vector<std::string>& uri, boost::filesystem::path& relative) {
+  std::string encoded, decoded;
+  for(std::size_t i = 2; i < uri.size(); ++i) {
+    if(i != 2) encoded += '/';
+    encoded += uri[i];
+  }
+  for(std::size_t i = 0; i < encoded.size(); ++i) {
+    unsigned char c = encoded[i];
+    if(c == '%') {
+      if(i + 2 >= encoded.size()) return false;
+      const int high = mutation_hex(encoded[i+1]), low = mutation_hex(encoded[i+2]);
+      if(high < 0 || low < 0) return false;
+      c = static_cast<unsigned char>((high << 4) | low);
+      i += 2;
+    }
+    if(c < 32 || c == 127 || c == '\\' || c == ':') return false;
+    decoded += char(c);
+  }
+  if(decoded.empty() || decoded.front() == '/' || decoded.back() == '/') return false;
+  for(const auto& component : vise::split(decoded, '/')) {
+    if(component.empty() || component == "." || component == "..") return false;
+#ifdef _WIN32
+    // Win32 aliases trailing dots/spaces and reserves device names even with
+    // extensions. Neither should be interpreted as an uploaded filename.
+    if(component.back() == '.' || component.back() == ' ') return false;
+    std::string name = component.substr(0, component.find('.'));
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return char(std::toupper(c)); });
+    if(name == "CON" || name == "PRN" || name == "AUX" || name == "NUL" ||
+       (name.size() == 4 && (name.substr(0, 3) == "COM" || name.substr(0, 3) == "LPT") &&
+        name[3] >= '1' && name[3] <= '9')) return false;
+#endif
+  }
+  relative = boost::filesystem::path(decoded);
+  return !relative.has_root_path();
+}
+
+bool mutation_project_name(const std::string& name) {
+  if(name.empty() || name == "." || name == "..") return false;
+  for(unsigned char c : name) {
+    if(c < 32 || c == 127 || c == '/' || c == '\\' || c == ':') return false;
+  }
+  return !boost::filesystem::path(name).has_root_path();
+}
+
+bool mutation_path(const boost::filesystem::path& directory,
+                   const boost::filesystem::path& relative,
+                   bool require_existing, boost::filesystem::path& target) {
+  namespace fs = boost::filesystem;
+  boost::system::error_code error;
+  if(fs::is_symlink(fs::symlink_status(directory, error)) || error) return false;
+  const fs::path root = fs::canonical(directory, error);
+  if(error || !fs::is_directory(root, error) || error) return false;
+  target = root;
+  for(auto it = relative.begin(); it != relative.end(); ++it) {
+    target /= *it;
+    const auto status = fs::symlink_status(target, error);
+    if(error && status.type() != fs::file_not_found) return false;
+    error.clear();
+    if(fs::is_symlink(status)) return false;
+    auto next = it; ++next;
+    if(next != relative.end() && !fs::is_directory(status)) return false;
+    if(next == relative.end() && fs::exists(status) && !fs::is_regular_file(status)) return false;
+    if(next == relative.end() && require_existing && !fs::is_regular_file(status)) return false;
+  }
+  const fs::path parent = fs::canonical(target.parent_path(), error);
+  if(error) return false;
+  auto parent_component = parent.begin();
+  for(auto root_component = root.begin(); root_component != root.end(); ++root_component, ++parent_component) {
+    if(parent_component == parent.end() || *parent_component != *root_component) return false;
+  }
+  target = parent / target.filename();
+  return true;
+}
+}
 
 project_manager::project_manager(std::map<std::string, std::string> const &conf)
   : d_conf(conf), is_serve_only_active(false)
@@ -330,51 +414,12 @@ void project_manager::handle_put(http_request const &request,
                                  std::unordered_map<std::string, std::string> const &param,
                                  http_response &response)
 {
-  if (uri[0] != "") {
+  if (uri.size() < 3 || uri[0] != "") {
     response.set_status(404);
     return;
   }
 
-  if ( uri.size() == 1 || uri.size() == 2 ) {
-    response.set_status(404);
-    return;
-  }
-
-  if (uri.size() > 2) {
-    std::string pname(uri[1]);
-    if (uri[2] == "") {
-      response.set_status(400);
-      return;
-    }
-
-    std::string asset = uri[2];
-    if (uri.size() != 3) {
-      std::size_t start = request.d_uri.find(pname);
-      start = start + pname.size();
-      asset = request.d_uri.substr(start);
-    }
-
-    boost::filesystem::path fn(d_projects.at(pname)->pconf("image_src_dir"));
-    fn = fn / asset;
-    std::string payload = request.d_payload.str();
-    bool ok = vise::file_save_binary(fn, payload);
-    if(ok) {
-      response.set_status(200);
-      response.set_payload("");
-      response.set_field("Content-Type", "text/plain");
-      return;
-    } else {
-      response.set_status(412);
-      response.set_payload("");
-      response.set_field("Content-Type", "text/plain");
-      return;
-    }
-    return;
-  }
-
-  // default response
-  response.set_status(404);
-  return;
+  handle_image_mutation(request, uri, response, false);
 }
 
 void project_manager::handle_delete(http_request const &request,
@@ -382,41 +427,49 @@ void project_manager::handle_delete(http_request const &request,
                                     std::unordered_map<std::string, std::string> const &param,
                                     http_response &response)
 {
-  if ( uri.size() == 1 ) {
-    response.set_status(404);
-    return;
-  }
-  if (uri[0] != "") {
+  if (uri.size() < 3 || uri[0] != "") {
     response.set_status(404);
     return;
   }
 
-  if (uri.size() > 2) {
-    // delete a project's resource (e.g. image)
-    std::string pname(uri[1]);
-    if (uri[2] == "") {
-      response.set_status(400);
-      return;
-    }
+  handle_image_mutation(request, uri, response, true);
+}
 
-    std::string asset = uri[2];
-    if (uri.size() != 3) {
-      std::size_t start = request.d_uri.find(pname);
-      start = start + pname.size();
-      asset = request.d_uri.substr(start);
-    }
-    boost::filesystem::path fn = d_conf.at("vise-project-dir");
-    fn = fn / pname;
-    fn = fn / "image";
-    fn = fn / asset;
-    if (boost::filesystem::remove(fn)) {
-      response.set_status(200);
-    } else {
-      response.set_status(412);
-    }
+void project_manager::handle_image_mutation(http_request const& request,
+                                           const std::vector<std::string>& uri,
+                                           http_response& response, bool remove) {
+  boost::filesystem::path relative;
+  if(!mutation_project_name(uri[1]) || !mutation_filename(uri, relative)) {
+    response.set_status(400);
     return;
   }
-
+  const auto project = d_projects.find(uri[1]);
+  if(project == d_projects.end() || !project->second ||
+     project->second->state() == vise::project_state::INIT_FAILED) {
+    boost::system::error_code error;
+    const auto status = boost::filesystem::status(
+      boost::filesystem::path(d_conf.at("vise-project-dir")) / uri[1], error);
+    response.set_status(status.type() == boost::filesystem::file_not_found ? 404 : 412);
+    return;
+  }
+  boost::filesystem::path target;
+  if(!mutation_path(project->second->pconf(remove ? "image_dir" : "image_src_dir"),
+                    relative, remove, target)) {
+    response.set_status(412);
+    return;
+  }
+  if(remove) {
+    boost::system::error_code error;
+    const bool removed = boost::filesystem::remove(target, error);
+    response.set_status(removed && !error ? 200 : 412);
+  } else {
+    const std::string payload = request.d_payload.str();
+    std::ofstream output(target.string().c_str(), std::ios::binary | std::ios::trunc);
+    output.write(payload.data(), payload.size());
+    output.close();
+    response.set_status(output ? 200 : 412);
+    response.set_field("Content-Type", "text/plain");
+  }
 }
 
 void project_manager::serve_from_www_store(std::string res_uri,

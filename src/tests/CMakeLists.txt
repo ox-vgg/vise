@@ -1,3 +1,8 @@
+add_executable(test_image_mutation_paths test_image_mutation_paths.cc)
+target_link_libraries(test_image_mutation_paths
+  project_manager ${ImageMagick_LIBRARIES} ${Boost_LIBRARIES} OpenMP::OpenMP_CXX)
+add_test(NAME image_mutation_paths COMMAND test_image_mutation_paths)
+
 if(WIN32)
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/util )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/dataset )

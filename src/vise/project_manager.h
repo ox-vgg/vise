@@ -193,6 +193,9 @@ namespace vise {
     uint32_t project_image_src_count(std::string pname) const;
 
   private:
+    void handle_image_mutation(http_request const& request,
+                               const std::vector<std::string>& uri,
+                               http_response& response, bool remove);
     bool is_serve_only_active;
     std::mutex d_project_load_mutex;
     const std::map<std::string, std::string> d_conf;
