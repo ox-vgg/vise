@@ -75,8 +75,10 @@ protoDbFile::~protoDbFile(){
 void
 protoDbFile::getData( uint32_t ID, std::vector<std::string> &data ) const {
 
-    if (ID>numIDs_ || header_.offset(ID)==header_.offset(ID+1))
+    if (ID>=numIDs_ || header_.offset(ID)==header_.offset(ID+1)) {
         data.clear();
+        return;
+    }
 
     uint32_t temp_;
     uint64_t currOffset= header_.offset(ID), nextOffset= header_.offset(ID+1);
@@ -117,7 +119,7 @@ protoDbFile::getData( uint32_t ID, std::vector<std::string> &data ) const {
 
 bool
 protoDbFile::contains( uint32_t ID ) const {
-    return !( ID>numIDs_ || header_.offset(ID)==header_.offset(ID+1) );
+    return !( ID>=numIDs_ || header_.offset(ID)==header_.offset(ID+1) );
 }
 
 

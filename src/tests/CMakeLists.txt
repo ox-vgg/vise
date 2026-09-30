@@ -1,3 +1,10 @@
+add_executable(test_proto_db_file_bounds test_proto_db_file_bounds.cc)
+target_include_directories(test_proto_db_file_bounds PRIVATE
+  ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/indexing)
+target_link_libraries(test_proto_db_file_bounds
+  proto_db_file proto_db_header.pb ${PROTOBUF_LIBRARIES} ${Boost_LIBRARIES})
+add_test(NAME proto_db_file_bounds COMMAND test_proto_db_file_bounds)
+
 if(WIN32)
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/util )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/dataset )
