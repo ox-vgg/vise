@@ -1,3 +1,12 @@
+if(TARGET vise-cli)
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME cli_index_status
+      COMMAND ${Python3_EXECUTABLE}
+        ${VISE_SOURCE_ROOT_DIR}/scripts/test/test_cli_index_status.py $<TARGET_FILE:vise-cli>)
+  endif()
+endif()
+
 if(WIN32)
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/util )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/dataset )

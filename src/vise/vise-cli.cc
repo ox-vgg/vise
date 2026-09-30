@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
   }
 
   if(cli_args.at("cmd") == "create-project" ||
-     cli_args.at("cmd") == "create-visual-vocabularly" ) {
+     cli_args.at("cmd") == "create-visual-vocabulary" ) {
     if(pname_pconf_list.size() != 1) {
       std::cout << "--cmd={create-project, create-visual-vocabulary} accepts "
                 << "only a single PROJECT_NAME:CONF_FILENAME parameter."
@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
       bool block_until_done = true;
       new_project.index_create(success, message, block_until_done);
       std::cout << message << std::endl;
-      return 0; // as we know there is only one project to be processed
+      return success ? 0 : 1; // only one project is processed
     }
   }
 
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
       bool block_until_done = true;
       new_project.index_create(success, message, block_until_done);
       std::cout << message << std::endl;
-      return 0; // as we know there is only one project to be processed
+      return success ? 0 : 1; // only one project is processed
     }
   }
 
