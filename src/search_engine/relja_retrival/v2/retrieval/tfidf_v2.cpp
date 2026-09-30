@@ -137,7 +137,9 @@ tfidfV2::weightStatic(rr::indexEntry &entry, double *weight, std::vector<double>
 
   for (int i= 0; i < entry.id_size(); ++i) {
     if (weight==NULL)
-      w= idf->at( entry.id(i) );
+      // A small index can omit trailing visual vocabulary words entirely.
+      // Such a word has no posting or stored IDF and contributes no score.
+      w= entry.id(i) < idf->size() ? idf->at( entry.id(i) ) : 0.0;
 
     if (hasWeigth)
       entry.set_weight( i, w * entry.weight(i) );

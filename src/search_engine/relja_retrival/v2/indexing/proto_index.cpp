@@ -42,6 +42,12 @@ protoIndex::~protoIndex(){
 
 uint32_t
 protoIndex::getEntries( uint32_t ID, std::vector<rr::indexEntry> &entries ) const {
+    // A query may contain vocabulary words beyond this index's last observed
+    // word. Check before accessing either a file-backed or cached database.
+    if (ID >= numIDs_) {
+        entries.clear();
+        return 0;
+    }
     
     db_->getProtos<rr::indexEntry>(ID, entries);
     

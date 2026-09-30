@@ -115,7 +115,7 @@ hamming::queryExecute(
     // this is not in the burstiness paper by Jegou, but it must be right!? works a bit better on Oxford 5k/105k..
     float const numQueryWordSqrt= sqrt(queryWordEnd-iQueryWord);
 
-    double const w= idf_[wordID] * idf_[wordID];
+    double const w= wordID < idf_.size() ? idf_[wordID] * idf_[wordID] : 0.0;
 
     // for every query descriptor (within this wordID)
 
@@ -128,8 +128,13 @@ hamming::queryExecute(
       std::vector<rr::indexEntry> *entries= ueIter->getEntries();
 
       if (entries->size()==0){
-        // advance ueIter enough
-        for (; iQueryWord < queryWordEnd; ++iQueryWord, ueIter->increment() );
+        // Skip every descriptor in the absent word, keeping the signature
+        // stream aligned with subsequent words. The first was read above.
+        ueIter->increment();
+        for (++iQueryWord; iQueryWord < queryWordEnd; ++iQueryWord, ueIter->increment()) {
+          csQ->getNextUnsafe();
+          queryL2+= w;
+        }
         break;
       }
       ueIter->increment();

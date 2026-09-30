@@ -43,7 +43,7 @@ weighterV2::queryExecute(
             queryW+= queryRep.weight(iQueryWord);
         ueIter->advance( iQueryWord - prevIQueryWord -1 );
         
-        widf= idf[wordID] * queryW;
+        widf= wordID < idf.size() ? idf[wordID] * queryW : 0.0;
         queryL2+= queryW * queryW;
         
         // weight entries
@@ -134,7 +134,7 @@ weighterV2::queryExecuteWGC(
         queryW= queryRep.weight(iQueryWord);
         uint16_t queryScale= static_cast<uint16_t>(*itQueryScale) + 255;
         
-        widf= idf[wordID] * queryW;
+        widf= wordID < idf.size() ? idf[wordID] * queryW : 0.0;
         queryL2+= queryW * queryW;
         
         // weight entries

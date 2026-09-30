@@ -45,7 +45,7 @@ class protoIndex {
         
         inline bool
             contains( uint32_t ID ) const {
-                return db_->contains(ID);
+                return ID < numIDs_ && db_->contains(ID);
             }
         
         virtual uint32_t

@@ -1,3 +1,9 @@
+add_executable(test_absent_query_words test_absent_query_words.cc)
+target_link_libraries(test_absent_query_words
+  tfidf_v2 hamming proto_index ${PROTOBUF_LIBRARIES}
+  ${ImageMagick_LIBRARIES} ${Boost_LIBRARIES} OpenMP::OpenMP_CXX)
+add_test(NAME absent_query_words COMMAND test_absent_query_words)
+
 if(WIN32)
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/util )
   include_directories( ${CMAKE_BINARY_DIR}/search_engine/relja_retrival/v2/dataset )
