@@ -317,6 +317,26 @@ void project_manager::handle_post(http_request const &request,
         project_file_add(pname, param, response);
         return;
       }
+      if (uri[2] == "_extract_image_features" ||
+           uri[2] == "_search_using_features" ||
+           uri[2] == "_get_feature_match_details" ||
+          uri[2] == "_external_register") {
+        // An API client can send POST before any page has loaded the project.
+        if (!project_exists(pname)) {
+          response.set_status(404);
+          return;
+        }
+        if (!project_load(pname)) {
+          response.set_status(412);
+          response.set_payload("project could not be loaded");
+          return;
+        }
+        if (!project_index_is_loaded(pname)) {
+          response.set_status(412);
+          response.set_payload("project index not loaded");
+          return;
+        }
+      }
       handle_project_post_request(pname, request, uri, param, response);
       return;
     }
@@ -645,7 +665,13 @@ bool project_manager::project_load(std::string pname) {
   }
 
   try {
-    d_projects[pname] = std::unique_ptr<vise::project>(new vise::project(pname, d_conf));
+    // Publish only fully constructed projects. A failed constructor must not
+    // leave a null entry that subsequent requests treat as an already loaded project.
+    std::unique_ptr<vise::project> loaded(new vise::project(pname, d_conf));
+    if (loaded->state() == vise::project_state::INIT_FAILED) {
+      return false;
+    }
+    d_projects.emplace(pname, std::move(loaded));
     std::cout << "project_manager::project_load(): done" << std::endl;
     return true;
   } catch(std::exception &e) {
