@@ -8,6 +8,10 @@
 
 cmake_minimum_required( VERSION 3.14 )
 
+# Select the MSVC runtime through CMAKE_MSVC_RUNTIME_LIBRARY when available.
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
 project(vise)
 
 enable_testing()
@@ -44,38 +48,26 @@ if (WIN32)
   message("************************************************************")
   SET(WINDOWS_RESOURCE_FILENAME "${CMAKE_SOURCE_DIR}/res/win/vise.rc")
 
-  SET (VLFEAT_LIB "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21\\bin\\win64\\vl.lib")
-  SET (VLFEAT_INCLUDE_DIR "C:\\Users\\tlm\\dep\\vise\\vlfeat-0.9.21")
-  SET (BOOST_ROOT "C:\\Users\\tlm\\dep\\vise\\boost_1_70_0")
-  SET (BOOST_DIR "C:\\Users\\tlm\\dep\\vise\\boost_1_70_0")
-  SET (Eigen3_DIR "C:\\Users\\tlm\\dep\\vise\\eigen-3.3.7\\cmake")
-  SET (Protobuf_SRC_ROOT_FOLDER "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1")
-  SET (Protobuf_FIND_VERSION "2.6.1")
-  SET (Protobuf_PROTOC_EXECUTABLE "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\protoc.exe")
-  SET (Protobuf_LIBRARIES "C:\\Users\\tlm\\dep\\vise\\tmp_libsrc\\protobuf-2.6.1\\vsprojects\\x64\\Release\\libprotobuf.lib")
-  SET (SQLite3_INCLUDE_DIR "C:\\Users\\tlm\\dep\\vise\\sqlite3\\sqlite-3350500")
-  SET (SQLite3_LIBRARY "C:\\Users\\tlm\\dep\\vise\\sqlite3\\sqlite-3350500\\sqlite3.lib")
+  # Dependencies are discovered using CMAKE_PREFIX_PATH and the normal
+  # package-specific cache variables, rather than one developer's home folder.
+  if(POLICY CMP0091)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+        CACHE STRING "MSVC runtime used by VISE and its dependencies")
+  else()
+    add_definitions("/MT")
+  endif()
+  add_definitions("/O2 /Ob2 /DNDEBUG /EHsc")
+  # FindBoost selects the libraries; prevent MSVC from adding another variant.
+  add_definitions(-DBOOST_ALL_NO_LIB)
 
-  SET (Protobuf_USE_STATIC_LIBS ON)
-  SET (Protobuf_DEBUG OFF)
-
-  #SET(CMAKE_CXX_FLAGS "/MT /O2 /Ob2 /DNDEBUG /EHsc")
-  add_definitions("/MT /O2 /Ob2 /DNDEBUG /EHsc")
-  SET (VISE_DEPS_BASEDIR "C:\\Users\\tlm\\dep\\vise\\dep_dll")
-  STRING(REPLACE "\\" "\\\\" VISE_DEPS_BASEDIR_2SLASH ${VISE_DEPS_BASEDIR})
-  STRING(REPLACE "\\" "\\\\" VISE_DEPS_BASEDIR_4SLASH ${VISE_DEPS_BASEDIR_2SLASH})
-
-  SET (VISE_MAGICK_DEPS_BASEDIR "C:\\Users\\tlm\\dep\\vise\\dep_dll_imagemagick_from_traherne")
-  STRING(REPLACE "\\" "\\\\" VISE_MAGICK_DEPS_BASEDIR_2SLASH ${VISE_MAGICK_DEPS_BASEDIR})
-  STRING(REPLACE "\\" "\\\\" VISE_MAGICK_DEPS_BASEDIR_4SLASH ${VISE_MAGICK_DEPS_BASEDIR_2SLASH})
-
-  SET (VISE_DEMO_PROJECTS_DIR "C:\\Users\\tlm\\dep\\vise\\demo_projects")
-  STRING(REPLACE "\\" "\\\\" VISE_DEMO_PROJECTS_DIR_2SLASH ${VISE_DEMO_PROJECTS_DIR})
-  STRING(REPLACE "\\" "\\\\" VISE_DEMO_PROJECTS_DIR_4SLASH ${VISE_DEMO_PROJECTS_DIR_2SLASH})
-
-  SET (VISE_ASSET_DIR "C:\\Users\\tlm\\dep\\vise\\asset")
-  STRING(REPLACE "\\" "\\\\" VISE_ASSET_DIR_2SLASH ${VISE_ASSET_DIR})
-  STRING(REPLACE "\\" "\\\\" VISE_ASSET_DIR_4SLASH ${VISE_ASSET_DIR_2SLASH})
+  set(VISE_DEPS_BASEDIR "" CACHE PATH "Runtime dependency files to package")
+  set(VISE_MAGICK_DEPS_BASEDIR "" CACHE PATH "ImageMagick runtime files to package")
+  set(VISE_DEMO_PROJECTS_DIR "" CACHE PATH "Demo projects to package")
+  set(VISE_ASSET_DIR "" CACHE PATH "Visual vocabularies and assets to package")
+  foreach(resource VISE_DEPS_BASEDIR VISE_MAGICK_DEPS_BASEDIR VISE_DEMO_PROJECTS_DIR VISE_ASSET_DIR)
+    string(REPLACE "\\" "\\\\" ${resource}_2SLASH "${${resource}}")
+    string(REPLACE "\\" "\\\\" ${resource}_4SLASH "${${resource}_2SLASH}")
+  endforeach()
 endif (WIN32)
 
 if (APPLE)
@@ -93,7 +85,11 @@ include_directories( ${Boost_INCLUDE_DIRS} )
 ## Imagemagick
 ADD_DEFINITIONS(-DMAGICKCORE_HDRI_ENABLE=0)
 ADD_DEFINITIONS(-DMAGICKCORE_QUANTUM_DEPTH=8)
-find_package( ImageMagick COMPONENTS Magick++ REQUIRED )
+if(WIN32)
+  find_package(ImageMagick COMPONENTS Magick++ MagickCore REQUIRED)
+else()
+  find_package(ImageMagick COMPONENTS Magick++ REQUIRED)
+endif()
 include_directories( ${ImageMagick_INCLUDE_DIRS} )
 
 ## OpenMP
@@ -121,17 +117,21 @@ endif (WIN32)
 include_directories( ${EIGEN3_INCLUDE_DIR} )
 
 ## vlfeat
-if (WIN32)
-  include_directories( ${VLFEAT_INCLUDE_DIR} )
-else (WIN32)
-  if(NOT DEFINED ${VLFEAT_LIB})
+if(WIN32)
+  find_path(VLFEAT_INCLUDE_DIR vl/generic.h)
+  find_library(VLFEAT_LIB NAMES vl libvl PATH_SUFFIXES bin/win64 lib)
+  if(NOT VLFEAT_INCLUDE_DIR OR NOT VLFEAT_LIB)
+    message(FATAL_ERROR "Set VLFEAT_INCLUDE_DIR and VLFEAT_LIB, or add VLFeat to CMAKE_PREFIX_PATH")
+  endif()
+else()
+  if(NOT VLFEAT_LIB)
     set(VLFEAT_LIB "-lvl")
   endif()
-  if(NOT DEFINED ${VLFEAT_INCLUDE_DIR})
+  if(NOT VLFEAT_INCLUDE_DIR)
     set(VLFEAT_INCLUDE_DIR "${CMAKE_PREFIX_PATH}include/vl")
   endif()
-
-endif (WIN32)
+endif()
+include_directories(${VLFEAT_INCLUDE_DIR})
 
 ## sqlite
 find_package(SQLite3)
@@ -231,16 +231,24 @@ if(WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "x64"))
   #SET(CPACK_NSIS_MUI_FINISHPAGE_RUN "$INSTDIR\\\\bin\\\\${RELEASE_PACKAGE_NAME}.exe")
 
   # copy required resources
-  INSTALL(DIRECTORY "${VISE_DEPS_BASEDIR_4SLASH}\\\\" DESTINATION "bin")
-  INSTALL(DIRECTORY "${VISE_MAGICK_DEPS_BASEDIR_4SLASH}\\\\" DESTINATION "bin")
+  if(VISE_DEPS_BASEDIR)
+    INSTALL(DIRECTORY "${VISE_DEPS_BASEDIR_4SLASH}\\\\" DESTINATION "bin")
+  endif()
+  if(VISE_MAGICK_DEPS_BASEDIR)
+    INSTALL(DIRECTORY "${VISE_MAGICK_DEPS_BASEDIR_4SLASH}\\\\" DESTINATION "bin")
+  endif()
 
   INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/www/" DESTINATION "www")
   #INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/" DESTINATION "res")
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/res/win/vise_logo.bmp" DESTINATION "bin")
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/res/win/vise_icon.ico" DESTINATION "bin")
 
-  INSTALL(DIRECTORY "${VISE_DEMO_PROJECTS_DIR_4SLASH}\\\\" DESTINATION "demo_projects")
-  INSTALL(DIRECTORY "${VISE_ASSET_DIR_4SLASH}\\\\" DESTINATION "asset")
+  if(VISE_DEMO_PROJECTS_DIR)
+    INSTALL(DIRECTORY "${VISE_DEMO_PROJECTS_DIR_4SLASH}\\\\" DESTINATION "demo_projects")
+  endif()
+  if(VISE_ASSET_DIR)
+    INSTALL(DIRECTORY "${VISE_ASSET_DIR_4SLASH}\\\\" DESTINATION "asset")
+  endif()
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE.txt" DESTINATION ".")
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../README.md" DESTINATION ".")
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../CHANGELOG.txt" DESTINATION ".")

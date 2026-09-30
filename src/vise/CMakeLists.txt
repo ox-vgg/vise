@@ -39,10 +39,12 @@ if(WIN32)
 	target_link_libraries(VISE vise_util http_server ${ImageMagick_LIBRARIES})
 	install(TARGETS VISE DESTINATION bin)
 
-  # vise-cli is not yet ready for release
-  #add_executable(vise-cli vise-cli.cc)
-  #target_link_libraries(vise-cli vise_util http_server ${ImageMagick_LIBRARIES})
-  #install(TARGETS vise-cli DESTINATION bin)
+  option(VISE_BUILD_WINDOWS_CLI "Build the optional Windows command-line interface" OFF)
+  if(VISE_BUILD_WINDOWS_CLI)
+    add_executable(vise-cli vise-cli.cc)
+    target_link_libraries(vise-cli vise_util http_server ${ImageMagick_LIBRARIES})
+    install(TARGETS vise-cli DESTINATION bin)
+  endif()
 endif(WIN32)
 
 if(UNIX)

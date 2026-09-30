@@ -1414,7 +1414,7 @@ void vise::project::vgroup_match_graph(const std::string vgroup_id,
     batch_results.resize(current_batch_size);
 
 #pragma omp parallel for num_threads(nthread) schedule(dynamic)
-    for(std::size_t qindex_batch=0; qindex_batch<current_batch_size; ++qindex_batch) {
+    for(int64_t qindex_batch=0; qindex_batch<static_cast<int64_t>(current_batch_size); ++qindex_batch) {
       std::size_t qindex_global = batch_start + qindex_batch;
       std::size_t query_id = query_id_list.at(qindex_global);
       batch_results[qindex_batch].query_id = query_id;

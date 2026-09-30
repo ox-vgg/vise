@@ -2,6 +2,7 @@
 #include <random>
 #include <algorithm>
 #include <iterator>
+#include <numeric>
 
 using namespace vise;
 
