@@ -68,12 +68,18 @@ vise::relja_retrival::relja_retrival(boost::filesystem::path pconf_fn,
   d_is_indexing_done = false;
 
   d_index_log_fn   = d_data_dir / "index.log";
+  if (d_pconf.count("index_log_file") && !d_pconf.at("index_log_file").empty()) {
+    d_index_log_fn = boost::filesystem::path(d_pconf.at("index_log_file"));
+    if (d_index_log_fn.is_relative()) {
+      d_index_log_fn = d_project_dir / d_index_log_fn;
+    }
+  }
   d_log.open(d_index_log_fn.string(), std::fstream::app);
   if(d_log.is_open()) {
     std::cout << "Logging progress to file " << d_index_log_fn << std::endl;
   } else {
-    std::cout << "Failed to open log file " << d_index_log_fn << std::endl;
-    return;
+    std::cerr << "Failed to open log file " << d_index_log_fn
+              << "; continuing without file logging" << std::endl;
   }
   d_log << "///// LOG START: " << vise::now_timestamp() << std::endl;
 
